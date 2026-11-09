@@ -63,6 +63,16 @@ UI event (data-set / data-act / rng / seg / picker)
 - Canopy 3D: `slab()` hugs the angled outer surface; `polyMesh` makes bevelled panels; `chordHinge()` swings side and barn doors about the bottom-to-top chord of an angled wall.
 - Tray sides and tailgate are only drawn where no canopy covers them (bare tray, or behind the canopy).
 
+## Level of detail and photo mode
+
+- `LOD.hq` (global) picks the detail level for every vehicle, wheel and face: false = light low-poly models for the editor, true = the high-poly versions (finer body sections, tread blocks, brake discs, layered lamps, full undercarriage). `doRebuild()` sets it from `state.photo`.
+- **Photo mode** (`setPhoto(on)`, button in the view bar, Esc exits): hides the shed, builds an outdoor scene once (`buildOutdoors()`: sky dome, sun with shadows, outback track, trees, hills, tufts, fence), switches tone mapping and reflections (`buildEnvMapOut()`), folds the panel away and rebuilds all parts at high poly. `savePhoto()` / `sharePhoto()` render a 2x PNG (Web Share where available). `state.photo` is never saved or put in share codes.
+- Smoke tests build every model at both levels (`LOD.hq = true/false`); photo mode itself needs real WebGL, so check it with the offline render recipe under Testing.
+
+## Factory tub
+
+`tray.design = 'tub'`: per-vehicle `VEHICLES[x].tub = { wid, rim, floor, lamp }` plus the stock tray length. `buildTub()` makes the full-height side panels (sill to rim, wheel arch cut from the bottom edge, flare round it), wheel boxes, ribbed floor, front wall, drop-down tailgate with its own handle style, rear pillars carrying the factory tail lamps (hilux / ranger / lc79 / rc), step bumper, plate, left fuel door and spare. `clampState()` forces tub rules: stock length and width, no headboard, boxes, guards, canopy or door-mounted spare. The cab fuel flap is skipped when a tub is fitted.
+
 ## Persistence and share codes
 
 - `localStorage` key `canopy-builder-v2` (v1 was dropped so the app can start empty).

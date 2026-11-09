@@ -67,6 +67,16 @@ TEST = r"""
   run('defaults', () => { const d = defaultState(); if (d.tray.head !== 'full' || d.tray.headShape !== 'angled') throw new Error('default headboard is not tall angled'); });
   run('legacy light', () => { const o = JSON.parse(atob(exportCode())); o.tray.lightStyle = 'vbar'; if (!importCode(btoa(JSON.stringify(o))) || state.tray.lightStyle !== 'bar') throw new Error('light migration: ' + state.tray.lightStyle); });
   T.veh = 'hilux'; clampState();
+  // factory tubs on every ute, both levels of detail (an earlier import replaced the state objects, so read them again)
+  const T2 = state.tray, C2 = state.canopy;
+  for (const hq of [false, true]) for (const v of Object.keys(VEHICLES)) for (const cab of VEHICLES[v].cabs) for (const lc of Object.keys(LIGHTS)) for (const sp of ['none', 'carrier', 'under', 'door']) {
+    LOD.hq = hq; T2.veh = v; T2.cab = cab; T2.design = 'tub'; T2.lights = lc; T2.spare = sp; T2.lift = hq ? 75 : 0; T2.bodyLift = 0; C2.shape = 'aframe'; clampState();
+    if (C2.shape !== 'none' || T2.head !== 'none' || T2.spare === 'door') throw new Error('tub rules not enforced');
+    run('tub ' + [hq, v, cab, lc, sp].join('/'), () => { buildTray(); buildVehicle(); panelTray(); panelCanopy(); loadCheck(); partsList(); weights(); });
+  }
+  LOD.hq = false; T2.design = 'factory'; T2.head = 'full'; T2.spare = 'none'; T2.lift = 0; T2.veh = 'hilux'; T2.cab = 'dual'; clampState();
+  for (const v of Object.keys(VEHICLES)) for (const hq of [false, true]) { LOD.hq = hq; T2.veh = v; clampState(); run('lod ' + v + hq, () => buildVehicle()); }
+  LOD.hq = false; T2.veh = 'hilux'; clampState();
   // gear in an A-frame canopy
   C.shape = 'aframe'; C.rear='hatch'; clampState();
   run('add gear', () => { ['slide75','bra63','jerry','battery','solar200','boards'].forEach(k => addItem(k)); layout(); /* syncItems() skipped: the stub THREE cannot fake an awning's userData */ });

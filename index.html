@@ -239,6 +239,14 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
   #selbar .acts,#selbar .grpl,#selbar .nudge,#selbar .lift{gap:2px}
   #selbar .mini{min-width:22px;font-size:12px}
 }
+/* photo mode: the panel folds away and the view takes the whole width */
+.photo-only{display:none}
+#app.photo{grid-template-columns:68px minmax(0,1fr);grid-template-areas:"rail top" "rail stage"}
+#app.photo #panel,#app.photo .ov-b,#app.photo #stats{display:none}
+#app.photo #stage{margin:16px}
+#app.photo .ov-tl>.grp:not(.photo-only),#app.photo .tbtog{display:none}
+#app.photo .ov-tl>.grp.photo-only{display:flex!important}
+@media (max-width:820px){#app.photo{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top" "stage"}#app.photo #stage{margin:8px}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
@@ -262,6 +270,10 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
       </div>
       <div class="grp no-bp" role="group" aria-label="Doors">
         <button data-act="doors" id="doorsBtn">Open doors</button>
+      </div>
+      <div class="grp no-bp" role="group" aria-label="Photo mode"><button data-act="photo" id="photoBtn" aria-pressed="false" title="Outdoor scene with the high-poly models">Photo mode</button></div>
+      <div class="grp photo-only" role="group" aria-label="Photo tools">
+        <button data-act="photo" data-off="1">← Back to editor</button><button data-act="cam" data-v="photoF">Front 3/4</button><button data-act="cam" data-v="rear34">Rear 3/4</button><button data-act="cam" data-v="side">Side</button><button data-act="cam" data-v="front">Front</button><button data-act="cam" data-v="rear">Rear</button><button data-act="savephoto">Save photo</button><button data-act="sharephoto">Share</button>
       </div>
       <div class="grp no-bp" role="group" aria-label="Camera">
         <button data-act="cam" data-v="rear34">3/4</button><button data-act="cam" data-v="side">Side</button><button data-act="cam" data-v="rear">Rear</button><button data-act="cam" data-v="top">Top</button>
@@ -515,6 +527,11 @@ const VEHICLES = {
   }
 };
 const VEH_DEFAULT = 'hilux';
+/* factory tub: outer width and rim height above the deck, floor drop below it, and which tail lamp it carries */
+Object.assign(VEHICLES.hilux, { tub: { wid: 1850, rim: 320, floor: 160, lamp: 'hilux' } });
+Object.assign(VEHICLES.ranger, { tub: { wid: 1915, rim: 345, floor: 150, lamp: 'ranger' } });
+Object.assign(VEHICLES.lc79, { tub: { wid: 1865, rim: 300, floor: 170, lamp: 'lc79' } });
+Object.assign(VEHICLES.colorado, { tub: { wid: 1875, rim: 320, floor: 150, lamp: 'rc' } });
 /* Masses in kg for 4x4 cab-chassis models, all estimates: kerb by cab, GVM, axle limits, and the share of kerb mass on the front axle.
    The compliance plate on the real ute is what counts. Seats: [mm behind the base of the windscreen, number of seats]. */
 Object.assign(VEHICLES.hilux, { mass: { single: 1880, extra: 1960, dual: 2060 }, gvm: 3050, fal: 1430, ral: 1850, kf: 0.6 });
@@ -547,6 +564,7 @@ const DY_MAX = 1200;
 /* Tray designs: what goes on the back of the bare chassis. mat / finish / colour are the starting look for each design, side is the height of its sides in mm. */
 const TRAYS = {
   none:     { name: 'No tray', sub: 'Bare chassis, as it leaves the factory' },
+  tub:      { name: 'Factory tub', sub: 'The original pressed-steel tub for this ute, with its own arches, tailgate and tail lamps', mat: 'steel', finish: 'smooth', colour: 'black', side: 480 },
   factory:  { name: 'Factory alloy', sub: 'Alloy tray with fixed sides and a drop tailgate', mat: 'alu', finish: 'smooth', colour: 'raw', side: 240 },
   dropside: { name: 'Drop-side', sub: 'Steel tray with hinged drop sides on three sides', mat: 'steel', finish: 'smooth', colour: 'black', side: 380 },
   rail:     { name: 'Rail-side', sub: 'Open tube rails around the deck', mat: 'alu', finish: 'smooth', colour: 'raw', side: 330 },
@@ -653,7 +671,7 @@ function defaultState() {
     step: 0, paint: 'silver',
     tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: 'none', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'none', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
     canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
-    items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
+    photo: false, items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
   };
 }
 const state = defaultState();
@@ -676,6 +694,12 @@ function clampState() {
   if (OPT.bodyLift.indexOf(T.bodyLift) < 0) T.bodyLift = 0;
   if (OPT.shape.indexOf(C.shape) < 0) C.shape = 'none';
   if (T.design === 'none') C.shape = 'none'; /* a canopy needs a tray under it */
+  if (T.design === 'tub') {          /* the factory tub is the size and shape it was built: no canopy, headboard, boxes or guards on it */
+    const st = stockTray(T.veh, T.cab);
+    if (st) T.len = st.len;
+    T.wid = V.tub.wid; T.head = 'none'; T.boxes = 'none'; T.guards = 'none'; C.shape = 'none';
+    if (T.spare === 'door' || T.spare === 'door2') T.spare = 'none';
+  }
   /* gear lives inside a canopy, and the ute can only come off with a canopy to stand on its own */
   if (C.shape === 'none') { state.carOff = false; if (state.items.length) { state.items = []; state.wires = []; state.sel = null; } }
   state.items.forEach(i => { i.dy = Math.round(clamp(+i.dy || 0, 0, DY_MAX)); });
@@ -1593,11 +1617,13 @@ function tube(path, rad, mat, seg) {
 
 /* ---------- Wheels: a moulded tyre with all-terrain tread, and a rim per style. Axis runs along x, the face looks at +x. S is a material factory (col, rough, metal). ---------- */
 /* the spare is always the same tyre as the four on the ground */
+/* Level of detail. The editor draws light low-poly models so it stays quick; photo mode switches every model to its high-poly version. */
+const LOD = { hq: false };
 const spR = () => tyreSpec().R * MM, spW = () => tyreSpec().W * MM;
 function wheelGroup(rad, wid, S, style, rimK, tread) {
   tread = tread || TYRES[state.tray.tyre] || TYRES.at;
   const w = new THREE.Group(), k = rimK || 0.64, hw = wid / 2, dep = tread.d * MM, rg = rad - dep;
-  const Rr = Math.min(rad * k, rg - 0.06), sw = rg - Rr, seg = 72;
+  const Rr = Math.min(rad * k, rg - 0.06), sw = rg - Rr, hq = LOD.hq, seg = hq ? 72 : 32;
   const tyre = S('#1b1c1e', 0.93, 0), dk = S('#1f2226', 0.6, 0.2), lug = S('#b8bec4', 0.3, 0.8), txt = S('#cfd3d6', 0.85, 0);
   const rimC = style === 'steel' ? '#d6d9dc' : style === 'spoke6' ? '#7a8189' : '#c3c8cd';
   const rim = S(rimC, 0.3, style === 'steel' ? 0.3 : 0.7), rimDk = S('#2a2d31', 0.5, 0.5), disc = S('#8d9298', 0.45, 0.8), calip = S('#b2352c', 0.45, 0.3);
@@ -1609,7 +1635,7 @@ function wheelGroup(rad, wid, S, style, rimK, tread) {
   prof.unshift([0, Rr - 0.004]); prof.push([0, Rr - 0.004]);
   w.add(loft(prof.map(([x, r]) => Array.from({ length: seg }, (_, i) => { const a = i / seg * Math.PI * 2; return [x, Math.sin(a) * r, Math.cos(a) * r]; })), tyre, true));
   /* tread, built from blocks: a rib tyre gets ring ribs with fine grooves, the others get staggered centre blocks, shoulder blocks and sidewall lugs */
-  const T = new Merge(), tw = hw * 0.86, nb = tread.nb, arc = Math.PI * 2 * rad / nb, rc = rad - dep / 2;
+  const T = new Merge(), tw = hw * 0.86, nb = hq ? tread.nb : Math.max(18, Math.round(tread.nb * 0.6)), arc = Math.PI * 2 * rad / nb, rc = rad - dep / 2;
   const at = (i, o) => { const a = (i + o) / nb * Math.PI * 2; return [a, Math.sin(a) * rc, Math.cos(a) * rc, Math.PI / 2 - a]; };
   if (tread.rib) {
     [-0.78, -0.26, 0.26, 0.78].forEach(f => w.add(cyl(rad, tw * 0.36, tyre, f * tw, 0, 0, 'x', seg)));
@@ -1629,16 +1655,16 @@ function wheelGroup(rad, wid, S, style, rimK, tread) {
   }
   w.add(T.mesh(tyre));
   /* raised lettering and the snowflake mark on both sidewalls */
-  { const Lt = new Merge(), rl = Rr + sw * 0.55, nl = 11;
+  if (hq) { const Lt = new Merge(), rl = Rr + sw * 0.55, nl = 11;
     for (let i = 0; i < nl; i++) { const a = (i + 0.2) / nl * Math.PI * 0.62 + 0.3; [-1, 1].forEach(sd => Lt.box(sd * (hw + 0.0008), Math.sin(a) * rl, Math.cos(a) * rl, 0.0016, 0.022, 0.03 + (i % 3) * 0.014, Math.PI / 2 - a)); }
     if (tread.snow) [-1, 1].forEach(sd => { for (let q = 0; q < 3; q++) Lt.box(sd * (hw + 0.0008), -0.045 * q + Math.sin(2.7) * rl - 0.02, Math.cos(2.7) * rl, 0.0016, 0.036 - q * 0.007, 0.04 - q * 0.008, 0.4); });
     w.add(Lt.mesh(txt)); }
   /* rim: barrel, lip, face, brake disc and caliper behind it, valve, nuts */
   const fx = hw - 0.05;
   w.add(cyl(Rr, (fx - 0.025) * 2, rim, 0, 0, 0, 'x', 40));
-  w.add(cyl(Rr * 1.02, 0.014, rim, hw - 0.012, 0, 0, 'x', 40)); w.add(cyl(Rr * 1.02, 0.014, rim, -hw + 0.012, 0, 0, 'x', 40));
+  if (hq) { w.add(cyl(Rr * 1.02, 0.014, rim, hw - 0.012, 0, 0, 'x', 40)); w.add(cyl(Rr * 1.02, 0.014, rim, -hw + 0.012, 0, 0, 'x', 40));
   w.add(cyl(Rr * 0.8, 0.014, disc, fx - 0.09, 0, 0, 'x', 36));
-  w.add(rbox(0.07, Rr * 0.45, Rr * 0.5, 0.012, calip, fx - 0.09, -Rr * 0.5, Rr * 0.12));
+  w.add(rbox(0.07, Rr * 0.45, Rr * 0.5, 0.012, calip, fx - 0.09, -Rr * 0.5, Rr * 0.12)); }
   if (style === 'steel') {
     w.add(cyl(Rr * 0.97, 0.02, rim, fx, 0, 0, 'x', 40));
     w.add(cyl(Rr * 0.5, 0.035, rim, fx + 0.01, 0, 0, 'x', 28));
@@ -1661,7 +1687,7 @@ function wheelGroup(rad, wid, S, style, rimK, tread) {
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, r = Rr * 0.19; Lg.box(fx + 0.04, Math.sin(a) * r, Math.cos(a) * r, 0.02, 0.022, 0.022, a); Lg.box(fx + 0.04, Math.sin(a) * r, Math.cos(a) * r, 0.02, 0.022, 0.022, a + Math.PI / 6); }
   w.add(Lg.mesh(lug));
   w.add(cyl(Rr * 0.1, 0.07, rimDk, fx + 0.02, 0, 0, 'x', 14));
-  w.add(cyl(0.009, 0.034, rimDk, hw - 0.03, Math.sin(0.9) * Rr * 0.97, Math.cos(0.9) * Rr * 0.97, 'x', 6));
+  if (hq) w.add(cyl(0.009, 0.034, rimDk, hw - 0.03, Math.sin(0.9) * Rr * 0.97, Math.cos(0.9) * Rr * 0.97, 'x', 6));
   return w;
 }
 /* A spare on a bracket facing rearward. zFace is the surface it bolts to, in the parent's local space. Returns the wheel. */
@@ -1702,9 +1728,117 @@ function panelPoly(pts, depth, mat, z) {
   const m = shadowed(new THREE.Mesh(gm, mat)); m.position.z = z;
   return m;
 }
+/* ---------- Factory tub: the pressed-steel body that comes on the ute, modelled per vehicle. Full-height outer side panels run from the sill to the rim with the
+   wheel arch cut into the bottom edge and a flare round it, wheel boxes stand up inside, a drop-down tailgate sits between two rear pillars that carry the
+   factory tail lamps, and there is a step bumper with the plate. The fuel door is on the left, just behind the cab. ---------- */
+function buildTub(g, T) {
+  const VG = vehGeo(), V = VG.V, S = VSPEC[V.look] || VSPEC.hilux, K = V.tub, hq = LOD.hq;
+  const W = T.wid * MM, L = T.len * MM, zf = -L / 2, zr = L / 2;
+  const paint = paintMat(PAINTS[state.paint][1]);
+  const liner = std('#25272a', 0.92, 0.05), dkM = std('#1d1f22', 0.7, 0.15), blk = std('#121416', 0.55, 0.2), chrome = std('#d4d8dc', 0.2, 0.85), zinc = std('#9aa0a6', 0.4, 0.6);
+  const flareM = S.flareCol === 'paint' ? paint : S.flareCol === 'grey' ? std('#3a3e43', 0.85, 0.05) : std('#1b1d20', 0.85, 0.05);
+  const yTop = K.rim * MM, yFl = -K.floor * MM, yBot = (S.sill + 40 - V.deckH) * MM, hMid = (yTop + yBot) / 2;
+  const zA = VG.rearAxle * MM, yA = (V.tyreR - V.deckH) * MM, Ra = (V.tyreR + S.archGap + 14) * MM, nA = S.archN;
+  /* outer side panel outline (z, y): sill to rim, arch cut from the bottom edge */
+  const arch = [], N = hq ? 56 : 22;
+  for (let i = 0; i <= N; i++) {
+    const th = Math.PI - Math.PI * i / N, c = Math.cos(th), sn = Math.sin(th);
+    arch.push([clamp(zA + Ra * sgnV(c) * Math.pow(Math.abs(c), 2 / nA), zf + 0.03, zr - 0.03), yA + Ra * Math.pow(Math.abs(sn), 2 / nA)]);
+  }
+  const up = arch.filter(p => p[1] > yBot + 0.004), pts = [[zf, yBot]];
+  if (up.length > 1) { pts.push([up[0][0], yBot]); up.forEach(p => pts.push(p)); pts.push([up[up.length - 1][0], yBot]); }
+  pts.push([zr, yBot], [zr, yTop], [zf, yTop]);
+  [-1, 1].forEach(s => {
+    const sx = s * (W / 2 - 0.015);
+    const pn = prism(pts, 0.03, paint); pn.position.x = sx; g.add(pn);
+    if (up.length > 1) g.add(tube(up.map(p => [s * (W / 2 + 0.002), p[1], p[0]]), 0.021, flareM, hq ? 10 : 6));       /* flare round the arch */
+    g.add(rbox(0.07, 0.05, L - 0.02, 0.02, paint, s * (W / 2 - 0.032), yTop, 0));                                        /* rolled rim */
+    g.add(rbox(0.014, yTop - yFl, L - 0.1, 0.004, paint, s * (W / 2 - 0.042), (yTop + yFl) / 2, 0));                      /* inner wall */
+    /* pressed character lines down the outside */
+    ({ hilux: [[0.13, 0.026, 0.009], [0.34, 0.02, 0.006]], ranger: [[0.1, 0.034, 0.013], [0.27, 0.026, 0.009]], lc79: [[0.12, 0.04, 0.006], [0.23, 0.04, 0.006], [0.34, 0.04, 0.006]], rc: [[0.12, 0.036, 0.013], [0.3, 0.03, 0.01]] })[K.lamp].forEach(([dy, h, o]) =>
+      g.add(rbox(o, h, L * 0.9, Math.min(0.006, o / 1.5), paint, s * (W / 2 + o / 2 - 0.002), yTop - dy, 0)));
+    /* wheel box standing up inside */
+    const z0 = Math.max(zf + 0.05, zA - Ra * 0.66), z1 = Math.min(zr - 0.05, zA + Ra * 0.66), hh = Math.min(0.24, yTop - yFl - 0.1);
+    if (z1 > z0) { g.add(rbox(0.27, hh, z1 - z0, 0.08, paint, s * (W / 2 - 0.042 - 0.135), yFl + hh / 2, (z0 + z1) / 2)); if (hq) g.add(rbox(0.2, 0.012, z1 - z0 - 0.14, 0.005, liner, s * (W / 2 - 0.042 - 0.135), yFl + hh - 0.002, (z0 + z1) / 2)); }
+    if (hq) [zf + 0.2, zr - 0.3].forEach(z => { g.add(tube([[s * (W / 2 - 0.06), yTop - 0.09, z - 0.03], [s * (W / 2 - 0.075), yTop - 0.115, z], [s * (W / 2 - 0.06), yTop - 0.14, z + 0.03]], 0.0075, zinc, 6)); }); /* tie-down loops */
+    /* rear pillar carrying the lamp */
+    g.add(rbox(0.15, yTop - yBot, 0.09, 0.025, paint, s * (W / 2 - 0.08), hMid, zr - 0.045));
+  });
+  /* floor with lengthwise ribs, front wall with a rolled top */
+  g.add(rbox(W - 0.1, 0.025, L - 0.08, 0.006, liner, 0, yFl - 0.0125, 0));
+  if (hq) { const R = new Merge(); for (let x = -W / 2 + 0.2; x < W / 2 - 0.19; x += 0.085) R.box(x, yFl + 0.004, 0, 0.032, 0.008, L - 0.3, 0); g.add(R.mesh(liner)); }
+  g.add(rbox(W - 0.09, yTop - yFl, 0.05, 0.014, paint, 0, hMid + (yFl - yBot) / 2 * 0, zf + 0.03));
+  g.add(rbox(W - 0.09, 0.045, 0.075, 0.016, paint, 0, yTop, zf + 0.03));
+  if (hq) for (let i = -2; i <= 2; i++) g.add(rbox(0.07, (yTop - yFl) * 0.6, 0.01, 0.004, paint, i * 0.28, yFl + (yTop - yFl) * 0.38, zf + 0.06));
+  g.add(rbox(W - 0.1, yFl - yBot, 0.04, 0.01, paint, 0, (yFl + yBot) / 2, zf + 0.025));                                   /* skirt under the floor at the front */
+  /* tailgate between the pillars, with its handle and lock in the right style for the ute */
+  const gw = W - 0.34, gy0 = yFl - 0.06, gy1 = yTop - 0.012, gh = gy1 - gy0, gm = (gy0 + gy1) / 2;
+  g.add(rbox(gw, gh, 0.045, 0.014, paint, 0, gm, zr - 0.024));
+  if (hq || true) { g.add(rbox(gw * 0.86, 0.02, 0.01, 0.005, paint, 0, gy0 + gh * 0.3, zr + 0.002)); g.add(rbox(gw * 0.86, 0.02, 0.01, 0.005, paint, 0, gy0 + gh * 0.62, zr + 0.002)); }
+  if (K.lamp === 'hilux') { g.add(rbox(0.26, 0.055, 0.014, 0.012, blk, 0, gy1 - 0.075, zr + 0.003)); g.add(rbox(0.2, 0.014, 0.018, 0.006, chrome, 0, gy1 - 0.062, zr + 0.01)); }
+  else if (K.lamp === 'ranger') { g.add(rbox(0.34, 0.05, 0.016, 0.014, blk, 0, gy1 - 0.065, zr + 0.003)); g.add(rbox(0.3, 0.026, 0.02, 0.012, chrome, 0, gy1 - 0.065, zr + 0.01)); }
+  else if (K.lamp === 'lc79') [-1, 1].forEach(s => { g.add(rbox(0.07, 0.13, 0.016, 0.01, blk, s * (gw / 2 - 0.1), gy1 - 0.1, zr + 0.003)); g.add(rbox(0.04, 0.09, 0.022, 0.01, zinc, s * (gw / 2 - 0.1), gy1 - 0.1, zr + 0.012)); });
+  else { g.add(rbox(0.22, 0.06, 0.016, 0.014, blk, 0, gy1 - 0.07, zr + 0.003)); g.add(rbox(0.17, 0.034, 0.022, 0.014, chrome, 0, gy1 - 0.07, zr + 0.01)); g.add(cyl(0.012, 0.016, zinc, 0.14, gy1 - 0.07, zr + 0.012, 'z', 10)); }
+  [-1, 1].forEach(s => { g.add(rbox(0.05, 0.07, 0.07, 0.012, blk, s * (gw / 2), gy0 + 0.05, zr - 0.012)); g.add(rbox(0.014, gh * 0.55, 0.014, 0.005, blk, s * (gw / 2 + 0.01), gm + gh * 0.1, zr - 0.052)); });
+  /* step bumper and plate */
+  const by = yFl - 0.22;
+  g.add(rbox(W - 0.36, 0.17, 0.12, 0.04, K.lamp === 'rc' ? chrome : K.lamp === 'ranger' || K.lamp === 'lc79' ? blk : paint, 0, by, zr + 0.04));
+  g.add(rbox(W - 0.5, 0.014, 0.12, 0.005, blk, 0, by + 0.088, zr + 0.04));
+  if (hq) { const Pd = new Merge(); for (let x = -(W - 0.56) / 2; x < (W - 0.56) / 2; x += 0.03) Pd.box(x, by + 0.097, zr + 0.04, 0.012, 0.004, 0.1, 0); g.add(Pd.mesh(dkM)); }
+  const plate = (y, z) => { g.add(rbox(0.38, 0.14, 0.015, 0.006, std('#f1efe6', 0.6, 0), 0, y, z)); g.add(rbox(0.38, 0.03, 0.017, 0.006, std('#2a4d8c', 0.6, 0), 0, y + 0.055, z)); };
+  /* factory tail lamps on the rear pillars, in the lens colours chosen */
+  { const L3 = LIGHTS[T.lights] || LIGHTS.red, em = c => std(c, 0.25, 0.05, { emissive: new THREE.Color(c), emissiveIntensity: L3.glow });
+    const cb = em(L3.c[0]), ca = em(L3.c[1]), cr = em(L3.c[2]), hs = std('#15171a', 0.55, 0.25), dots = std('#2c0a0d', 0.5, 0), D = new Merge();
+    const zl = zr + 0.002;
+    const led = (x, y, w, h, n, ln) => { for (let i = 0; i < n; i++) D.box(x, y + (i - (n - 1) / 2) * (h / n), zl + 0.034, w, h / (n * 2.2), 0.004, 0); };
+    [-1, 1].forEach(s => {
+      const x = s * (W / 2 - 0.08), y0 = yTop - 0.27;
+      if (K.lamp === 'hilux') {            /* tall slim unit: red with LED bars, amber, reverse, wrapping round the corner */
+        g.add(rbox(0.13, 0.38, 0.04, 0.02, hs, x, y0, zl));
+        g.add(rbox(0.105, 0.2, 0.03, 0.014, cb, x, y0 + 0.07, zl + 0.018)); led(x, y0 + 0.07, 0.085, 0.17, 5);
+        g.add(rbox(0.105, 0.07, 0.03, 0.014, ca, x, y0 - 0.075, zl + 0.018)); g.add(rbox(0.105, 0.06, 0.03, 0.014, cr, x, y0 - 0.145, zl + 0.018));
+        g.add(rbox(0.016, 0.3, 0.07, 0.008, cb, s * (W / 2 + 0.003), y0 + 0.03, zr - 0.05));
+      } else if (K.lamp === 'ranger') {    /* taller unit with a chrome C-edge, red above, amber and reverse below */
+        g.add(rbox(0.13, 0.46, 0.04, 0.02, hs, x, y0 - 0.03, zl));
+        g.add(rbox(0.108, 0.27, 0.03, 0.016, cb, x, y0 + 0.05, zl + 0.018)); led(x, y0 + 0.05, 0.085, 0.22, 6);
+        g.add(rbox(0.012, 0.28, 0.034, 0.005, chrome, x - s * 0.052, y0 + 0.05, zl + 0.03)); g.add(rbox(0.1, 0.012, 0.034, 0.005, chrome, x, y0 + 0.17, zl + 0.03));
+        g.add(rbox(0.108, 0.07, 0.03, 0.014, ca, x, y0 - 0.12, zl + 0.018)); g.add(rbox(0.108, 0.07, 0.03, 0.014, cr, x, y0 - 0.195, zl + 0.018));
+        g.add(rbox(0.016, 0.34, 0.07, 0.008, cb, s * (W / 2 + 0.003), y0 + 0.02, zr - 0.05));
+      } else if (K.lamp === 'lc79') {      /* three separate stacked lamps low on the tub corner, chrome edged */
+        const yy = yFl + 0.2;
+        g.add(rbox(0.125, 0.36, 0.04, 0.016, hs, x, yy, zl));
+        [[0.115, ca, 0.09], [0.005, cb, 0.13], [-0.1, cr, 0.09]].forEach(([dy, mt, h]) => { g.add(rbox(0.105, h + 0.014, 0.034, 0.01, chrome, x, yy + dy, zl + 0.014)); g.add(rbox(0.092, h, 0.03, 0.01, mt, x, yy + dy, zl + 0.022)); });
+        led(x, yy + 0.005, 0.07, 0.1, 3);
+      } else {                              /* rc: tall cluster, chrome bar through the red, amber and reverse under */
+        g.add(rbox(0.135, 0.4, 0.042, 0.02, hs, x, y0, zl));
+        g.add(rbox(0.11, 0.2, 0.03, 0.014, cb, x, y0 + 0.08, zl + 0.018)); g.add(rbox(0.112, 0.016, 0.034, 0.005, chrome, x, y0 + 0.08, zl + 0.03)); led(x, y0 + 0.14, 0.08, 0.07, 3); led(x, y0 + 0.02, 0.08, 0.07, 3);
+        g.add(rbox(0.11, 0.08, 0.03, 0.014, ca, x, y0 - 0.06, zl + 0.018)); g.add(rbox(0.11, 0.07, 0.03, 0.014, cr, x, y0 - 0.14, zl + 0.018));
+        g.add(rbox(0.016, 0.3, 0.07, 0.008, cb, s * (W / 2 + 0.003), y0 + 0.04, zr - 0.05));
+      }
+    });
+    g.add(D.mesh(dots)); }
+  /* fuel door on the left, with its hinge and the cap ring pressed into it */
+  { const x = -(W / 2 + 0.004), z = zf + 0.3, y = yTop - 0.24;
+    g.add(rbox(0.012, 0.215, 0.175, 0.02, blk, x, y, z)); g.add(rbox(0.016, 0.2, 0.16, 0.02, paint, x - 0.002, y, z));
+    g.add(cyl(0.05, 0.004, blk, x - 0.011, y, z, 'x', 24)); g.add(cyl(0.044, 0.006, paint, x - 0.012, y, z, 'x', 24));
+    g.add(rbox(0.012, 0.03, 0.02, 0.006, blk, x - 0.012, y + 0.075, z - 0.075)); g.add(cyl(0.006, 0.02, zinc, x - 0.008, y + 0.07, z + 0.082, 'y', 8)); g.add(cyl(0.006, 0.02, zinc, x - 0.008, y - 0.07, z + 0.082, 'y', 8)); }
+  /* spare, plate */
+  if (T.spare === 'carrier') {
+    const dk = std('#1f2226', 0.6, 0.2);
+    g.add(cyl(0.03, 0.55, dk, 0, -0.1, zr + 0.415, 'y', 10));
+    const wg = spareMount(g, 0, -0.1, zr + 0.445);
+    plate(-0.3, wg.position.z + spW() / 2 + 0.016);
+  } else plate(by, zr + 0.106);
+  if (T.spare === 'under') {
+    const dk = std('#1f2226', 0.6, 0.2), yc = -0.27 - spW() / 2 - 0.01 - 0.18, zc = zr - 0.58;
+    const wg = wheelGroup(spR(), spW(), std); wg.rotation.z = -Math.PI / 2; wg.position.set(0, yc, zc); g.add(wg);
+    g.add(cyl(0.012, 0.12, dk, 0, yc - spW() / 2 - 0.05, zc, 'y', 8));
+  }
+}
 function buildTray() {
   const g = new THREE.Group(), T = state.tray, G = geo();
   if (T.design === 'none') return g;
+  if (T.design === 'tub') { buildTub(g, T); return g; }
   const W = T.wid * MM, L = T.len * MM, des = TRAYS[T.design] || TRAYS.flat;
   const m = shellMat(T.mat, T.finish, T.colour);
   const edge = shellMat(T.mat, 'smooth', T.colour);
@@ -2099,9 +2233,11 @@ function shedLights(scene) {
 }
 /* keep the lights on the ute (or the canopy when it stands alone) */
 function aimLights(cz) {
+  aimLights.cz = cz;
   const fy = envG ? envG.position.y + GROUND_Y : GROUND_Y;
   if (shedLights.key) { shedLights.key.position.set(0.4, fy + 7.6, cz); shedLights.key.target.position.set(0, fy, cz); }
   (shedLights.fills || []).forEach(l => { l.target.position.set(0, fy + 0.8, cz); });
+  if (sunLight) { sunLight.target.position.set(0, fy, cz); sunLight.position.set(12 + 0 * cz, fy + 14, cz + 9); sunLight.target.updateMatrixWorld(); }
 }
 
 /* ---------- Soft contact shadows: a dark radial smudge under anything that sits on the floor ---------- */
@@ -2147,7 +2283,148 @@ function buildEnvMap() {
     scene.environment = pm.fromCubemap(rt.texture).texture;
     pm.dispose(); rt.dispose();
     if (shedLights.hemi) shedLights.hemi.intensity = 0.34;
+    envShed = scene.environment;
   } catch (e) { /* reflections are a nicety; carry on without them */ }
+}
+/* ---------- Photo mode: an outdoor scene (outback track, sky, sun, trees, hills) and every model switched to its high-poly version ---------- */
+let outG = null, sunLight = null, skyHemi = null, envOut = null, envShed = null;
+const seeded01 = seed => { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; };
+const SUN_V = [0.62, 0.62, 0.48];
+function buildOutdoors() {
+  const g = new THREE.Group(), rnd = seeded01(11), GY = GROUND_Y;
+  const coarse = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  /* sky: a big dome with a gradient from deep blue to a pale dusty horizon, plus the sun and a soft glow round it */
+  const skyTex = canvasTex(8, 512, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#2a67bd'); gr.addColorStop(0.3, '#5b97de'); gr.addColorStop(0.46, '#b9d6f0'); gr.addColorStop(0.5, '#efe2c8'); gr.addColorStop(0.56, '#d9c3a0'); gr.addColorStop(1, '#b89a74'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(260, 32, 20), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, depthWrite: false }));
+  dome.userData.sky = 1; g.add(dome);
+  const glowTex = canvasTex(128, 128, (c, w, h) => { const gr = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,250,235,1)'); gr.addColorStop(0.12, 'rgba(255,244,215,0.9)'); gr.addColorStop(0.4, 'rgba(255,225,170,0.25)'); gr.addColorStop(1, 'rgba(255,210,150,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  const sunSp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, fog: false, depthWrite: false, transparent: true }));
+  sunSp.scale.set(90, 90, 1); { const l = Math.hypot(...SUN_V); sunSp.position.set(SUN_V[0] / l * 230, SUN_V[1] / l * 230, SUN_V[2] / l * 230); } g.add(sunSp);
+  /* wispy cloud streaks high up */
+  const cloudTex = canvasTex(256, 64, (c, w, h) => { c.clearRect(0, 0, w, h); for (let i = 0; i < 30; i++) { const x = rnd() * w, y = h * 0.3 + rnd() * h * 0.4, r = 14 + rnd() * 30, gr = c.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); } });
+  for (let i = 0; i < 7; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, opacity: 0.8 })); const a = rnd() * Math.PI * 2; sp.scale.set(120 + rnd() * 80, 28 + rnd() * 14, 1); sp.position.set(Math.sin(a) * 200, 70 + rnd() * 50, Math.cos(a) * 200); g.add(sp); }
+  /* ground: red-brown outback dirt with pebbles, and a packed-dirt track with two wheel ruts */
+  const dirt = canvasTex(1024, 1024, (c, w, h) => {
+    c.fillStyle = '#8a4a2a'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { const x = rnd() * w, y = rnd() * h, r = 40 + rnd() * 140, gr = c.createRadialGradient(x, y, 0, x, y, r), v = rnd(); gr.addColorStop(0, v < 0.5 ? 'rgba(168,98,58,0.35)' : 'rgba(96,50,30,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); }
+    for (let i = 0; i < 16000; i++) { const v = rnd(), x = rnd() * w, y = rnd() * h; c.fillStyle = v < 0.4 ? 'rgba(98,50,30,0.4)' : v < 0.75 ? 'rgba(190,120,76,0.32)' : 'rgba(64,34,22,0.35)'; c.fillRect(x, y, 1 + rnd() * 3, 1 + rnd() * 2); }
+    for (let i = 0; i < 420; i++) { c.fillStyle = 'rgba(' + (150 + rnd() * 60 | 0) + ',' + (112 + rnd() * 40 | 0) + ',' + (88 + rnd() * 30 | 0) + ',0.75)'; c.beginPath(); c.arc(rnd() * w, rnd() * h, 1 + rnd() * 2.6, 0, 7); c.fill(); }
+    for (let i = 0; i < 220; i++) { c.strokeStyle = 'rgba(110,100,60,0.45)'; c.lineWidth = 1; const x = rnd() * w, y = rnd() * h; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (rnd() - 0.5) * 8, y - 4 - rnd() * 6); c.stroke(); }
+  }, 46);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshStandardMaterial({ map: dirt, roughness: 1, metalness: 0 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = GY; ground.receiveShadow = true; g.add(ground);
+  const trackTex = canvasTex(256, 256, (c, w, h) => {
+    const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(206,150,104,0)'); gr.addColorStop(0.14, 'rgba(204,146,98,0.95)'); gr.addColorStop(0.86, 'rgba(204,146,98,0.95)'); gr.addColorStop(1, 'rgba(206,150,104,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    [0.3, 0.7].forEach(f => { const rg = c.createLinearGradient(w * (f - 0.07), 0, w * (f + 0.07), 0); rg.addColorStop(0, 'rgba(110,60,36,0)'); rg.addColorStop(0.5, 'rgba(92,48,30,0.7)'); rg.addColorStop(1, 'rgba(110,60,36,0)'); c.fillStyle = rg; c.fillRect(w * (f - 0.07), 0, w * 0.14, h); });
+    for (let i = 0; i < 900; i++) { c.fillStyle = 'rgba(' + (180 + rnd() * 50 | 0) + ',' + (130 + rnd() * 40 | 0) + ',100,0.35)'; c.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1); }
+  });
+  trackTex.wrapS = trackTex.wrapT = THREE.RepeatWrapping; trackTex.repeat.set(1, 30);
+  const track = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 220), new THREE.MeshStandardMaterial({ map: trackTex, roughness: 1, transparent: true, depthWrite: false }));
+  track.rotation.x = -Math.PI / 2; track.position.set(0, GY + 0.004, -4); track.receiveShadow = true; track.renderOrder = 1; g.add(track);
+  /* far hills in two hazy rings */
+  const hill = (R, hMax, col, seed) => {
+    const r = seeded01(seed), n = 96, pos = [], idx = [];
+    for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2, hv = hMax * (0.35 + 0.65 * Math.abs(Math.sin(a * 3 + seed) * 0.6 + Math.sin(a * 7.3 + seed * 2) * 0.4)) * (0.8 + r() * 0.4); pos.push(Math.sin(a) * R, GY - 2, Math.cos(a) * R, Math.sin(a) * R * 0.97, GY + hv, Math.cos(a) * R * 0.97); }
+    for (let i = 0; i < n; i++) { const a = i * 2; idx.push(a, a + 1, a + 3, a, a + 3, a + 2); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide })); m.userData.sky = 1; return m;
+  };
+  g.add(hill(210, 26, '#8a6a70', 3), hill(160, 14, '#9b7662', 9));
+  /* trees: slim trunks and a few lumpy canopies, kept off the track */
+  const trunkM = new THREE.MeshStandardMaterial({ color: '#d6cdbb', roughness: 1 }), barkM = new THREE.MeshStandardMaterial({ color: '#5d4e3d', roughness: 1 }), leaf = ['#6a7440', '#7a844e', '#58633a', '#8a9356'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true }));
+  const ico = new THREE.IcosahedronGeometry(1, 1);
+  for (let i = 0; i < 40; i++) {
+    const ang = rnd() * Math.PI * 2, rad = 8 + rnd() * 80, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3;
+    if (Math.abs(x) < 6.5 && Math.abs(z + 2) < 40) continue;
+    const t = new THREE.Group(), h = 4 + rnd() * 5, near = rad < 18, lean = (rnd() - 0.5) * 0.12;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 + rnd() * 0.05, 0.22 + rnd() * 0.1, h, 7), i % 3 ? trunkM : barkM); trunk.position.y = h / 2; trunk.rotation.z = lean; trunk.castShadow = near; t.add(trunk);
+    for (let b = 0; b < 2 + (rnd() * 2 | 0); b++) { const L = 1.4 + rnd() * 1.6, br = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, L, 5), i % 3 ? trunkM : barkM); const a2 = rnd() * 6.28; br.position.set(Math.sin(a2) * L * 0.3, h * (0.7 + rnd() * 0.25), Math.cos(a2) * L * 0.3); br.rotation.set(Math.cos(a2) * 0.8, 0, -Math.sin(a2) * 0.8); br.castShadow = near; t.add(br); }
+    const nb = 5 + (rnd() * 4 | 0);
+    for (let b = 0; b < nb; b++) { const s = 0.7 + rnd() * 1.0, bl = new THREE.Mesh(ico, leaf[(rnd() * 4) | 0]); bl.scale.set(s * 1.4, s * 0.55, s * 1.4); bl.position.set((rnd() - 0.5) * 3.4, h + (rnd() - 0.2) * 1.4, (rnd() - 0.5) * 3.4); bl.castShadow = near; t.add(bl); }
+    t.position.set(x, GY, z); t.rotation.y = rnd() * 6; g.add(t);
+  }
+  /* rocks and spinifex tufts */
+  const rockG = new THREE.IcosahedronGeometry(1, 0), rp = rockG.attributes.position;
+  for (let i = 0; i < rp.count; i++) rp.setXYZ(i, rp.getX(i) * (0.85 + rnd() * 0.3), rp.getY(i) * (0.7 + rnd() * 0.3), rp.getZ(i) * (0.85 + rnd() * 0.3));
+  rockG.computeVertexNormals();
+  const rockM = [new THREE.MeshStandardMaterial({ color: '#7d6a5a', roughness: 0.95, flatShading: true }), new THREE.MeshStandardMaterial({ color: '#8a7766', roughness: 0.95, flatShading: true })];
+  for (let i = 0; i < 40; i++) { const ang = rnd() * Math.PI * 2, rad = 5 + rnd() * 60, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3; if (Math.abs(x) < 3.8) continue; const s = 0.25 + rnd() * rnd() * 1.6, r = new THREE.Mesh(rockG, rockM[i % 2]); r.scale.set(s * (1 + rnd() * 0.6), s * 0.65, s * (1 + rnd() * 0.6)); r.position.set(x, GY + s * 0.25, z); r.rotation.y = rnd() * 6; r.castShadow = rad < 14; r.receiveShadow = true; g.add(r); }
+  if (THREE.InstancedMesh) {
+    const blade = new THREE.ConeGeometry(0.035, 0.42, 4), cm = new THREE.MeshStandardMaterial({ color: '#a39a58', roughness: 1, flatShading: true }), n = 3200, im = new THREE.InstancedMesh(blade, cm, n), d = new THREE.Object3D();
+    for (let i = 0; i < n; i++) {
+      if (i % 8 === 0) { var cx = 0, cz = 0, tries = 0; do { const ang = rnd() * Math.PI * 2, rad = 2.5 + Math.sqrt(rnd()) * 50; cx = Math.sin(ang) * rad; cz = Math.cos(ang) * rad - 3; tries++; } while (Math.abs(cx) < 3.2 && tries < 6); if (Math.abs(cx) < 3.2) cx += 3.6 * sgnV(cx || 1); }
+      const s2 = 0.5 + rnd() * 1.1; d.position.set(cx + (rnd() - 0.5) * 0.45, GY + 0.2 * s2, cz + (rnd() - 0.5) * 0.45); d.scale.set(s2, s2 * (0.8 + rnd() * 0.6), s2); d.rotation.set((rnd() - 0.5) * 0.6, rnd() * 6, (rnd() - 0.5) * 0.6); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+    }
+    g.add(im);
+    const bush = new THREE.IcosahedronGeometry(0.5, 1), bm = new THREE.MeshStandardMaterial({ color: '#76803f', roughness: 1, flatShading: true });
+    for (let i = 0; i < 38; i++) { const ang = rnd() * Math.PI * 2, rad = 6 + rnd() * 48, x = Math.sin(ang) * rad; if (Math.abs(x) < 4.2) continue; const b = new THREE.Mesh(bush, bm), sc = 0.5 + rnd() * 1.1; b.scale.set(sc * 1.5, sc, sc * 1.5); b.position.set(x, GY + sc * 0.35, Math.cos(ang) * rad - 3); b.castShadow = rad < 14; g.add(b); }
+  }
+  /* a fence line along one side of the track */
+  { const post = new THREE.MeshStandardMaterial({ color: '#5e4c3a', roughness: 1 }), wire = new THREE.MeshStandardMaterial({ color: '#8c9096', roughness: 0.5, metalness: 0.8 });
+    for (let z = -60; z <= 40; z += 6) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), post); p.position.set(9.5, GY + 0.62, z); p.castShadow = Math.abs(z) < 14; g.add(p); }
+    [0.45, 0.8, 1.15].forEach(y => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 100, 4), wire); w.rotation.x = Math.PI / 2; w.position.set(9.5, GY + y, -10); g.add(w); }); }
+  g.traverse(o => { if (o.isMesh && !o.userData.sky && !o.castShadow) o.receiveShadow = true; });
+  /* lights: warm sun with soft shadows, sky and ground bounce */
+  sunLight = new THREE.DirectionalLight(0xfff0d8, 1.1);
+  sunLight.castShadow = true;
+  const ms = Math.min(coarse ? 2048 : 4096, (renderer && renderer.capabilities && renderer.capabilities.maxTextureSize) || 2048);
+  sunLight.shadow.mapSize.set(ms, ms); sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.035;
+  Object.assign(sunLight.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 60 });
+  skyHemi = new THREE.HemisphereLight(0xbcd7f5, 0x9a7650, 0.42);
+  g.add(sunLight, sunLight.target, skyHemi);
+  return g;
+}
+/* reflections for photo mode: photograph the outdoor scene once so paint, glass and chrome pick up the sky */
+function buildEnvMapOut() {
+  try {
+    if (!renderer || !THREE.WebGLCubeRenderTarget || !THREE.PMREMGenerator || !outG) return;
+    const rt = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter }), cc = new THREE.CubeCamera(0.1, 600, rt);
+    cc.position.set(0, envG.position.y + GROUND_Y + 1.4, -1.5);
+    const hide = [vehicleG, trayG, canopyG, itemsG, wiresG].filter(Boolean);
+    hide.forEach(x => x.visible = false); cc.update(renderer, scene); hide.forEach(x => x.visible = true);
+    const pm = new THREE.PMREMGenerator(renderer); envOut = pm.fromCubemap(rt.texture).texture; pm.dispose(); rt.dispose();
+  } catch (e) { /* carry on without sky reflections */ }
+}
+function setPhoto(on) {
+  if (!renderer || on === state.photo) return;
+  if (on && bp.on) { bp.on = false; $('#app').classList.remove('bp'); }
+  state.photo = on; LOD.hq = on;
+  if (on && !outG) { outG = buildOutdoors(); outG.visible = false; scene.add(outG); }
+  if (on && envShed === null) envShed = scene.environment || null;
+  outG.visible = on; envG.visible = !on;
+  [shedLights.key].concat(shedLights.fills || []).forEach(l => { if (l) l.visible = !on; });
+  if (shedLights.hemi) shedLights.hemi.visible = !on;
+  sunLight.visible = on; skyHemi.visible = on;
+  scene.fog = on ? new THREE.Fog('#e0d2b6', 80, 330) : null;
+  scene.background = on ? null : new THREE.Color('#1c1f23');
+  renderer.toneMapping = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping; renderer.toneMappingExposure = 0.92;
+  camera.far = on ? 700 : 90; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(on ? Math.max(1.5, Math.min(window.devicePixelRatio || 1, 2)) : Math.min(window.devicePixelRatio || 1, 2));
+  $('#app').classList.toggle('photo', on);
+  if (on) { outG.position.y = envG.position.y; if (!envOut) { try { envG.visible = false; buildEnvMapOut(); } catch (e) {} } if (envOut) scene.environment = envOut; }
+  else if (envShed) scene.environment = envShed;
+  scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); });
+  aimLights(aimLights.cz || 0);
+  queueRebuild(['v', 't', 'c']);
+  requestAnimationFrame(() => { resize(); if (on) camPreset('photoF'); invalidate(); });
+  const pb = $('#photoBtn'); if (pb) pb.classList.toggle('on', on);
+}
+/* render the current view bigger than the screen and hand the PNG to a callback */
+function capturePhoto(cb) {
+  if (!renderer) return;
+  const old = renderer.getPixelRatio(), r = stage.getBoundingClientRect();
+  renderer.setPixelRatio(Math.max(2, old)); renderer.setSize(Math.max(1, Math.floor(r.width)), Math.max(1, Math.floor(r.height)), false);
+  applyCam(); renderer.render(scene, camera);
+  canvas.toBlob(b => { renderer.setPixelRatio(old); resize(); cb(b); }, 'image/png');
+}
+function savePhoto() { capturePhoto(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'canopy-build.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }); }
+function sharePhoto() {
+  capturePhoto(b => {
+    if (!b) return;
+    const f = new File([b], 'canopy-build.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] }) && navigator.share) navigator.share({ files: [f], title: 'My canopy build', text: 'Built in Canopy Builder' }).catch(() => {});
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = 'canopy-build.png'; document.body.appendChild(a); a.click(); a.remove(); }
+  });
 }
 /* ---------- The utes: HyLux (HiLux), Rangar (Ranger), Cruiser 79 (LandCruiser 79). Real shapes, no badges.
    Authored in mm: u = along the ute from the front axle (rear is +), h = height off the ground, x = half-widths.
@@ -2169,10 +2446,10 @@ function bodyRing(p, yb, Y, zOf, cr) {
   let [hw, ym, ys, wsO, wsI, hh, yh, yc] = p;
   ym = Math.max(ym, yb + 70); ys = Math.max(ys, ym + 90); wsO = Math.min(wsO, hw - 10);
   const R = [[0, yb], [hw * 0.5, yb]];
-  for (let i = 0; i <= 8; i++) { const t = i / 8 * Math.PI / 2; R.push([hw - 50 + 46 * Math.sin(t), yb + 40 - 40 * Math.cos(t)]); }
+  { const nC = LOD.hq ? 8 : 3; for (let i = 0; i <= nC; i++) { const t = i / nC * Math.PI / 2; R.push([hw - 50 + 46 * Math.sin(t), yb + 40 - 40 * Math.cos(t)]); } }
   /* the side: a gentle bulge, plus an optional character line cr = { h, inB, inA } (a scooped panel below it, a ledge above it) */
   const y0 = yb + 41, y1 = ys - 61, hs = [];
-  for (let i = 0; i <= 22; i++) hs.push(y0 + (y1 - y0) * i / 22);
+  const nS = LOD.hq ? 22 : 8; for (let i = 0; i <= nS; i++) hs.push(y0 + (y1 - y0) * i / nS);
   const ch = cr ? clamp(cr.h, y0 + 30, y1 - 30) : (y0 + y1) / 2;
   hs.push(ch - 14, ch, ch + 5); hs.sort((a, b) => a - b);
   hs.forEach(y => {
@@ -2183,7 +2460,7 @@ function bodyRing(p, yb, Y, zOf, cr) {
     }
     R.push([x, y]);
   });
-  for (let i = 0; i <= 9; i++) { const t = i / 9 * Math.PI / 2; R.push([wsO + (hw - 6 - wsO) * Math.cos(t), ys - 60 + 60 * Math.sin(t)]); }
+  { const nC = LOD.hq ? 9 : 4; for (let i = 0; i <= nC; i++) { const t = i / nC * Math.PI / 2; R.push([wsO + (hw - 6 - wsO) * Math.cos(t), ys - 60 + 60 * Math.sin(t)]); } }
   R.push([wsI, ys], [(wsI + hh) / 2, (ys + yh) / 2], [hh, yh], [hh * 0.66, yh + (yc - yh) * 0.6], [hh * 0.33, yh + (yc - yh) * 0.9], [0, yc]);
   const L = R.slice(1, -1).reverse().map(([x, y]) => [-x, y]);
   return R.concat(L).map(([x, y]) => { const X = x * MM, YY = Y(y); return [X, YY, zOf(X, YY)]; });
@@ -2312,8 +2589,9 @@ function buildVehicle() {
   const fr = [];
   [0, 0.012, 0.035, 0.07, 0.11].forEach(d => fr.push(bodyRing(stAt(zN), S.chin, Y, (x, y) => zFace(x, y) + d, crAt(zN))));
   const zStart = zN + F.back + 0.14, zsF = [zCab];
-  for (let i = 0; i <= 56; i++) zsF.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 56));
-  for (let z = zStart; z < zCab; z += 0.03) zsF.push(z);
+  const hq = LOD.hq, kArc = hq ? 56 : 26;
+  for (let i = 0; i <= kArc; i++) zsF.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / kArc));
+  for (let z = zStart; z < zCab; z += hq ? 0.03 : 0.07) zsF.push(z);
   uniqSorted(zsF.filter(z => z >= zStart && z <= zCab), 0.012).forEach(z => fr.push(bodyRing(stAt(z), ybAt(z), Y, () => z, crAt(z))));
   g.add(loft(fr, paint));
 
@@ -2324,8 +2602,8 @@ function buildVehicle() {
     return bodyRing([hw, S.cab.ym, b, hw - 22, hw - 50, hw - 75, b, b], Math.max(S.sill, archY(z)), Y, () => z, crAt(z));
   };
   const zsC = [zCab - 0.03, zBack - 0.06, zBack - 0.02];
-  for (let i = 0; i <= 56; i++) zsC.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 56));
-  for (let z = zCab; z < zBack; z += 0.045) zsC.push(z);
+  for (let i = 0; i <= kArc; i++) zsC.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / kArc));
+  for (let z = zCab; z < zBack; z += hq ? 0.045 : 0.1) zsC.push(z);
   g.add(loft(uniqSorted(zsC.filter(z => z >= zCab - 0.03 && z <= zBack - 0.02), 0.012).map(cabRing), paint));
 
   /* ---- greenhouse: windscreen, roof and pillars, leaning in ---- */
@@ -2349,8 +2627,8 @@ function buildVehicle() {
     return Rt.concat(Lt).map(([x, y]) => [x * MM, Y(y), Z(u)]);
   };
   const ghU = [ub - 60, ub - 20, ub - 120];
-  for (let i = 0; i <= 14; i++) ghU.push(uc + (G.wsTopU - uc) * i / 14);
-  for (let u = G.wsTopU + 50; u < ub - 120; u += 50) ghU.push(u);
+  const nG = hq ? 14 : 6; for (let i = 0; i <= nG; i++) ghU.push(uc + (G.wsTopU - uc) * i / nG);
+  for (let u = G.wsTopU + (hq ? 50 : 100); u < ub - 120; u += hq ? 50 : 100) ghU.push(u);
   for (let i = 1; i <= 3; i++) ghU.push(ub - 120 + 25 * i);
   g.add(loft(uniqSorted(ghU, 8).map(ghRing), paint));
 
@@ -2431,8 +2709,8 @@ function buildVehicle() {
   const xsArch = stAt(fa)[0] * MM - 0.012, yc = Y(R);
   const sweepArch = (prof, mat) => {
     const pts = [];
-    for (let i = 0; i <= 52; i++) {
-      const th = -Math.PI / 2 + Math.PI * i / 52, s = Math.sin(th), c = Math.cos(th), p = 2 / S.archN, r = Ra * MM;
+    for (let i = 0; i <= (hq ? 52 : 24); i++) {
+      const th = -Math.PI / 2 + Math.PI * i / (hq ? 52 : 24), s = Math.sin(th), c = Math.cos(th), p = 2 / S.archN, r = Ra * MM;
       pts.push([fa + r * sgnV(s) * Math.pow(Math.abs(s), p), yc + r * Math.pow(Math.abs(c), p)]);
     }
     const nrm = pts.map((p, i) => {
@@ -2449,14 +2727,14 @@ function buildVehicle() {
   g.add(rbox((S.hw - 120) * 2 * MM, 0.05, Math.max(0.1, fa - zN), 0.02, M.bay, 0, Y(S.chin + 30), (zN + fa) / 2 + 0.05));
 
   /* ---- face ---- */
-  const densify = poly => { const o = []; poly.forEach((a, i) => { const b = poly[(i + 1) % poly.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 60)); for (let k = 0; k < n; k++) o.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); }); return o; };
+  const densify = poly => { const o = []; poly.forEach((a, i) => { const b = poly[(i + 1) % poly.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (hq ? 30 : 70))); for (let k = 0; k < n; k++) o.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); }); return o; };
   const mirror = poly => poly.map(([x, h]) => [-x, h]).reverse();
   const fp = (poly, mat, out, sym, back) => {
     /* the visible face is built from nested rings that each follow the curved nose, so wide shapes never leave a flat cap hidden behind it */
     const one = P => {
       P = densify(P); const c = cen(P);
       const at = (k, zo) => P.map(([x, h]) => { const xx = c[0] + (x - c[0]) * k, hh = c[1] + (h - c[1]) * k; return [xx * MM, Y(hh), zFace(xx * MM, Y(hh)) + zo]; });
-      const rings = [at(0.3, -out), at(0.55, -out), at(0.8, -out), at(1, -out), at(1, back || 0.04)];
+      const rings = hq ? [at(0.3, -out), at(0.55, -out), at(0.8, -out), at(1, -out), at(1, back || 0.04)] : [at(0.5, -out), at(1, -out), at(1, back || 0.04)];
       g.add(flat(rings, mat));
     };
     one(poly); if (sym) one(mirror(poly));
@@ -2484,7 +2762,7 @@ function buildVehicle() {
 
   /* ---- mirrors: lofted heads, glass, indicator, arm ---- */
   { const m = S.mirror, z = Z(uc + m.u), yb = Y(beltAt(uc + m.u)), xb = ringXAt(cabRing(Math.max(z, zCab)), yb - 0.05);
-    const sec = (cx, cy, z0, w, h, k) => Array.from({ length: 20 }, (_, i) => { const a = i / 20 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); return [cx + w / 2 * k * Math.sign(c) * Math.pow(Math.abs(c), 0.35), cy + h / 2 * k * Math.sign(sn) * Math.pow(Math.abs(sn), 0.35), z0]; });
+    const sec = (cx, cy, z0, w, h, k) => Array.from({ length: hq ? 20 : 10 }, (_, i) => { const a = i / (hq ? 20 : 10) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); return [cx + w / 2 * k * Math.sign(c) * Math.pow(Math.abs(c), 0.35), cy + h / 2 * k * Math.sign(sn) * Math.pow(Math.abs(sn), 0.35), z0]; });
     [-1, 1].forEach(s => {
       const xh = s * (xb + m.out), cy = yb + m.up, z0 = z + 0.02 - m.d / 2;
       g.add(loft([0, 0.25, 0.6, 0.85, 1].map((f, i) => sec(xh, cy, z0 + f * m.d, m.w, m.h, [0.55, 0.9, 1, 1, 0.97][i])), m.cap && m.capCol !== 'black' ? M.paint : M.black));
@@ -2504,14 +2782,14 @@ function buildVehicle() {
 
   /* ---- body side trim: rocker cladding, a shoulder bead along the doors, the fuel flap ---- */
   { const zA = Z(D.seams[0] - 60), zB = Math.min(zBack - 0.03, Z(D.seams[D.seams.length - 1] + 70));
-    const stripBox = (hMid, hStrip, t, mat, step) => { const Mg = new Merge(), n = Math.max(8, Math.round((zB - zA) / step));
+    const stripBox = (hMid, hStrip, t, mat, step) => { step = hq ? step : step * 2.5; const Mg = new Merge(), n = Math.max(6, Math.round((zB - zA) / step));
       [-1, 1].forEach(sd => { for (let i = 0; i < n; i++) { const z = zA + (zB - zA) * (i + 0.5) / n, x = ringXAt(cabRing(z), Y(hMid)); Mg.box(sd * (x + t / 2 - 0.0015), Y(hMid), z, t, hStrip, (zB - zA) / n * 1.12, 0); } });
       g.add(Mg.mesh(mat)); };
     if (V.look !== 'lc79') stripBox(S.sill + 52, 0.105, 0.014, V.look === 'ranger' ? M.black : M.trim, 0.04);       /* rocker cladding */
     if (V.look === 'ranger') stripBox(S.sill + 135, 0.006, 0.008, M.chrome, 0.05);                                 /* the sill chrome line */
     if (V.look !== 'lc79') stripBox(beltAt(uc + 600) - 300, 0.012, 0.007, M.paint, 0.05);                          /* shoulder bead */
     /* fuel filler flap, rear left */
-    { const u = ub - 150, h = beltAt(u) - 400, z = Z(u), x = ringXAt(cabRing(z), Y(h));
+    if (T.design !== 'tub') { const u = ub - 150, h = beltAt(u) - 400, z = Z(u), x = ringXAt(cabRing(z), Y(h));
       g.add(rbox(0.01, 0.2, 0.16, 0.012, M.mesh, -(x + 0.001), Y(h), z)); g.add(rbox(0.012, 0.185, 0.145, 0.012, M.paint, -(x + 0.003), Y(h), z)); g.add(rbox(0.014, 0.03, 0.012, 0.004, M.black, -(x + 0.008), Y(h) + 0.03, z - 0.05)); }
     /* side repeaters and a front-guard vent */
     [-1, 1].forEach(sd => { const z = Z(-120), h = V.look === 'lc79' ? 1050 : 960, x = ringXAt(cabRing(Math.max(z, zCab + 0.01)), Y(h));
@@ -2544,7 +2822,8 @@ function buildVehicle() {
   gc.add(rbox(0.8, 0.07, 0.06, 0.012, M.dark, 0, -0.2, fa - 0.42));
   if (!bare) gc.add(rbox(0.8, 0.08, chR - chF - 0.3, 0.02, M.dark, 0, -0.26, (chF + chR) / 2 + 0.1));
   [zBack + 0.15, ra - 0.55, ra + 0.45, chR - 0.06].forEach(z => gc.add(rbox(0.8, 0.07, 0.06, 0.012, M.dark, 0, -0.2, z)));
-  /* engine sump, gearbox, transfer case, then the driveshafts to each diff */
+  /* engine sump, gearbox, transfer case, then the driveshafts to each diff (high poly only) */
+  if (hq) {
   gc.add(rbox(0.5, 0.17, 0.62, 0.05, steel, 0, -0.33, fa + 0.2));
   gc.add(rbox(0.3, 0.26, 0.55, 0.05, M.trim, 0, -0.3, fa + 0.82));
   gc.add(rbox(0.36, 0.3, 0.34, 0.05, steel, 0.05, -0.36, fa + 1.2));
@@ -2554,10 +2833,11 @@ function buildVehicle() {
   gc.add(rbox(0.7, 0.24, 0.84, 0.05, M.trim, 0, -0.36, ra - 0.98));
   gc.add(rbox(0.7, 0.014, 0.86, 0.004, blackSt, 0, -0.485, ra - 0.98));
   [-0.15, 0.15].forEach(dz => gc.add(rbox(0.72, 0.012, 0.03, 0.004, steel, 0, -0.36, ra - 0.98 + dz * 2.6)));
+  }
   /* front axle: diff pumpkin, CV shafts, coil-over shocks and upper and lower arms on each side */
   gc.add(rbox(0.26, 0.2, 0.22, 0.05, steel, 0.12, ycw + 0.01, fa));
   gc.add(cyl(0.022, hT * 2 - 0.4, M.dark, 0, ycw, fa, 'x', 10));
-  [-1, 1].forEach(sd => {
+  if (hq) [-1, 1].forEach(sd => {
     const hx = sd * (hT - 0.1), sh = -0.27 - (ycw + 0.1);
     gc.add(tube([[sd * 0.44, -0.26, fa - 0.14], [hx, ycw + 0.1, fa - 0.02]], 0.013, steel, 8));
     gc.add(tube([[sd * 0.44, -0.2, fa + 0.1], [hx, ycw + 0.18, fa + 0.04]], 0.013, steel, 8));
@@ -2569,7 +2849,7 @@ function buildVehicle() {
   gc.add(cyl(0.05, hT * 2 - 0.2, M.dark, 0, ycw, ra, 'x', 12));
   gc.add(cyl(0.13, 0.2, steel, 0.02, ycw, ra, 'x', 18));
   gc.add(cyl(0.1, 0.15, steel, 0.02, ycw, ra + 0.14, 'z', 16));
-  [-1, 1].forEach(sd => {
+  if (hq) [-1, 1].forEach(sd => {
     const lx = sd * (hT - 0.1);
     [[1.2, 0.034], [0.95, 0.028], [0.7, 0.024], [0.45, 0.02]].forEach(([len, th], i) => gc.add(rbox(0.06, th, len, 0.006, M.grey, lx * 0.8, ycw + 0.085 + lift * 0.5 + i * 0.026, ra)));
     gc.add(rbox(0.08, 0.04 + lift, 0.12, 0.01, blackSt, lx * 0.8, ycw + 0.06 + lift / 2, ra));
@@ -2641,12 +2921,11 @@ function arcBand(C, cx, cy, r0, r1, a0, a1, n, mat, out, sym) {
 }
 /* a round lamp built up in layers: bezel, reflector, lens, bulb, with a clear cover over it */
 function roundLamp(C, cx, cy, r, mats, out, sym) {
-  const { fp, circle } = C;
-  fp(circle(cx, cy, r + 8, 28), mats.bezel, out, sym);
-  fp(circle(cx, cy, r, 28), mats.refl || C.M.silver, out + 0.004, sym);
-  fp(circle(cx, cy, r * 0.78, 24), mats.lens, out + 0.008, sym);
-  fp(circle(cx, cy, r * 0.38, 16), mats.core || C.M.black, out + 0.012, sym);
-  fp(circle(cx, cy, r * 0.16, 10), mats.lens, out + 0.016, sym);
+  const { fp, circle } = C, hq = LOD.hq, n = hq ? 28 : 12;
+  fp(circle(cx, cy, r + 8, n), mats.bezel, out, sym);
+  if (hq) fp(circle(cx, cy, r, n), mats.refl || C.M.silver, out + 0.004, sym);
+  fp(circle(cx, cy, r * 0.78, n), mats.lens, out + 0.008, sym);
+  if (hq) { fp(circle(cx, cy, r * 0.38, 16), mats.core || C.M.black, out + 0.012, sym); fp(circle(cx, cy, r * 0.16, 10), mats.lens, out + 0.016, sym); }
 }
 /* height of the bonnet top at distance x from the centre, at a given z (m) */
 function bonnetH(C, z, x) {
@@ -2658,7 +2937,7 @@ function bonnetH(C, z, x) {
 }
 /* a raised rib or bulge down the bonnet. wid in m, hgt in m, taper = 0..1 how much it fades in at the front */
 function bonnetRib(C, x, wid, hgt, z0, z1, mat, taper, sym) {
-  const { g, Y } = C, Mg = new Merge(), n = Math.max(6, Math.round((z1 - z0) / 0.035));
+  const { g, Y } = C, Mg = new Merge(), n = Math.max(4, Math.round((z1 - z0) / (LOD.hq ? 0.035 : 0.09)));
   (sym ? [1, -1] : [1]).forEach(sd => {
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, hh = hgt * (taper ? Math.min(1, t / taper) : 1), xx = sd * x;
@@ -3333,8 +3612,10 @@ function queueRebuild(parts) {
 let envBuilt = false;
 function doRebuild() {
   clampState();
+  LOD.hq = !!state.photo;
   if (dirty.has('v')) { clearGroup(vehicleG); if (!state.carOff) vehicleG.add(buildVehicle()); }
   if (envG) envG.position.y = 1 - standDrop() * MM;
+  if (outG && envG) outG.position.y = envG.position.y;
   if (typeof updateContact === 'function') updateContact();
   if (!envBuilt && renderer && envG) { envBuilt = true; buildEnvMap(); }
   if (dirty.has('t')) { clearGroup(trayG); if (!state.carOff) trayG.add(buildTray()); }
@@ -3439,6 +3720,8 @@ function camPreset(name) {
   let p;
   if (name === 'side') p = { az: Math.PI / 2, el: 0.06, tx: 0, ty: -0.1, tz: -0.5, R: 3.5 };
   else if (name === 'rear') p = { az: 0, el: 0.12, tx: 0, ty: 0.3, tz: 0, R: Math.max(W, 1.7) / 2 + 0.6 };
+  else if (name === 'front') p = { az: Math.PI - 0.62, el: 0.16, tx: 0, ty: -0.2, tz: -2.2, R: 3.7 };
+  else if (name === 'photoF') p = { az: Math.PI - 0.7, el: 0.12, tx: 0, ty: -0.2, tz: -1.9, R: 3.1 };
   else if (name === 'top') p = { az: 0, el: 1.5, tx: 0, ty: 0, tz: cz, R: Math.max(L, W) / 2 + 0.15 };
   else p = { az: 0.62, el: 0.3, tx: 0, ty: 0.05, tz: -0.55, R: 3.5 };
   cam.goal = { az: cam.az + wrapPi(p.az - cam.az), el: p.el, dist: fitDist(p.R), tx: p.tx, ty: p.ty, tz: p.tz };
@@ -3841,6 +4124,7 @@ function trayNote() {
 const svgS = (vb, body) => '<svg viewBox="' + vb + '" aria-hidden="true">' + body + '</svg>';
 const ICON_TRAY = {
   none: svgS('0 0 80 40', '<path d="M4 24h72" stroke-dasharray="4 3"/><path d="M6 28h68"/><circle cx="22" cy="31" r="6"/><circle cx="58" cy="31" r="6"/>'),
+  tub: svgS('0 0 80 40', '<path d="M6 29V10h68v19z"/><path d="M22 29a9 9 0 0 1 18 0"/><path d="M6 14h68" opacity=".6"/><path d="M66 12v6"/>'),
   factory: svgS('0 0 80 40', '<path d="M6 24V12h68v12"/><path d="M6 24v5h68v-5z"/><path d="M16 15v6M28 15v6M40 15v6M52 15v6M64 15v6"/>'),
   dropside: svgS('0 0 80 40', '<path d="M6 24V8h68v16"/><path d="M6 24v5h68v-5z"/><path d="M6 14h68M6 19h68"/>'),
   rail: svgS('0 0 80 40', '<path d="M6 24v5h68v-5z"/><path d="M9 24V11M25 24V11M41 24V11M57 24V11M71 24V11"/><path d="M9 11h62M9 17.5h62"/>'),
@@ -3883,7 +4167,7 @@ function panelTray() {
   const doorNote = { solid: 'Bolted to the solid rear panel.', hatch: 'Mounted on the hatch, so they lift with it.', barn: 'Mounted on the barn doors, one on each.', drop: 'Mounted on the drop-down door, so they hang out with it.' }[state.canopy.rear];
   const spareNote = (T.spare === 'door' || two) ? (two ? 'Two spares side by side. ' : '') + (two && state.canopy.rear === 'barn' ? doorNote : doorNote.replace('on the barn doors, one on each', 'on the left barn door')) + (two && state.canopy.shape !== 'none' && cwNow < needW ? ' <b style="color:var(--warn)">They need about ' + needW + ' mm of canopy width to sit clear of each other.</b>' : '') + (state.canopy.shape === 'none' ? ' Needs a canopy to mount on.' : '') : T.spare === 'carrier' ? 'Swing-away carrier on the tow bar. The number plate moves onto the wheel.' : T.spare === 'under' ? 'Hung under the chassis behind the rear axle.' : '';
   const hasC = state.canopy.shape !== 'none';
-  const designs = picker('tray.design', OPT.design.map(k => [k, TRAYS[k].name, TRAYS[k].sub, ICON_TRAY[k], k === 'none' && hasC ? 'Take the canopy off first' : '']));
+  const designs = picker('tray.design', OPT.design.map(k => [k, TRAYS[k].name, TRAYS[k].sub, ICON_TRAY[k], (k === 'none' || k === 'tub') && hasC ? 'Take the canopy off first' : '']));
   let h = '<h2 class="ttl">Your tray</h2><p class="lead">Start with your ute: pick the vehicle and cab. It starts as a bare cab-chassis, just as it leaves the factory. Then choose the tray that goes on the back.</p>' +
     '<div class="sec"><h3>Ute</h3><div class="chips">' + vehs + '</div><p class="note">' + specs + '. Modelled on the shape and size of the real thing, with no badges. Close, not exact, so check it against yours.</p>' +
     field('Cab', seg('tray.cab', V.cabs.map(k => [k, CABS[k].name])) + (V.cabNote && V.cabNote[T.cab] ? '<p class="note">' + esc(V.cabNote[T.cab]) + '</p>' : '')) +
@@ -3897,6 +4181,12 @@ function panelTray() {
     '<div class="sec"><h3>Tray</h3>' + designs +
     (bare ? '<p class="note">Pick a tray to carry on. Sizes, material, headboard and lights show up once you do.</p>' : '<p class="note">' + (T.design === 'flat' ? 'A plain deck you can add drop sides to.' : 'Sides run behind the canopy and wherever the tray is bare. Under a canopy the canopy sits on the deck.') + '</p>') + '</div>';
   if (bare) return h + nextRow(null, 1);
+  if (T.design === 'tub') {
+    const ts = V.tub;
+    return h + '<div class="sec"><h3>Factory tub</h3><p class="note">The ' + esc(V.name) + ' tub as it left the factory: ' + T.len + ' × ' + T.wid + ' mm outside, ' + (ts.rim + ts.floor) + ' mm deep, painted to match the ute, with the wheel arches, flares, drop-down tailgate, step bumper and fuel door where the real one has them. It takes no canopy, headboard, toolboxes or guards. Pick another tray for those.</p></div>' +
+      '<div class="sec"><h3>Tail lamps</h3><p class="note">Factory lamps on the rear pillars, as fitted to this ute.</p>' + field('Lens colour', seg('tray.lights', OPT.lights.map(k => [k, LIGHTS[k].name]))) + '</div>' +
+      '<div class="sec"><h3>Spare wheel</h3>' + field('Where', picker('tray.spare', ['none', 'carrier', 'under'].map(k => [k, SPARE[k].name, ({ none: 'No spare carried', carrier: 'Swing-away carrier on the tow bar', under: 'Hung under the chassis' })[k], '']))) + '</div>' + nextRow(null, 1);
+  }
   const hasHead = T.head !== 'none';
   const hp = headProfile(T);
   const headShapes = picker('tray.headShape', [['angled', 'Angled', 'Leans in to match the cab', ICON_HEAD.angled], ['square', 'Square', 'The old style, straight up', ICON_HEAD.square], ['custom', 'Custom', 'Your own dimensions', ICON_HEAD.custom]]);
@@ -3960,10 +4250,10 @@ function floorPanel() {
 const CANOPY_SHAPES = { none: ['No canopy', 'Open tray'], aframe: ['A-frame', 'Bends in to follow the cab'], square: ['Square', 'Straight sides, flat roof'], custom: ['Custom', 'Set the bend and roof step-in'] };
 function panelCanopy() {
   const T = state.tray, C = state.canopy, G = geo();
-  const maxLen = Math.max(1000, T.len - G.hb), noTray = T.design === 'none', none = C.shape === 'none';
+  const maxLen = Math.max(1000, T.len - G.hb), noTray = T.design === 'none' || T.design === 'tub', none = C.shape === 'none';
   const shapes = picker('canopy.shape', OPT.shape.map(k => [k, CANOPY_SHAPES[k][0], CANOPY_SHAPES[k][1], ICON_SHAPE[k],
-    k === 'none' ? (state.items.length ? 'Remove the gear first' : '') : (noTray ? 'Pick a tray first' : '')]));
-  let h = '<h2 class="ttl">Your canopy</h2><p class="lead">' + (noTray ? 'A canopy sits on a tray, so pick your tray first.' : 'Pick the shape, then set the size, material and doors.') + '</p>' +
+    k === 'none' ? (state.items.length ? 'Remove the gear first' : '') : (noTray ? (T.design === 'tub' ? 'Not on a factory tub' : 'Pick a tray first') : '')]));
+  let h = '<h2 class="ttl">Your canopy</h2><p class="lead">' + (noTray ? (T.design === 'tub' ? 'A factory tub has no canopy mount. Pick another tray to fit a canopy.' : 'A canopy sits on a tray, so pick your tray first.') : 'Pick the shape, then set the size, material and doors.') + '</p>' +
     '<div class="sec"><h3>Shape</h3>' + shapes;
   if (noTray) return h + '<div class="btn-row"><button class="btn pri" data-act="step" data-i="0">← Choose a tray</button></div></div>' + nextRow(0, 2);
   if (none) return h + '<p class="note">Pick a shape to put a canopy on the tray. You can fit gear once it is on.</p></div>' + nextRow(0, 2);
@@ -4814,9 +5104,11 @@ function applyChange(path, val) {
 /* Picking a tray fits it at the stock size for this cab, and brings the camera round to the back so the new tray is in view. */
 function chooseTray(k) {
   const T = state.tray, was = T.design;
-  if (k === 'none' && state.canopy.shape !== 'none') return;
+  if ((k === 'none' || k === 'tub') && state.canopy.shape !== 'none') return;
   applyChange('tray.design', k);
-  if (was === 'none' && k !== 'none') { const st = stockTray(T.veh, T.cab); if (st) { applyChange('tray.len', st.len); applyChange('tray.wid', st.wid); } if (renderer) camPreset('home'); }
+  if (k === 'tub') applyChange('tray.head', 'none');
+  else if (was === 'tub') applyChange('tray.head', 'full');
+  if (was === 'none' && k !== 'none') { const st = stockTray(T.veh, T.cab); if (st && k !== 'tub') { applyChange('tray.len', st.len); applyChange('tray.wid', st.wid); } if (renderer) camPreset('home'); }
 }
 /* Picking a canopy shape. Custom starts from the A-frame at the current height, then it is yours to change. */
 function chooseCanopy(k) {
@@ -4993,6 +5285,9 @@ document.addEventListener('click', e => {
       } else setMsg('That code could not be read.', 'bad');
       break;
     }
+    case 'photo': setPhoto(ds.off ? false : !state.photo); break;
+    case 'savephoto': savePhoto(); break;
+    case 'sharephoto': sharePhoto(); break;
     case 'car':
       if (state.canopy.shape === 'none') break; /* the ute can only come off once there is a canopy to stand on its own */
       state.carOff = !state.carOff; carBtnSync();
@@ -5012,6 +5307,7 @@ document.addEventListener('click', e => {
       break;
   }
 });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.photo) setPhoto(false); });
 document.addEventListener('pointerdown', e => {
   /* on a phone the view menu folds away as soon as the 3D view or plan is touched */
   const tb = $('#tbar');
