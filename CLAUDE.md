@@ -48,11 +48,15 @@ UI event (data-set / data-act / rng / seg / picker)
 ### Tray
 `tray = { veh, cab, len, wid, design, headShape, hbBend, hbTop, hbIn, head, lightStyle, lights, mat, finish ('smooth' default), colour, sides, boxes, spare }`
 - `design`: `none | factory | dropside | rail | flat` (`TRAYS`). Factory = alloy tray with sides.
+- Defaults: tall angled headboard (`head: 'full'`, `headShape: 'angled'`).
+- Running gear: `tyre` (`TYRES`, knock-off tread brands, real name in `.real`, never shown in the UI), `tyreSize` (`TYRE_SIZES`, `std` = factory), `lift` (suspension, 0-150 mm), `bodyLift` (0/25/50 mm). `tyreSpec()` gives R/W, `rideH()` the deck height off the ground, `archClear()` the front arch gap. Suspension lift drops wheels and axles from the frame; body lift raises only the cab (`buildVehicle` returns a group of body `g` + chassis `gc`).
+- Under the tray: `boxes` + `boxStyle` (`BOX_STYLES`), `guards` (`GUARDS`). `spare`: `none | door | door2 (two on the canopy rear) | carrier | under`.
+- Vehicles: HyLux, Rangar, Cruiser 79, Colorodo RC (2008-12 Colorado, figures estimated, `VSPEC.colorado` + `faceColorado`).
 - `headShape`: `angled` (default) `| square | custom`. Custom dims: `hbBend` (bottom to bend), `hbTop` (bend to top), `hbIn` (step-in). `headProfile(T)` returns `{h, bend, up, inset, rack}` or null.
-- `lightStyle`: 8 styles in `LIGHT_STYLES` (factory, round, halo, square, hbar, vbar, strip, corner), `lights` is the colour set (red / smoked / clear).
+- `lightStyle`: 8 styles in `LIGHT_STYLES` (factory, round3, round2, oval, slim, pod, strip, bar), `lights` is the colour set (red / smoked / clear). Old style names map through `LIGHT_LEGACY`.
 
 ### Canopy
-`canopy = { shape, len, wid, hgt, bend, rise, inset, mat, finish, colour, left, right, style, rear, windows, rack, jack, floor, ... }`
+`canopy = { shape, len, wid, hgt, bend, rise, inset, mat, finish, colour, left, right, style, rear, windows, rack, jack, floor, floorMat ('ply'|'alu'), plyT (6-21 mm), aluT (2-6 mm), floorFin, ... }`
 - `shape`: `none | aframe (default when chosen) | square | custom`. A-frame = vertical sides up to a bend, then sides angle inward to a narrower roof.
 - `canopyProf(C)` -> `{bend, rise, inset, wH, roofW}`. Custom: `bend` (bottom to bend) + `rise` (bend to top) + `inset` (roof steps in per side), `hgt = bend + rise`.
 - `geo()` returns `outer`, `inner`, `roof` (inset roof rectangle), `prof`, and zero-size boxes when there is no canopy (`G.none`).
@@ -72,7 +76,7 @@ UI event (data-set / data-act / rng / seg / picker)
 python3 tests/smoke.py     # expect: "errs": []
 ```
 
-It cannot check how anything *looks*. With internet available, test visually in a real browser. When editing: `node --check` the extracted script, run the smoke test, then eyeball the 3D view.
+It cannot check how anything *looks*. To render for real offline, `npm pack three@0.128.0`, serve its `build/three.min.js` in place of the CDN script with a Playwright route, and launch Chromium with `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`. With internet available, test visually in a real browser. When editing: `node --check` the extracted script, run the smoke test, then eyeball the 3D view.
 
 ## Known gaps / next steps
 

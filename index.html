@@ -506,6 +506,12 @@ const VEHICLES = {
     cabL: { single: 1500, extra: 1850, dual: 2200 }, bonnetL: 1050, bumpL: 180,
     cabNote: { extra: 'Toyota does not build the 79 as an extra cab. This is the usual aftermarket stretch.' },
     presets: [['Dual cab', 'dual', 1850, 1870], ['Extra cab', 'extra', 2200, 1870], ['Single cab', 'single', 2550, 1870]]
+  },
+  colorado: {
+    name: 'Colorodo RC', sub: '2008–2012 mid-size, the old Aussie-built-feel diesel', real: 'Holden RC Colorado (2008–2012)', look: 'colorado', wheels: 'spoke6', tyreLabel: '255/65R17',
+    cabs: ['single', 'extra', 'dual'], wb: 3096, track: 1570, bodyW: 1882, deckH: 985, tyreR: 382, tyreW: 255, faOff: 320,
+    cabL: { single: 1520, extra: 1900, dual: 2260 }, bonnetL: 1050, bumpL: 100,
+    presets: [['Dual cab', 'dual', 1740, 1800], ['Dual cab (alloy)', 'dual', 1800, 1790], ['Extra cab', 'extra', 2120, 1800], ['Single cab', 'single', 2480, 1800]]
   }
 };
 const VEH_DEFAULT = 'hilux';
@@ -514,6 +520,7 @@ const VEH_DEFAULT = 'hilux';
 Object.assign(VEHICLES.hilux, { mass: { single: 1880, extra: 1960, dual: 2060 }, gvm: 3050, fal: 1430, ral: 1850, kf: 0.6 });
 Object.assign(VEHICLES.ranger, { mass: { single: 2010, extra: 2090, dual: 2160 }, gvm: 3280, fal: 1500, ral: 2080, kf: 0.6 });
 Object.assign(VEHICLES.lc79, { mass: { single: 2240, extra: 2330, dual: 2420 }, gvm: 3510, fal: 1700, ral: 2200, kf: 0.6 });
+Object.assign(VEHICLES.colorado, { mass: { single: 1830, extra: 1930, dual: 2010 }, gvm: 2950, fal: 1350, ral: 1800, kf: 0.6, est: true });
 const SEATS = { single: [[1050, 2]], extra: [[1050, 2], [1650, 2]], dual: [[1050, 2], [1850, 3]] };
 const seatCount = cab => (SEATS[cab] || SEATS.dual).reduce((a, s) => a + s[1], 0);
 const vehPayload = (veh, cab) => { const V = VEHICLES[veh] || VEHICLES[VEH_DEFAULT]; return V.gvm - (V.mass[cab] || V.mass.dual); };
@@ -535,7 +542,7 @@ function stockTray(veh, cab) {
   const p = (VEHICLES[veh] || VEHICLES[VEH_DEFAULT]).presets.find(r => r[1] === cab);
   return p ? { len: p[2], wid: p[3] } : null;
 }
-const SPARE = { none: { name: 'None', kg: 0 }, door: { name: 'Rear door', kg: 34 }, carrier: { name: 'Carrier', kg: 58 }, under: { name: 'Under tray', kg: 30 } };
+const SPARE = { none: { name: 'None', kg: 0 }, door: { name: 'Rear door', kg: 34 }, door2: { name: 'Two on the rear', kg: 68 }, carrier: { name: 'Carrier', kg: 58 }, under: { name: 'Under tray', kg: 30 } };
 const DY_MAX = 1200;
 /* Tray designs: what goes on the back of the bare chassis. mat / finish / colour are the starting look for each design, side is the height of its sides in mm. */
 const TRAYS = {
@@ -547,17 +554,70 @@ const TRAYS = {
 };
 /* Tail light shapes. The lens colour (red, smoked, clear) is a separate choice. */
 const LIGHT_STYLES = {
-  factory: { name: 'Factory cluster', sub: 'Stacked three-lens pod' },
-  round:   { name: 'LED round', sub: 'Three round LED lamps' },
-  halo:    { name: 'Halo ring', sub: 'One round pod with a ring' },
-  square:  { name: 'LED square', sub: 'Two square LED panels' },
-  hbar:    { name: 'LED bar', sub: 'Short horizontal bars' },
-  vbar:    { name: 'Slim vertical', sub: 'Tall slim LED strips' },
-  strip:   { name: 'Full-width strip', sub: 'Long bar either side of the plate' },
-  corner:  { name: 'Corner wrap', sub: 'Wraps round the rear corner' }
+  factory: { name: 'Factory cluster', sub: 'Stacked three-lens pod, as it came' },
+  round3:  { name: '3 round LEDs', sub: 'Three 95 mm round lamps in a row, the classic tray light' },
+  round2:  { name: '2 round LEDs', sub: 'Two 95 mm round lamps side by side' },
+  oval:    { name: 'Oval LED', sub: 'Oval stop, tail and indicator, black housing' },
+  slim:    { name: 'Slim stack', sub: 'Three slim horizontal LED bars, 125 series' },
+  pod:     { name: 'Box pod', sub: 'Rectangular pod: stop, indicator and reverse' },
+  strip:   { name: 'Full-width strip', sub: 'Long LED bar either side of the plate' },
+  bar:     { name: 'Short LED bar', sub: '360 mm bar each side with an amber end' }
+};
+/* old share codes used other names: map them to the nearest of the new ones */
+const LIGHT_LEGACY = { round: 'round3', halo: 'round2', square: 'pod', hbar: 'slim', vbar: 'bar', corner: 'pod' };
+/* ---------- Tyres. Brands are knock-offs like everything else (real name in `real`). tread: nb = blocks round the tyre, d = tread depth (mm), cw = centre block width
+   as a share of the half tread, lug = shoulder lugs on the sidewall (size in mm), sipe = fine grooves, snow = three-peak snowflake mark. ---------- */
+const TYRES = {
+  ht:  { name: 'Dunlap Grandtrak HT',  real: 'Dunlop Grandtrek AT/HT', sub: 'Highway tread, quiet and long-lived', nb: 56, d: 9,  cw: 0.5,  lug: 0,  rib: true, kg: 17 },
+  at:  { name: 'BF Goodridge KO3',    real: 'BFGoodrich All-Terrain T/A KO3', sub: 'The all-rounder, blocky with sidewall bite', nb: 40, d: 13, cw: 0.34, lug: 22, snow: true, kg: 24 },
+  at3: { name: 'Falkon Wildpeek AT3', real: 'Falken Wildpeak A/T3W', sub: 'Quieter all-terrain, siped for wet and snow', nb: 44, d: 12, cw: 0.38, lug: 14, sipe: true, snow: true, kg: 22 },
+  agg: { name: 'Mickey Thompsun Baja', real: 'Mickey Thompson Baja Boss A/T', sub: 'Aggressive all-terrain, big shoulder blocks', nb: 34, d: 16, cw: 0.3, lug: 30, snow: true, kg: 28 },
+  mt:  { name: 'Maxus Razor MT',      real: 'Maxxis Razr MT', sub: 'Mud-terrain, deep staggered lugs', nb: 30, d: 20, cw: 0.26, lug: 38, kg: 31 },
+  stt: { name: 'Kooper STT Pro',      real: 'Cooper Discoverer STT Pro', sub: 'Extreme mud and rock, huge side lugs', nb: 26, d: 22, cw: 0.22, lug: 46, kg: 33 }
+};
+/* size = tyre section width (mm), aspect, rim (in). 'std' is whatever the ute left the factory on. */
+const TYRE_SIZES = {
+  std:       { name: 'Standard', sub: 'Factory size' },
+  '265/70R17': { name: '265/70R17', sub: 'A touch taller', w: 265, ar: 70, rim: 17 },
+  '285/70R17': { name: '285/70R17', sub: 'Wider and taller', w: 285, ar: 70, rim: 17 },
+  '285/75R16': { name: '285/75R16', sub: 'Tall, narrow rim, soft ride', w: 285, ar: 75, rim: 16 },
+  '33x12.5R17': { name: '33×12.50R17', sub: 'Needs a lift', w: 318, in: 33, rim: 17 },
+  '35x12.5R17': { name: '35×12.50R17', sub: 'Big. Needs a lift and trimming', w: 318, in: 35, rim: 17 }
+};
+function tyreSpec(T) {
+  T = T || state.tray;
+  const V = VEHICLES[T.veh] || VEHICLES[VEH_DEFAULT], z = TYRE_SIZES[T.tyreSize];
+  if (!z || !z.w) return { R: V.tyreR, W: V.tyreW, label: V.tyreLabel || 'standard' };
+  const dia = z.in ? z.in * 25.4 : 2 * z.w * z.ar / 100 + z.rim * 25.4;
+  return { R: Math.round(dia / 2), W: z.w, label: z.name, rim: z.rim };
+}
+/* how high the deck sits off the ground: stock, plus suspension lift, plus whatever the bigger tyre adds under the axle */
+function rideH(T) { T = T || state.tray; const V = VEHICLES[T.veh] || VEHICLES[VEH_DEFAULT]; return V.deckH + T.lift + (tyreSpec(T).R - V.tyreR); }
+/* room between the top of the front tyre and the arch, in mm. Lift drops the wheel, body lift raises the arch. Negative means the tyre is in the bodywork. */
+function archClear(T) {
+  T = T || state.tray; const V = VEHICLES[T.veh] || VEHICLES[VEH_DEFAULT], S = VSPEC[V.look] || VSPEC.hilux;
+  return Math.round(S.archGap + T.lift + T.bodyLift - (tyreSpec(T).R - V.tyreR));
+}
+/* Under-tray boxes and mud guards */
+const BOX_STYLES = {
+  drop:   { name: 'Drop-down door', sub: 'Slim box, door hinged at the bottom', h: 300, w: 320, kg: 14 },
+  swing:  { name: 'Side-opening', sub: 'Slim box with a lift-up lid', h: 300, w: 320, kg: 13 },
+  deep:   { name: 'Deep full-length', sub: 'Tall box with a drop door and gas struts', h: 400, w: 380, kg: 22 },
+  drawer: { name: 'Drawer pack', sub: 'Two pull-out drawers', h: 340, w: 360, kg: 26 },
+  tank:   { name: 'Water / fuel tank', sub: 'Poly tank with a fill cap', h: 320, w: 340, kg: 18 }
+};
+const GUARDS = {
+  none:   { name: 'None', sub: 'Bare tray edge' },
+  rubber: { name: 'Rubber flaps', sub: 'Mud flaps behind the rear wheels', kg: 3 },
+  flares: { name: 'Alloy flares', sub: 'Checkerplate guards over the rear wheels', kg: 16 },
+  full:   { name: 'Full guards + flaps', sub: 'Flares, rock sliders and flaps', kg: 24 }
 };
 /* False floor: cross beams in the canopy's own metal, 12 mm ply on top, optional marine carpet over that. Heights in mm, weights are estimates. */
-const FLOOR_PLY = 12, BEAM_HTS = [25, 40, 50], BEAM_PITCH = 350, BEAM_W = 40, PLY_KG_M3 = 650;
+const BEAM_HTS = [25, 40, 50], BEAM_PITCH = 350, BEAM_W = 40, PLY_KG_M3 = 650, ALU_KG_M3 = 2700;
+/* the false floor's top sheet: marine ply in several thicknesses, or aluminium sheet (smooth or checkerplate) */
+const PLY_TS = [6, 9, 12, 15, 18, 21], ALU_TS = [2, 3, 4, 5, 6];
+const FLOOR_MATS = { ply: 'Marine ply', alu: 'Aluminium sheet' };
+const sheetT = C => (C.floorMat === 'alu' ? C.aluT : C.plyT);
 const PLY_COLS = { natural: ['Natural marine ply', '#cfa972'], honey: ['Varnished honey', '#b9803f'], walnut: ['Dark stain', '#6a4529'], black: ['Black paint', '#1c1d1f'], grey: ['Grey paint', '#7d8287'], white: ['White paint', '#e4e3dc'] };
 const CARPETS = {
   none:   { name: 'No carpet', t: 0, kg: 0, note: 'Bare ply' },
@@ -570,27 +630,29 @@ const CARPET_COLS = { charcoal: ['Charcoal', '#34373b'], black: ['Black', '#1718
 const HEXRE = /^#[0-9a-fA-F]{6}$/;
 const floorKgM = C => (C.mat === 'alu' ? 1.2 : 2.4) * (0.55 + C.beam / 90) / 1.0; /* kg per metre of beam, a rectangular tube 40 wide by the beam height */
 /* how high the canopy floor sits above the tray deck (0 with no false floor) */
-function floorH(C) { C = C || state.canopy; return C.floor ? C.beam + FLOOR_PLY + (CARPETS[C.carpet] ? CARPETS[C.carpet].t : 0) : 0; }
+function floorH(C) { C = C || state.canopy; return C.floor ? C.beam + sheetT(C) + (CARPETS[C.carpet] ? CARPETS[C.carpet].t : 0) : 0; }
 function floorKg(C) {
   C = C || state.canopy;
   if (!C.floor) return { beams: 0, ply: 0, carpet: 0, n: 0 };
   const iw = (C.wid - 2 * WALL_T) / 1000, il = (C.len - 2 * WALL_T) / 1000, n = Math.max(2, Math.round(il * 1000 / BEAM_PITCH) + 1);
-  return { n, beams: n * iw * floorKgM(C), ply: iw * il * FLOOR_PLY / 1000 * PLY_KG_M3, carpet: iw * il * (CARPETS[C.carpet] ? CARPETS[C.carpet].kg : 0) };
+  return { n, beams: n * iw * floorKgM(C), ply: iw * il * sheetT(C) / 1000 * (C.floorMat === 'alu' ? ALU_KG_M3 : PLY_KG_M3), carpet: iw * il * (CARPETS[C.carpet] ? CARPETS[C.carpet].kg : 0) };
 }
 const OPT = {
   veh: Object.keys(VEHICLES), cab: Object.keys(CABS), spare: Object.keys(SPARE),
   mat: ['steel', 'alu'], finish: ['checker', 'smooth'], head: ['none', 'half', 'full'], sides: ['none', 'drop'],
   boxes: ['none', 'left', 'right', 'both'], lights: Object.keys(LIGHTS), colour: Object.keys(COLOURS),
   design: Object.keys(TRAYS), headShape: ['angled', 'square', 'custom'], lightStyle: Object.keys(LIGHT_STYLES), shape: ['none', 'aframe', 'square', 'custom'],
-  style: ['gull', 'barn'], rear: ['solid', 'hatch', 'barn', 'drop'], rack: ['none'].concat(Object.keys(RACKS)), carpet: Object.keys(CARPETS), beam: BEAM_HTS, paint: Object.keys(PAINTS)
+  style: ['gull', 'barn'], rear: ['solid', 'hatch', 'barn', 'drop'], rack: ['none'].concat(Object.keys(RACKS)), carpet: Object.keys(CARPETS), beam: BEAM_HTS, paint: Object.keys(PAINTS),
+  tyre: Object.keys(TYRES), tyreSize: Object.keys(TYRE_SIZES), boxStyle: Object.keys(BOX_STYLES), guards: Object.keys(GUARDS), bodyLift: [0, 25, 50],
+  floorMat: Object.keys(FLOOR_MATS), plyT: PLY_TS, aluT: ALU_TS, floorFin: ['checker', 'smooth']
 };
 
 /* ---------- State ---------- */
 function defaultState() {
   return {
     step: 0, paint: 'silver',
-    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: 'none', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'half', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', lights: 'red', lightStyle: 'factory' },
-    canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
+    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: 'none', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'none', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
+    canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
     items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
   };
 }
@@ -605,7 +667,13 @@ function clampState() {
   if (!SPARE[T.spare]) T.spare = 'none';
   if (OPT.design.indexOf(T.design) < 0) T.design = 'none';
   if (OPT.headShape.indexOf(T.headShape) < 0) T.headShape = 'angled';
-  if (OPT.lightStyle.indexOf(T.lightStyle) < 0) T.lightStyle = 'factory';
+  if (OPT.lightStyle.indexOf(T.lightStyle) < 0) T.lightStyle = LIGHT_LEGACY[T.lightStyle] || 'factory';
+  if (!TYRES[T.tyre]) T.tyre = 'at';
+  if (!TYRE_SIZES[T.tyreSize]) T.tyreSize = 'std';
+  if (!BOX_STYLES[T.boxStyle]) T.boxStyle = 'drop';
+  if (!GUARDS[T.guards]) T.guards = 'none';
+  T.lift = Math.round(clamp(+T.lift || 0, 0, 150) / 5) * 5;
+  if (OPT.bodyLift.indexOf(T.bodyLift) < 0) T.bodyLift = 0;
   if (OPT.shape.indexOf(C.shape) < 0) C.shape = 'none';
   if (T.design === 'none') C.shape = 'none'; /* a canopy needs a tray under it */
   /* gear lives inside a canopy, and the ute can only come off with a canopy to stand on its own */
@@ -628,6 +696,10 @@ function clampState() {
   if (C.shape === 'custom') C.hgt = C.bend + C.rise;
   C.inset = Math.round(clamp(nm(C.inset, 250), 0, Math.max(0, Math.floor((C.wid - 700) / 2))));
   if (OPT.beam.indexOf(C.beam) < 0) C.beam = 40;
+  if (!FLOOR_MATS[C.floorMat]) C.floorMat = 'ply';
+  if (PLY_TS.indexOf(C.plyT) < 0) C.plyT = 12;
+  if (ALU_TS.indexOf(C.aluT) < 0) C.aluT = 3;
+  if (OPT.floorFin.indexOf(C.floorFin) < 0) C.floorFin = 'checker';
   if (!HEXRE.test(C.ply)) C.ply = '#cfa972';
   if (!HEXRE.test(C.carpetCol)) C.carpetCol = '#34373b';
   if (!CARPETS[C.carpet]) C.carpet = 'none';
@@ -868,7 +940,7 @@ function weights() {
     tray += T.head === 'full' ? 14 : T.head === 'half' ? 6 : 0;
     /* a design with its own sides carries their weight; the flat deck only has them if you add drop sides behind the canopy */
     tray += (T.design === 'flat' ? T.sides === 'drop' : TRAYS[T.design].side > 0) ? (alu(T.mat) ? 18 : 30) : 0;
-    tray += (T.boxes === 'both' ? 2 : T.boxes === 'none' ? 0 : 1) * 12;
+    tray += (T.boxes === 'both' ? 2 : T.boxes === 'none' ? 0 : 1) * (BOX_STYLES[T.boxStyle] || BOX_STYLES.drop).kg + (GUARDS[T.guards] ? GUARDS[T.guards].kg || 0 : 0);
   }
   const spare = hasT && SPARE[T.spare] ? SPARE[T.spare].kg : 0;
   let canopy = 0;
@@ -1080,7 +1152,7 @@ function massList() {
   const T = state.tray, C = state.canopy, G = geo(), w = weights(), lay = layout(), VG = vehGeo(), L = [];
   if (w.tray) L.push({ n: 'Tray', kg: w.tray, x: 0, y: -60, z: 0 });
   if (w.canopy) L.push({ n: 'Canopy', kg: w.canopy, x: 0, y: C.hgt * 0.55, z: (G.outer.z0 + G.outer.z1) / 2 });
-  if (w.spare) L.push({ n: 'Spare wheel', kg: w.spare, x: 0, y: T.spare === 'under' ? -250 : 450, z: T.spare === 'carrier' ? T.len / 2 + 250 : T.spare === 'door' ? G.outer.z1 + 150 : T.len / 2 - 450 });
+  if (w.spare) L.push({ n: 'Spare wheel', kg: w.spare, x: 0, y: T.spare === 'under' ? -250 : 450, z: T.spare === 'carrier' ? T.len / 2 + 250 : (T.spare === 'door' || T.spare === 'door2') ? G.outer.z1 + 150 : T.len / 2 - 450 });
   state.items.forEach(i => { const d = ITEMS[i.key], l = lay.get(i.id); L.push({ n: d.name, kg: itemKg(i), x: i.x, y: (d.mount === 'roof' ? G.roofY : 0) + l.y + dims(i).h / 2, z: i.z, roof: d.mount === 'roof' }); });
   let left = state.people;
   (SEATS[T.cab] || SEATS.dual).forEach(([u, n]) => { const k = Math.min(n, left); left -= k; if (k) L.push({ n: 'People', kg: k * 80, x: 0, y: -300, z: VG.zCab + u, cab: true }); });
@@ -1110,6 +1182,11 @@ function loadCheck() {
   if (tl) { if (tl.kg > tl.max) out.push(['bad', tl.kg + ' kg on the ' + ITEMS[tl.host.key].name + ' lid (rack and gear). It is good for ' + tl.max + ' kg.']); }
   else if (rk && roof > rk.load) out.push(['bad', roof + ' kg on the roof. ' + rackName(state.canopy.rack) + ' is rated ' + rk.load + ' kg on the move.']);
   if (roof > 100 && !(rk && !tl && roof > rk.load)) out.push(['warn', roof + ' kg on the roof. Check your canopy\'s roof rating; many are around 100 kg on the move.']);
+  { const ac = archClear(T), ts = tyreSpec(T);
+    if (ac < 0) out.push(['bad', 'The ' + ts.label + ' tyres are about ' + (-ac) + ' mm into the front arches. Add suspension or body lift, or go smaller.']);
+    else if (ac < 25) out.push(['warn', 'Only ' + ac + ' mm between the front tyres and the arches. They will rub on full lock and full flex.']);
+    if (T.lift > 50 || T.bodyLift > 25) out.push(['warn', 'Over 50 mm of suspension lift or 25 mm of body lift usually needs engineering sign-off in most states. Check the rules where you live.']);
+    if (T.lift + T.bodyLift + (ts.R - V.tyreR) * 2 > 150) out.push(['warn', 'This much lift raises the centre of gravity and the speedo reads low on bigger tyres. Take it easy on side slopes.']); }
   const cx = add ? mx / add : 0;
   if (Math.abs(cx) > 60) out.push(['warn', 'Load sits ' + Math.round(Math.abs(cx)) + ' mm to the ' + (cx > 0 ? 'right' : 'left') + ' of centre.']);
   return { kerb, gvm, F: Math.round(F), R: Math.round(R), fal: V.fal, ral: V.ral, add: Math.round(add), pay, total: Math.round(kerb + add), roof: Math.round(roof), cx: Math.round(cx), cy: mBody ? Math.round(my / mBody) : 0, list, issues: out };
@@ -1120,16 +1197,21 @@ function partsList() {
   const T = state.tray, C = state.canopy, V = VEHICLES[T.veh], w = weights(), S = [];
   const nm = d => (BRANDS[d.brand].name ? BRANDS[d.brand].name + ' ' : '') + d.name;
   const mat = m => m === 'alu' ? 'aluminium' : 'steel', fin = f => f === 'checker' ? 'checker plate' : 'smooth';
-  S.push({ h: 'Vehicle', rows: [[V.name + ' ' + CABS[T.cab].name.toLowerCase(), 'wheelbase ' + V.wb + ' mm, payload ' + state.payload + ' kg', 1, '']] });
+  { const ts = tyreSpec(T), vr = [[V.name + ' ' + CABS[T.cab].name.toLowerCase(), 'wheelbase ' + V.wb + ' mm, payload ' + state.payload + ' kg', 1, '']];
+    vr.push([TYRES[T.tyre].name + ' ' + ts.label, TYRES[T.tyre].sub, 4 + (T.spare === 'none' ? 0 : T.spare === 'door2' ? 2 : 1), '']);
+    if (T.lift) vr.push(['Suspension lift kit, ' + T.lift + ' mm', 'springs, shocks and bump stops', 1, '']);
+    if (T.bodyLift) vr.push(['Body lift, ' + (T.bodyLift === 25 ? '1 inch (25 mm)' : '2 inch (50 mm)'), 'cab mounts blocks', 1, '']);
+    S.push({ h: 'Vehicle', rows: vr }); }
   const hasT = T.design !== 'none', hasC = C.shape !== 'none';
   if (hasT) {
     const tr = [[TRAYS[T.design].name + ' tray, ' + mat(T.mat) + ' ' + fin(T.finish) + ', ' + COLOURS[T.colour].name.toLowerCase(), T.len + ' × ' + T.wid + ' mm', 1, w.tray]];
     const hp = headProfile(T);
     if (hp) tr.push([(T.head === 'full' ? 'Full headboard with rack' : 'Half headboard') + ', ' + (T.headShape === 'square' ? 'square' : T.headShape === 'custom' ? 'custom angled' : 'angled to match the cab'), T.headShape === 'square' ? hp.h + ' mm tall' : hp.bend + ' mm to the bend, ' + hp.up + ' mm above it, ' + hp.inset + ' mm in', 1, '']);
     if (T.design === 'flat' && T.sides === 'drop') tr.push(['Drop sides', '', 1, '']);
-    if (T.boxes !== 'none') tr.push(['Under-tray toolbox', '', T.boxes === 'both' ? 2 : 1, '']);
+    if (T.boxes !== 'none') tr.push(['Under-tray ' + BOX_STYLES[T.boxStyle].name.toLowerCase(), BOX_STYLES[T.boxStyle].sub, T.boxes === 'both' ? 2 : 1, '']);
+    if (T.guards !== 'none') tr.push(['Mud guards: ' + GUARDS[T.guards].name.toLowerCase(), GUARDS[T.guards].sub, 1, GUARDS[T.guards].kg]);
     tr.push(['Tail lights: ' + LIGHT_STYLES[T.lightStyle].name + ', ' + LIGHTS[T.lights].name.toLowerCase(), '', 2, '']);
-    if (T.spare !== 'none') tr.push(['Spare wheel mount, ' + SPARE[T.spare].name.toLowerCase(), '', 1, w.spare]);
+    if (T.spare !== 'none') tr.push(['Spare wheel mount, ' + SPARE[T.spare].name.toLowerCase(), '', T.spare === 'door2' ? 2 : 1, w.spare]);
     S.push({ h: 'Tray', rows: tr });
   }
   if (!hasC) return S;
@@ -1140,7 +1222,7 @@ function partsList() {
   if (C.floor) {
     const f = floorKg(C), iw = C.wid - 2 * WALL_T, il = C.len - 2 * WALL_T, cp = CARPETS[C.carpet];
     cr.push(['False floor beams, ' + mat(C.mat) + ' ' + BEAM_W + ' × ' + C.beam + ' mm', iw + ' mm long, about ' + BEAM_PITCH + ' mm apart', f.n, Math.round(f.beams * 10) / 10],
-      ['Plywood floor, ' + FLOOR_PLY + ' mm, ' + ((Object.values(PLY_COLS).find(c => c[1] === C.ply) || ['custom colour'])[0].toLowerCase()), iw + ' × ' + il + ' mm (' + Math.ceil(il / 2400) * Math.ceil(iw / 1200) + ' sheet' + (Math.ceil(il / 2400) * Math.ceil(iw / 1200) > 1 ? 's' : '') + ' 2400 × 1200)', 1, Math.round(f.ply * 10) / 10]);
+      [C.floorMat === 'alu' ? 'Aluminium sheet floor, ' + C.aluT + ' mm ' + (C.floorFin === 'checker' ? 'checkerplate' : 'smooth') : 'Plywood floor, ' + C.plyT + ' mm, ' + ((Object.values(PLY_COLS).find(c => c[1] === C.ply) || ['custom colour'])[0].toLowerCase()), iw + ' × ' + il + ' mm (' + Math.ceil(il / 2400) * Math.ceil(iw / 1200) + ' sheet' + (Math.ceil(il / 2400) * Math.ceil(iw / 1200) > 1 ? 's' : '') + ' 2400 × 1200)', 1, Math.round(f.ply * 10) / 10]);
     if (cp && cp.t) cr.push(['Marine carpet, ' + cp.name.toLowerCase() + ', ' + ((Object.values(CARPET_COLS).find(c => c[1] === C.carpetCol) || ['custom colour'])[0].toLowerCase()), iw + ' × ' + il + ' mm', 1, Math.round(f.carpet * 10) / 10]);
   }
   if (RACKS[C.rack]) cr.push(['Roof rack: ' + rackName(C.rack) + (rackHost() ? ', on the ' + ITEMS[rackHost().key].name : ''), RACKS[C.rack].type === 'bars' ? 'bars ' + rackSpread(C.rack) + ' mm apart' : (rackLen() - 60) + ' mm long', 1, RACKS[C.rack].kg]);
@@ -1177,7 +1259,7 @@ const STAND_TYRE = { R: 395, W: 285 };
 /* mm from the deck top (the canopy floor) down to the ground */
 function standDrop() {
   const V = VEHICLES[state.tray.veh] || VEHICLES[VEH_DEFAULT];
-  if (!state.carOff || state.canopy.jack) return V.deckH;
+  if (!state.carOff || state.canopy.jack) return rideH();
   return 35 + STAND_TYRE.W;
 }
 /* gear that rides on the tray outside the canopy stays with the ute */
@@ -1204,6 +1286,8 @@ function applyData(o) {
   /* older codes: the roof rack was on/off, and the canopy had a built-in awning on one side */
   const oldAwn = o && o.canopy && typeof o.canopy === 'object' && (o.canopy.awning === 'left' || o.canopy.awning === 'right') ? o.canopy.awning : null;
   if (o && o.canopy && typeof o.canopy === 'object' && typeof o.canopy.rack === 'boolean') o.canopy = Object.assign({}, o.canopy, { rack: o.canopy.rack ? 'gen' : 'none' });
+  if (o && o.tray && typeof o.tray === 'object' && LIGHT_LEGACY[o.tray.lightStyle]) o.tray = Object.assign({}, o.tray, { lightStyle: LIGHT_LEGACY[o.tray.lightStyle] });
+  /* codes from before the tall headboard default keep the headboard they had */
   const fresh = defaultState();
   const pickOpt = (v, list, dflt) => list.indexOf(v) >= 0 ? v : dflt;
   state.paint = pickOpt(o.paint, OPT.paint, fresh.paint);
@@ -1211,7 +1295,7 @@ function applyData(o) {
     const src = (o[k] && typeof o[k] === 'object') ? o[k] : {}, dst = fresh[k];
     Object.keys(dst).forEach(f => {
       const v = src[f];
-      if (f === 'beam') dst[f] = OPT.beam.indexOf(v) >= 0 ? v : dst[f];
+      if (f === 'beam' || f === 'plyT' || f === 'aluT' || f === 'bodyLift') dst[f] = OPT[f === 'beam' ? 'beam' : f].indexOf(v) >= 0 ? v : dst[f];
       else if (typeof dst[f] === 'number') dst[f] = typeof v === 'number' && isFinite(v) ? v : dst[f];
       else if (f === 'ply' || f === 'carpetCol') dst[f] = typeof v === 'string' && HEXRE.test(v) ? v.toLowerCase() : dst[f];
       else if (typeof dst[f] === 'boolean') dst[f] = typeof v === 'boolean' ? v : dst[f];
@@ -1508,48 +1592,76 @@ function tube(path, rad, mat, seg) {
 }
 
 /* ---------- Wheels: a moulded tyre with all-terrain tread, and a rim per style. Axis runs along x, the face looks at +x. S is a material factory (col, rough, metal). ---------- */
-const SP_R = 0.395, SP_W = 0.265;
-function wheelGroup(rad, wid, S, style, rimK) {
-  const w = new THREE.Group(), k = rimK || 0.64, Rr = rad * k, hw = wid / 2, sw = rad - Rr, seg = 44;
-  const tyre = S('#1c1d1f', 0.92, 0), dk = S('#1f2226', 0.6, 0.2), lug = S('#a3a9af', 0.35, 0.7);
-  const rimC = style === 'steel' ? '#d6d9dc' : style === 'spoke6' ? '#4f555b' : '#c3c8cd';
-  const rim = S(rimC, 0.32, style === 'steel' ? 0.3 : 0.65);
-  const prof = [[0, Rr - 0.004], [-hw + 0.016, Rr - 0.004], [-hw + 0.003, Rr + sw * 0.3], [-hw, Rr + sw * 0.62], [-hw + 0.012, rad - 0.032], [-hw + 0.042, rad - 0.004],
-    [hw - 0.042, rad - 0.004], [hw - 0.012, rad - 0.032], [hw, Rr + sw * 0.62], [hw - 0.003, Rr + sw * 0.3], [hw - 0.016, Rr - 0.004], [0, Rr - 0.004]];
+/* the spare is always the same tyre as the four on the ground */
+const spR = () => tyreSpec().R * MM, spW = () => tyreSpec().W * MM;
+function wheelGroup(rad, wid, S, style, rimK, tread) {
+  tread = tread || TYRES[state.tray.tyre] || TYRES.at;
+  const w = new THREE.Group(), k = rimK || 0.64, hw = wid / 2, dep = tread.d * MM, rg = rad - dep;
+  const Rr = Math.min(rad * k, rg - 0.06), sw = rg - Rr, seg = 72;
+  const tyre = S('#1b1c1e', 0.93, 0), dk = S('#1f2226', 0.6, 0.2), lug = S('#b8bec4', 0.3, 0.8), txt = S('#cfd3d6', 0.85, 0);
+  const rimC = style === 'steel' ? '#d6d9dc' : style === 'spoke6' ? '#7a8189' : '#c3c8cd';
+  const rim = S(rimC, 0.3, style === 'steel' ? 0.3 : 0.7), rimDk = S('#2a2d31', 0.5, 0.5), disc = S('#8d9298', 0.45, 0.8), calip = S('#b2352c', 0.45, 0.3);
+  /* carcass: bead, bulging sidewall, rounded shoulder, then the groove floor of the tread */
+  const sr = Math.min(0.05, sw * 0.45), half = [[hw - 0.016, Rr - 0.004], [hw - 0.004, Rr + sw * 0.16], [hw, Rr + sw * 0.4], [hw, Rg(0.68)]];
+  function Rg(f) { return Rr + sw * f; }
+  for (let i = 1; i <= 6; i++) { const a = i / 6 * Math.PI / 2; half.push([hw - sr + sr * Math.cos(a), rg - sr + sr * Math.sin(a)]); }
+  const prof = half.map(([x, r]) => [-x, r]).concat(half.slice().reverse());
+  prof.unshift([0, Rr - 0.004]); prof.push([0, Rr - 0.004]);
   w.add(loft(prof.map(([x, r]) => Array.from({ length: seg }, (_, i) => { const a = i / seg * Math.PI * 2; return [x, Math.sin(a) * r, Math.cos(a) * r]; })), tyre, true));
-  /* tread blocks and shoulder lugs */
-  const T = new Merge(), nb = 36, arc = Math.PI * 2 * rad / nb;
-  for (let i = 0; i < nb; i++) {
-    const a = (i + 0.5) / nb * Math.PI * 2, rx = Math.PI / 2 - a, o = i % 2 ? 0.012 : -0.012;
-    [-1, 1].forEach(sd => {
-      const rr = rad + 0.002;
-      T.box(sd * wid * 0.2 + o, Math.sin(a) * rr, Math.cos(a) * rr, wid * 0.3, 0.008, arc * 0.62, rx);
-      if ((i + (sd > 0 ? 1 : 0)) % 2) { const r2 = rad - 0.03; T.box(sd * (hw - 0.002), Math.sin(a) * r2, Math.cos(a) * r2, 0.014, 0.05, arc * 0.5, rx); }
-    });
+  /* tread, built from blocks: a rib tyre gets ring ribs with fine grooves, the others get staggered centre blocks, shoulder blocks and sidewall lugs */
+  const T = new Merge(), tw = hw * 0.86, nb = tread.nb, arc = Math.PI * 2 * rad / nb, rc = rad - dep / 2;
+  const at = (i, o) => { const a = (i + o) / nb * Math.PI * 2; return [a, Math.sin(a) * rc, Math.cos(a) * rc, Math.PI / 2 - a]; };
+  if (tread.rib) {
+    [-0.78, -0.26, 0.26, 0.78].forEach(f => w.add(cyl(rad, tw * 0.36, tyre, f * tw, 0, 0, 'x', seg)));
+    for (let i = 0; i < nb; i++) { const [, y, z, rx] = at(i, 0.5); [-1, 1].forEach(sd => { T.box(sd * tw * 0.52, y * (rad / rc), z * (rad / rc), tw * 0.16, 0.004, arc * 0.7, rx); }); }
+  } else {
+    for (let i = 0; i < nb; i++) {
+      const [, y, z, rx] = at(i, 0.5), [, y2, z2, rx2] = at(i, 0.0);
+      [-1, 1].forEach(sd => {
+        T.box(sd * tw * 0.3, y, z, tw * tread.cw * 0.95, dep, arc * 0.56, rx);                     /* centre block */
+        T.box(sd * tw * 0.8, y2, z2, tw * 0.36, dep, arc * 0.5, rx2);                              /* shoulder block */
+        if (tread.sipe) T.box(sd * tw * 0.3, y * 1.0005, z * 1.0005, tw * tread.cw * 0.7, dep * 1.04, 0.003, rx);
+        if (tread.lug) { const lh = tread.lug * MM, r2 = rg - lh / 2 + 0.01; T.box(sd * (hw - 0.001), Math.sin(at(i, 0)[0]) * r2, Math.cos(at(i, 0)[0]) * r2, 0.014, lh, arc * 0.42, rx2); }
+      });
+    }
+    /* a centre rib joining the blocks keeps the tread from reading as loose cubes */
+    w.add(cyl(rg + dep * 0.45, tw * 0.08, tyre, 0, 0, 0, 'x', seg));
   }
   w.add(T.mesh(tyre));
-  /* rim */
+  /* raised lettering and the snowflake mark on both sidewalls */
+  { const Lt = new Merge(), rl = Rr + sw * 0.55, nl = 11;
+    for (let i = 0; i < nl; i++) { const a = (i + 0.2) / nl * Math.PI * 0.62 + 0.3; [-1, 1].forEach(sd => Lt.box(sd * (hw + 0.0008), Math.sin(a) * rl, Math.cos(a) * rl, 0.0016, 0.022, 0.03 + (i % 3) * 0.014, Math.PI / 2 - a)); }
+    if (tread.snow) [-1, 1].forEach(sd => { for (let q = 0; q < 3; q++) Lt.box(sd * (hw + 0.0008), -0.045 * q + Math.sin(2.7) * rl - 0.02, Math.cos(2.7) * rl, 0.0016, 0.036 - q * 0.007, 0.04 - q * 0.008, 0.4); });
+    w.add(Lt.mesh(txt)); }
+  /* rim: barrel, lip, face, brake disc and caliper behind it, valve, nuts */
   const fx = hw - 0.05;
-  w.add(cyl(Rr, (fx - 0.025) * 2, rim, 0, 0, 0, 'x', 28));
+  w.add(cyl(Rr, (fx - 0.025) * 2, rim, 0, 0, 0, 'x', 40));
+  w.add(cyl(Rr * 1.02, 0.014, rim, hw - 0.012, 0, 0, 'x', 40)); w.add(cyl(Rr * 1.02, 0.014, rim, -hw + 0.012, 0, 0, 'x', 40));
+  w.add(cyl(Rr * 0.8, 0.014, disc, fx - 0.09, 0, 0, 'x', 36));
+  w.add(rbox(0.07, Rr * 0.45, Rr * 0.5, 0.012, calip, fx - 0.09, -Rr * 0.5, Rr * 0.12));
   if (style === 'steel') {
-    w.add(cyl(Rr * 0.97, 0.02, rim, fx, 0, 0, 'x', 28));
-    w.add(cyl(Rr * 0.5, 0.035, rim, fx + 0.01, 0, 0, 'x', 24));
-    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; w.add(cyl(Rr * 0.09, 0.024, dk, fx + 0.002, Math.sin(a) * Rr * 0.73, Math.cos(a) * Rr * 0.73, 'x', 10)); }
-    w.add(cyl(Rr * 0.22, 0.05, S('#b9bec3', 0.3, 0.6), fx + 0.02, 0, 0, 'x', 14));
+    w.add(cyl(Rr * 0.97, 0.02, rim, fx, 0, 0, 'x', 40));
+    w.add(cyl(Rr * 0.5, 0.035, rim, fx + 0.01, 0, 0, 'x', 28));
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; w.add(cyl(Rr * 0.09, 0.024, rimDk, fx + 0.002, Math.sin(a) * Rr * 0.73, Math.cos(a) * Rr * 0.73, 'x', 12)); }
+    for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; w.add(cyl(Rr * 0.045, 0.026, rimDk, fx + 0.004, Math.sin(a) * Rr * 0.85, Math.cos(a) * Rr * 0.85, 'x', 8)); }
+    w.add(cyl(Rr * 0.22, 0.05, S('#b9bec3', 0.3, 0.6), fx + 0.02, 0, 0, 'x', 20));
   } else {
-    w.add(cyl(Rr * 0.94, 0.02, dk, fx - 0.01, 0, 0, 'x', 28));
-    const Sp = new Merge(), n = 6, twin = style === 'twin6';
+    w.add(cyl(Rr * 0.94, 0.02, rimDk, fx - 0.01, 0, 0, 'x', 40));
+    const Sp = new Merge(), n = style === 'twin6' ? 6 : 6, twin = style === 'twin6';
     for (let i = 0; i < n; i++) (twin ? [-0.09, 0.09] : [0]).forEach(da => {
-      const a = i / n * Math.PI * 2 + da, rc = Rr * 0.6;
-      Sp.box(fx + 0.012, Math.sin(a) * rc, Math.cos(a) * rc, 0.03, Rr * 0.66, twin ? 0.026 : 0.06, Math.PI / 2 - a);
+      const a = i / n * Math.PI * 2 + da, rc2 = Rr * 0.6;
+      Sp.box(fx + 0.012, Math.sin(a) * rc2, Math.cos(a) * rc2, 0.03, Rr * 0.66, twin ? 0.026 : 0.06, Math.PI / 2 - a);
+      if (!twin) Sp.box(fx + 0.02, Math.sin(a) * Rr * 0.86, Math.cos(a) * Rr * 0.86, 0.022, Rr * 0.18, 0.09, Math.PI / 2 - a);
     });
     w.add(Sp.mesh(rim));
-    w.add(cyl(Rr * 0.28, 0.06, rim, fx + 0.01, 0, 0, 'x', 18));
+    w.add(cyl(Rr * 0.97, 0.012, rim, fx + 0.004, 0, 0, 'x', 40)); /* outer rim ring the spokes run into */
+    w.add(cyl(Rr * 0.28, 0.06, rim, fx + 0.01, 0, 0, 'x', 24));
   }
   const Lg = new Merge();
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, r = Rr * 0.19; Lg.box(fx + 0.04, Math.sin(a) * r, Math.cos(a) * r, 0.02, 0.018, 0.018, 0); }
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, r = Rr * 0.19; Lg.box(fx + 0.04, Math.sin(a) * r, Math.cos(a) * r, 0.02, 0.022, 0.022, a); Lg.box(fx + 0.04, Math.sin(a) * r, Math.cos(a) * r, 0.02, 0.022, 0.022, a + Math.PI / 6); }
   w.add(Lg.mesh(lug));
-  w.add(cyl(Rr * 0.1, 0.07, S('#2a2d31', 0.5, 0.4), fx + 0.02, 0, 0, 'x', 12));
+  w.add(cyl(Rr * 0.1, 0.07, rimDk, fx + 0.02, 0, 0, 'x', 14));
+  w.add(cyl(0.009, 0.034, rimDk, hw - 0.03, Math.sin(0.9) * Rr * 0.97, Math.cos(0.9) * Rr * 0.97, 'x', 6));
   return w;
 }
 /* A spare on a bracket facing rearward. zFace is the surface it bolts to, in the parent's local space. Returns the wheel. */
@@ -1557,9 +1669,9 @@ function spareMount(parent, x, y, zFace) {
   const dk = std('#1f2226', 0.6, 0.2);
   parent.add(rbox(0.3, 0.3, 0.014, 0.012, dk, x, y, zFace + 0.007));
   parent.add(cyl(0.03, 0.05, dk, x, y, zFace + 0.04, 'z', 10));
-  const wg = wheelGroup(SP_R, SP_W, std);
+  const wg = wheelGroup(spR(), spW(), std);
   wg.rotation.y = -Math.PI / 2;
-  wg.position.set(x, y, zFace + 0.065 + SP_W / 2);
+  wg.position.set(x, y, zFace + 0.065 + spW() / 2);
   parent.add(wg);
   return wg;
 }
@@ -1697,46 +1809,105 @@ function buildTray() {
   }
   if (T.boxes !== 'none') {
     /* start the boxes just behind the rear wheels; the rear axle sits further back along the tray on shorter cabs */
-    const rearAxle = vehGeo().rearAxle * MM;
-    const z0 = rearAxle + 0.42, z1 = L / 2 - 0.15, len = z1 - z0;
+    const rearAxle = vehGeo().rearAxle * MM, TSb = tyreSpec(T), BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop;
+    const z0 = rearAxle + TSb.R * MM + 0.04, z1 = L / 2 - 0.15, len = z1 - z0;
     if (len > 0.3) {
       const sides = T.boxes === 'both' ? [-1, 1] : [T.boxes === 'left' ? -1 : 1];
+      const bw = BS.w * MM, bh = BS.h * MM, yc = -0.06 - bh / 2, zc = (z0 + z1) / 2, lock = std('#c9ced3', 0.3, 0.8), seal = std('#101113', 0.85, 0.05);
       sides.forEach(s => {
-        g.add(rbox(0.32, 0.3, len, 0.03, edge, s * (W / 2 - 0.2), -0.21, (z0 + z1) / 2));
-        g.add(rbox(0.04, 0.05, 0.14, 0.012, dark, s * (W / 2 - 0.2), -0.18, z1 + 0.005));
+        const xc = s * (W / 2 - 0.02 - bw / 2), xo = xc + s * bw / 2;   /* xo = the outside face */
+        if (T.boxStyle === 'tank') {
+          const r = Math.min(bh, bw) / 2, tk = std('#cfd2c9', 0.55, 0.05);
+          g.add(cyl(r, len, tk, xc, yc, zc, 'z', 28));
+          [0.15, 0.5, 0.85].forEach(f => g.add(rbox(bw + 0.01, 0.026, 0.05, 0.006, steelDk, xc, yc, z0 + len * f)));
+          g.add(cyl(0.045, 0.03, dark, xc + s * r * 0.35, yc + r * 0.96, z0 + len * 0.7, 'y', 14));
+          g.add(cyl(0.032, 0.02, std('#2a6fb4', 0.5, 0.1), xc + s * r * 0.35, yc + r * 0.96 + 0.02, z0 + len * 0.7, 'y', 14));
+          g.add(rbox(0.034, 0.05, 0.034, 0.006, zinc, xc, yc - r - 0.014, z1 - 0.05));
+          return;
+        }
+        g.add(rbox(bw, bh, len, 0.03, edge, xc, yc, zc));
+        g.add(rbox(0.026, bh - 0.05, len - 0.07, 0.008, seal, xo + s * 0.004, yc, zc));        /* door seal channel */
+        g.add(rbox(0.012, bh - 0.04, len - 0.06, 0.006, edge, xo + s * 0.01, yc, zc));       /* door skin */
+        g.add(rbox(0.04, 0.05, 0.14, 0.012, dark, xo + s * 0.016, yc, z1 - 0.1));            /* latch */
+        g.add(cyl(0.008, 0.02, lock, xo + s * 0.04, yc, z1 - 0.1, 'x', 10));
+        if (T.boxStyle === 'drop') {
+          [0.1, 0.9].forEach(f => g.add(cyl(0.01, 0.05, zinc, xc, yc - bh / 2 + 0.012, z0 + len * f, 'z', 8)));
+          g.add(rbox(bw * 0.8, 0.012, 0.012, 0.004, zinc, xc, yc - bh / 2 + 0.01, zc));
+        } else if (T.boxStyle === 'swing') {
+          [0.12, 0.88].forEach(f => g.add(rbox(0.014, 0.07, 0.05, 0.006, zinc, xo + s * 0.012, yc + bh / 2 - 0.02, z0 + len * f)));
+          g.add(rbox(0.02, 0.012, len - 0.12, 0.004, edge, xo + s * 0.016, yc + bh / 2 - 0.02, zc));
+        } else if (T.boxStyle === 'deep') {
+          [0.15, 0.85].forEach(f => { g.add(rbox(0.016, 0.07, 0.05, 0.006, zinc, xo + s * 0.012, yc - bh / 2 + 0.02, z0 + len * f)); g.add(cyl(0.012, 0.16, zinc, xo + s * 0.02, yc - bh * 0.2, z0 + len * f, 'y', 8)); });
+          g.add(rbox(0.012, 0.016, len * 0.8, 0.005, steelDk, xo + s * 0.016, yc + bh * 0.2, zc));
+        } else if (T.boxStyle === 'drawer') {
+          const nd = len > 0.9 ? 2 : 1, dl = (len - 0.06) / nd;
+          for (let i = 0; i < nd; i++) { const zd = z0 + 0.03 + dl * (i + 0.5); [yc + bh * 0.2, yc - bh * 0.2].forEach(yy => { g.add(rbox(0.014, bh * 0.36, dl - 0.02, 0.006, steelDk, xo + s * 0.01, yy, zd)); g.add(rbox(0.02, 0.014, dl * 0.5, 0.006, lock, xo + s * 0.026, yy, zd)); }); }
+        }
       });
     }
+  }
+  /* ---- mud guards: flaps behind the rear wheels, alloy flares over them, or the full set with a stone guard on the front of each ---- */
+  if (T.guards !== 'none') {
+    const TSg = tyreSpec(T), VGg = vehGeo(), V = VGg.V, ra = VGg.rearAxle * MM, hT = V.track * MM / 2, Rg = TSg.R * MM, Wg = TSg.W * MM, ycg = (V.tyreR - V.deckH - T.lift) * MM;
+    const rub = std('#0d0e10', 0.92, 0), ground = ycg - Rg;
+    [-1, 1].forEach(sd => {
+      const x = sd * hT;
+      if (T.guards !== 'flares') {
+        /* mud flap: rubber sheet on a steel bracket hanging off the tray edge behind the tyre */
+        const fh = Math.max(0.18, -0.08 - ground - 0.1);
+        g.add(rbox(Wg + 0.07, fh, 0.012, 0.004, rub, x, -0.1 - fh / 2, ra + Rg + 0.045));
+        g.add(rbox(Wg + 0.07, 0.03, 0.03, 0.006, steelDk, x, -0.095, ra + Rg + 0.035));
+        g.add(rbox(Wg * 0.55, fh * 0.22, 0.004, 0.002, std('#d8dadc', 0.8, 0), x, -0.1 - fh * 0.78, ra + Rg + 0.052));
+      }
+      if (T.guards !== 'rubber') {
+        /* alloy guard: half a drum round the top of the tyre, built from short checkerplate strips, with a rolled edge each side */
+        const Rf = Rg + 0.04, Mg = new Merge(), n = 30, a0 = 0.12 * Math.PI, a1 = 0.88 * Math.PI;
+        for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * (i + 0.5) / n, ln = (a1 - a0) / n * Rf * 1.25; Mg.box(x, ycg + Math.sin(a) * Rf, ra + Math.cos(a) * Rf, Wg + 0.07, 0.012, ln, Math.PI / 2 - a); }
+        g.add(Mg.mesh(m));
+        const Rl = new Merge();
+        for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; [-1, 1].forEach(e => Rl.box(x + e * (Wg + 0.07) / 2, ycg + Math.sin(a) * Rf, ra + Math.cos(a) * Rf, 0.02, 0.02, 0.03, Math.PI / 2 - a)); }
+        g.add(Rl.mesh(edge));
+        if (T.guards === 'full') g.add(rbox(Wg + 0.04, Rg * 0.9, 0.014, 0.006, m, x, ycg - Rg * 0.02, ra - Rg - 0.05));
+      }
+    });
   }
 
   /* ---- tail lights: eight different designs, each in the chosen colour set (brake, indicator, reverse) ---- */
   { const L3 = LIGHTS[T.lights] || LIGHTS.red, glow = L3.glow;
     const em = c => std(c, 0.3, 0.05, { emissive: new THREE.Color(c), emissiveIntensity: glow });
-    const cb = em(L3.c[0]), ca = em(L3.c[1]), cr = em(L3.c[2]), ring = std('#2f3439', 0.4, 0.5), dots = std('#2c0a0d', 0.5, 0, {});
+    const cb = em(L3.c[0]), ca = em(L3.c[1]), cr = em(L3.c[2]), ring = std('#2f3439', 0.4, 0.5), dots2 = std('#2c0a0d', 0.5, 0, {});
     const z = L / 2 + 0.025, st = LIGHT_STYLES[T.lightStyle] ? T.lightStyle : 'factory';
     const torus = (R, r, mt, x, y, zz) => { const t = new THREE.Mesh(new THREE.TorusGeometry(R, r, 8, 30), mt); t.position.set(x, y, zz); return t; };
+    const D = new Merge();
+    const dots = (x, y, zz, nx, ny, pt, sz) => { for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) D.box(x + (i - (nx - 1) / 2) * pt, y + (j - (ny - 1) / 2) * pt, zz, sz, sz, 0.004, 0); };
+    const rnd = (x, y, rr, mt) => { g.add(cyl(rr + 0.008, 0.012, ring, x, y, z + 0.016, 'z', 28)); g.add(cyl(rr, 0.018, mt, x, y, z + 0.02, 'z', 28)); dots(x, y, z + 0.03, 3, 3, rr * 0.55, 0.011); g.add(cyl(rr * 0.3, 0.006, dark, x, y, z + 0.031, 'z', 12)); };
     const styles = {
       factory: s => { const x = s * (W / 2 - 0.09), y = -0.18; g.add(rbox(0.1, 0.26, 0.045, 0.015, dark, x, y, z)); [[0.085, cb], [0, ca], [-0.085, cr]].forEach(([dy, mt]) => g.add(rbox(0.075, 0.07, 0.03, 0.012, mt, x, y + dy, z + 0.018))); },
-      round: s => { const x = s * (W / 2 - 0.08), y = -0.17; g.add(rbox(0.095, 0.27, 0.035, 0.014, dark, x, y, z - 0.004));
-        [[0.092, cb], [0, ca], [-0.092, cr]].forEach(([dy, mt]) => { g.add(cyl(0.039, 0.012, ring, x, y + dy, z + 0.016, 'z', 24)); g.add(cyl(0.032, 0.016, mt, x, y + dy, z + 0.02, 'z', 24)); g.add(cyl(0.012, 0.02, dark, x, y + dy, z + 0.025, 'z', 12)); }); },
-      halo: s => { const x = s * (W / 2 - 0.1), y = -0.15; g.add(cyl(0.08, 0.04, dark, x, y, z, 'z', 28)); g.add(torus(0.055, 0.009, cb, x, y, z + 0.022));
-        g.add(cyl(0.038, 0.014, ca, x, y + 0.012, z + 0.02, 'z', 24)); g.add(cyl(0.015, 0.02, cr, x, y - 0.026, z + 0.024, 'z', 14)); },
-      square: s => { const x = s * (W / 2 - 0.09), y = -0.16; g.add(rbox(0.125, 0.2, 0.04, 0.014, dark, x, y, z));
-        g.add(rbox(0.1, 0.09, 0.02, 0.01, cb, x, y + 0.05, z + 0.02));
-        const D = new Merge(); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) D.box(x + (i - 1) * 0.03, y + 0.05 + (j - 1) * 0.026, z + 0.031, 0.012, 0.012, 0.004);
-        g.add(D.mesh(dots));
-        g.add(rbox(0.048, 0.07, 0.02, 0.008, ca, x - 0.026, y - 0.048, z + 0.02)); g.add(rbox(0.048, 0.07, 0.02, 0.008, cr, x + 0.026, y - 0.048, z + 0.02)); },
-      hbar: s => { const x = s * (W / 2 - 0.11), y = -0.16; g.add(rbox(0.19, 0.155, 0.035, 0.014, dark, x, y, z - 0.003));
-        [[0.05, cb], [0, ca], [-0.05, cr]].forEach(([dy, mt]) => g.add(rbox(0.165, 0.03, 0.02, 0.012, mt, x, y + dy, z + 0.018))); },
-      vbar: s => { const x = s * (W / 2 - 0.06), y = -0.17; g.add(rbox(0.07, 0.34, 0.035, 0.014, dark, x, y, z - 0.003));
-        g.add(rbox(0.026, 0.3, 0.02, 0.012, cb, x - s * 0.014, y, z + 0.018)); g.add(rbox(0.014, 0.18, 0.02, 0.006, ca, x + s * 0.018, y + 0.06, z + 0.018)); g.add(rbox(0.014, 0.09, 0.02, 0.006, cr, x + s * 0.018, y - 0.105, z + 0.018)); },
+      /* three 95 mm round LEDs in a row: indicator on the outside, stop/tail in the middle, reverse nearest the plate */
+      round3: s => { const y = -0.13, x0 = s * (W / 2 - 0.1); g.add(rbox(0.34, 0.1, 0.034, 0.016, dark, x0 - s * 0.1, y, z - 0.004));
+        [[0, ca], [-0.1, cb], [-0.2, cr]].forEach(([dx, mt]) => rnd(x0 + s * dx, y, 0.038, mt)); },
+      round2: s => { const y = -0.13, x0 = s * (W / 2 - 0.1); g.add(rbox(0.24, 0.1, 0.034, 0.016, dark, x0 - s * 0.05, y, z - 0.004));
+        rnd(x0, y, 0.038, ca); rnd(x0 - s * 0.1, y, 0.038, cb); g.add(cyl(0.01, 0.01, cr, x0 - s * 0.1, y - 0.038, z + 0.026, 'z', 8)); },
+      /* 130 x 70 mm ovals, a pair side by side in a black housing */
+      oval: s => { const y = -0.13, x0 = s * (W / 2 - 0.11); g.add(rbox(0.31, 0.095, 0.034, 0.016, dark, x0 - s * 0.08, y, z - 0.004));
+        [[0, ca], [-0.15, cb]].forEach(([dx, mt]) => { const o = cyl(0.037, 0.016, mt, x0 + s * dx, y, z + 0.02, 'z', 28); o.scale.x = 1.9; g.add(o); dots(x0 + s * dx, y, z + 0.03, 5, 2, 0.026, 0.01);
+          const rg = torus(0.037, 0.005, ring, x0 + s * dx, y, z + 0.022); rg.scale.x = 1.9; g.add(rg); });
+        g.add(rbox(0.04, 0.02, 0.012, 0.005, cr, x0 - s * 0.15, y - 0.038, z + 0.026)); },
+      /* the 125 series: three slim horizontal bars stacked, chrome-edged */
+      slim: s => { const x = s * (W / 2 - 0.11), y = -0.16; g.add(rbox(0.19, 0.155, 0.035, 0.014, dark, x, y, z - 0.003));
+        [[0.05, ca], [0, cb], [-0.05, cr]].forEach(([dy, mt]) => { g.add(rbox(0.172, 0.036, 0.016, 0.01, ring, x, y + dy, z + 0.016)); g.add(rbox(0.162, 0.027, 0.02, 0.01, mt, x, y + dy, z + 0.019)); dots(x, y + dy, z + 0.03, 8, 1, 0.019, 0.008); }); },
+      /* a rectangular pod with square lenses: indicator, stop/tail, reverse */
+      pod: s => { const y = -0.15, x0 = s * (W / 2 - 0.095); g.add(rbox(0.25, 0.095, 0.036, 0.014, dark, x0 - s * 0.07, y, z - 0.003));
+        [ca, cb, cr].forEach((mt, i) => { const xs = x0 - s * 0.078 * i;
+          g.add(rbox(0.07, 0.07, 0.016, 0.01, ring, xs, y, z + 0.018)); g.add(rbox(0.06, 0.06, 0.02, 0.01, mt, xs, y, z + 0.02)); dots(xs, y, z + 0.031, 3, 3, 0.016, 0.008); }); },
       strip: s => { const x0 = 0.24, x1 = W / 2 - 0.035, len = x1 - x0, xc = s * (x0 + x1) / 2, y = -0.12; g.add(rbox(len, 0.06, 0.035, 0.014, dark, xc, y, z - 0.003));
-        g.add(rbox(len - 0.012, 0.026, 0.02, 0.01, cb, xc, y, z + 0.018)); g.add(rbox(0.13, 0.026, 0.022, 0.01, ca, s * (x1 - 0.071), y, z + 0.019)); g.add(rbox(0.09, 0.026, 0.022, 0.01, cr, s * (x0 + 0.051), y, z + 0.019)); },
-      corner: s => { const xr = s * (W / 2 - 0.085), y = -0.14; g.add(rbox(0.14, 0.2, 0.04, 0.016, dark, xr, y, z));
-        g.add(rbox(0.112, 0.056, 0.02, 0.01, ca, xr, y + 0.058, z + 0.02)); g.add(rbox(0.112, 0.07, 0.02, 0.01, cb, xr, y - 0.006, z + 0.02)); g.add(rbox(0.05, 0.03, 0.02, 0.008, cr, xr + s * 0.03, y - 0.066, z + 0.02));
-        g.add(rbox(0.03, 0.2, 0.13, 0.014, dark, s * (W / 2 - 0.005), y, L / 2 - 0.06));
-        g.add(rbox(0.012, 0.056, 0.1, 0.008, ca, s * (W / 2 + 0.012), y + 0.058, L / 2 - 0.06)); g.add(rbox(0.012, 0.09, 0.1, 0.008, cb, s * (W / 2 + 0.012), y - 0.02, L / 2 - 0.06)); }
+        g.add(rbox(len - 0.012, 0.026, 0.02, 0.01, cb, xc, y, z + 0.018)); g.add(rbox(0.13, 0.026, 0.022, 0.01, ca, s * (x1 - 0.071), y, z + 0.019)); g.add(rbox(0.09, 0.026, 0.022, 0.01, cr, s * (x0 + 0.051), y, z + 0.019));
+        dots(xc, y, z + 0.03, Math.floor(len / 0.022), 1, 0.022, 0.009); },
+      bar: s => { const xc = s * (W / 2 - 0.22), y = -0.13; g.add(rbox(0.4, 0.07, 0.035, 0.014, dark, xc, y, z - 0.003));
+        g.add(rbox(0.29, 0.034, 0.02, 0.012, cb, xc - s * 0.04, y, z + 0.018)); g.add(rbox(0.06, 0.034, 0.02, 0.012, ca, xc + s * 0.15, y, z + 0.018));
+        dots(xc - s * 0.04, y, z + 0.03, 12, 1, 0.022, 0.009); g.add(rbox(0.04, 0.014, 0.012, 0.005, cr, xc - s * 0.17, y - 0.026, z + 0.021)); }
     };
-    [-1, 1].forEach(styles[st]); }
+    [-1, 1].forEach(styles[st]); g.add(D.mesh(dots2)); }
   const plate = (y, z) => {
     g.add(rbox(0.38, 0.14, 0.015, 0.006, std('#f1efe6', 0.6, 0), 0, y, z));
     g.add(rbox(0.38, 0.03, 0.017, 0.006, std('#2a4d8c', 0.6, 0), 0, y + 0.055, z));
@@ -1746,20 +1917,20 @@ function buildTray() {
     const dk = std('#1f2226', 0.6, 0.2);
     g.add(cyl(0.03, 0.55, dk, 0, -0.1, L / 2 + 0.415, 'y', 10));
     const wg = spareMount(g, 0, -0.1, L / 2 + 0.445);
-    plate(-0.3, wg.position.z + SP_W / 2 + 0.016);
+    plate(-0.3, wg.position.z + spW() / 2 + 0.016);
   } else {
     plate(-0.16, L / 2 + 0.012);
   }
   if (T.spare === 'under') {
     /* hung flat under the chassis behind the rear axle, lug nuts facing the ground */
     const dk = std('#1f2226', 0.6, 0.2);
-    const yc = -0.27 - SP_W / 2 - 0.01, zc = L / 2 - 0.58;
-    const wg = wheelGroup(SP_R, SP_W, std);
+    const yc = -0.27 - spW() / 2 - 0.01, zc = L / 2 - 0.58;
+    const wg = wheelGroup(spR(), spW(), std);
     wg.rotation.z = -Math.PI / 2;
     wg.position.set(0, yc, zc);
     g.add(wg);
-    g.add(cyl(0.012, 0.12, dk, 0, yc - SP_W / 2 - 0.05, zc, 'y', 8));
-    g.add(rbox(0.1, 0.02, 0.02, 0.006, dk, 0, yc - SP_W / 2 - 0.11, zc));
+    g.add(cyl(0.012, 0.12, dk, 0, yc - spW() / 2 - 0.05, zc, 'y', 8));
+    g.add(rbox(0.1, 0.02, 0.02, 0.006, dk, 0, yc - spW() / 2 - 0.11, zc));
   }
   return g;
 }
@@ -2087,11 +2258,24 @@ const VSPEC = {
   }
 };
 
+/* Colorodo RC: the 2008-2012 mid-size. Tall nose with a slim two-bar grille, big wedge headlamps, a wide lower intake with round fog lamps, grey flares. */
+VSPEC.colorado = Object.assign({}, VSPEC.hilux, {
+  sill: 405, chin: 430, hw: 912, archGap: 58, archN: 2.8, flareCol: 'grey',
+  flare: [[-15, -8], [26, 0], [40, 24], [36, 66], [-15, 82]],
+  front: VSPEC.hilux.front.map(r => r.map((v, i) => i === 1 ? v + 12 : v)),
+  face: { cx: 450, back: 0.19, bumpTop: 780, bumpFwd: 0.07, roundY: 990, roundK: 1.15 },
+  cab: { ym: 880, beltF: 1190, beltR: 1225 },
+  gh: { k: 0.28, r: 76, wsTopU: 1030, roofF: 1745, peak: 1782, roofR: 1770, backTop: 1730, header: 46, ap: 85, crown: 12 },
+  handle: 'black', step: [105, 'dark'], crease: { hF: 1030, hR: 1085, inB: 9, inA: 5 },
+  mirror: { u: 150, w: 0.1, h: 0.16, d: 0.25, out: 0.17, up: 0.1, ind: true },
+  faceFn: 'colorado'
+});
+
 /* a thin trim piece: flat shaded and casts no shadow, so it never speckles the panel under it */
 function flat(rings, mat) { const m = loft(rings, mat, false); m.castShadow = false; return m; }
 
 function buildVehicle() {
-  const T = state.tray, g = new THREE.Group(), VG = vehGeo(), V = VG.V, S = VSPEC[V.look] || VSPEC.hilux, F = S.face, G = S.gh;
+  const T = state.tray, g = new THREE.Group(), gc = new THREE.Group(), VG = vehGeo(), V = VG.V, S = VSPEC[V.look] || VSPEC.hilux, F = S.face, G = S.gh, TS = tyreSpec(T), lift = T.lift * MM;
   const Y = h => (h - V.deckH) * MM;
   const fa = VG.frontAxle * MM, ra = VG.rearAxle * MM, Z = u => fa + u * MM;
   const zN = VG.zNose * MM, zCab = VG.zCab * MM, zBack = VG.zBack * MM, L = T.len * MM;
@@ -2273,7 +2457,7 @@ function buildVehicle() {
     g.add(Mg.mesh(mat));
   };
   const C = { g, M, S, Y, Z, fp, frame, circle, grid, scaleP, zN, zBack, uc, ub, stAt, xPlane };
-  ({ hilux: faceHilux, ranger: faceRanger, lc79: face79 })[S.faceFn](C);
+  ({ hilux: faceHilux, ranger: faceRanger, lc79: face79, colorado: faceColorado })[S.faceFn](C);
 
   /* ---- mirrors: lofted heads, glass, indicator, arm ---- */
   { const m = S.mirror, z = Z(uc + m.u), yb = Y(beltAt(uc + m.u)), xb = ringXAt(cabRing(Math.max(z, zCab)), yb - 0.05);
@@ -2307,41 +2491,94 @@ function buildVehicle() {
   if (V.look === 'lc79') [-1, 1].forEach(s => g.add(rbox(0.012, 0.03, 0.07, 0.008, M.amber, s * (stAt(Z(-300))[0] * MM + 0.004), Y(1060), Z(-300))));
   if (V.look === 'ranger') { const z0 = Z(D.seams[0]), z1 = Z(D.seams[D.seams.length - 1]); [-1, 1].forEach(s => g.add(rbox(0.03, 0.07, z1 - z0, 0.012, std('#3a3e43', 0.85, 0.05), s * (S.hw - 18) * MM, Y(S.sill + 30), (z0 + z1) / 2))); }
 
-  /* ---- chassis, wheels, axles, exhaust, tow bar ---- */
+  /* ---- chassis, running gear, wheels, exhaust, tow bar. Suspension lift drops the axles and wheels away from the frame; body lift raises only the cab. ---- */
   /* with no tray fitted the ute is a bare cab-chassis: the frame simply stops behind the rear axle */
   const bare = T.design === 'none', zEnd = bare ? ra + 0.8 : L / 2;
-  const chF = fa - 0.5, chR = zEnd + 0.22;
-  [-1, 1].forEach(s => g.add(rbox(0.07, 0.17, chR - chF, 0.02, M.dark, s * 0.42, -0.22, (chF + chR) / 2)));
-  if (!bare) g.add(rbox(0.8, 0.08, chR - chF - 0.3, 0.02, M.dark, 0, -0.26, (chF + chR) / 2 + 0.1));
-  else {
-    /* ladder frame: crossmembers, driveshaft, fuel tank, leaf springs and shocks, rear lamps and plate on a bracket */
-    [zBack + 0.15, ra - 0.55, ra + 0.45, chR - 0.06].forEach(z => g.add(rbox(0.8, 0.07, 0.06, 0.012, M.dark, 0, -0.2, z)));
-    g.add(cyl(0.032, Math.max(0.2, ra - 0.08 - (fa + 0.9)), M.dark, 0, -0.36, (fa + 0.9 + ra - 0.08) / 2, 'z', 10));
-    g.add(rbox(0.68, 0.24, 0.82, 0.05, M.trim, 0, -0.36, ra - 0.95));
-    [-1, 1].forEach(s => {
-      [[1.2, 0.034], [0.95, 0.028], [0.7, 0.024], [0.45, 0.02]].forEach(([len, th], i) => g.add(rbox(0.06, th, len, 0.006, M.grey, s * 0.48, -0.455 + i * 0.026, ra)));
-      g.add(rbox(0.07, 0.06, 0.07, 0.01, M.dark, s * 0.48, -0.33, ra - 0.6));
-      g.add(rbox(0.07, 0.06, 0.07, 0.01, M.dark, s * 0.48, -0.33, ra + 0.6));
-      g.add(cyl(0.022, 0.26, M.silver, s * 0.53, -0.37, ra + 0.22, 'y', 8));
-    });
-    const lampR = std('#b3191f', 0.3, 0.05, { emissive: new THREE.Color('#ff2a2a'), emissiveIntensity: 0.35 }), lampA = std('#e89a2a', 0.3, 0.05, { emissive: new THREE.Color('#ff9a1f'), emissiveIntensity: 0.3 });
-    g.add(rbox(0.98, 0.1, 0.03, 0.01, M.dark, 0, -0.17, chR + 0.02));
-    [-1, 1].forEach(s => { g.add(rbox(0.16, 0.08, 0.04, 0.012, M.black, s * 0.43, -0.12, chR + 0.04)); g.add(rbox(0.07, 0.055, 0.03, 0.01, lampR, s * 0.46, -0.12, chR + 0.065)); g.add(rbox(0.055, 0.055, 0.03, 0.01, lampA, s * 0.39, -0.12, chR + 0.065)); });
-    g.add(rbox(0.38, 0.13, 0.014, 0.006, M.plate, 0, -0.17, chR + 0.045));
-  }
-  const rimK = V.look === 'lc79' ? 0.56 : V.look === 'ranger' ? 0.68 : 0.66;
-  [[-1, fa], [1, fa], [-1, ra], [1, ra]].forEach(([s, z]) => {
-    const w = wheelGroup(R * MM, V.tyreW * MM, std, V.wheels, rimK); w.position.set(s * hT, yc, z);
-    if (s < 0) w.rotation.y = Math.PI;
-    g.add(w);
+  const chF = fa - 0.5, chR = zEnd + 0.22, ycw = yc - lift, yRail = -0.22;
+  const steel = std('#33373c', 0.55, 0.5), blackSt = std('#16181a', 0.6, 0.35), coil = std('#b8342a', 0.45, 0.4), rubber = std('#0d0e10', 0.9, 0);
+  /* chassis rails: a C-section, with a flange top and bottom and cut-outs along the web */
+  [-1, 1].forEach(sd => {
+    gc.add(rbox(0.07, 0.17, chR - chF, 0.02, M.dark, sd * 0.42, yRail, (chF + chR) / 2));
+    [-0.085, 0.085].forEach(dy => gc.add(rbox(0.095, 0.012, chR - chF, 0.004, steel, sd * 0.42, yRail + dy, (chF + chR) / 2)));
+    for (let z = chF + 0.3; z < chR - 0.2; z += 0.42) gc.add(rbox(0.004, 0.07, 0.16, 0.002, blackSt, sd * 0.455, yRail, z));
   });
-  [fa, ra].forEach(z => { g.add(cyl(0.05, hT * 2 - 0.2, M.dark, 0, yc, z, 'x', 10)); g.add(cyl(0.15, 0.22, M.dark, 0.1, yc, z, 'x', 16)); });
+  gc.add(rbox(0.8, 0.07, 0.06, 0.012, M.dark, 0, -0.2, fa - 0.42));
+  if (!bare) gc.add(rbox(0.8, 0.08, chR - chF - 0.3, 0.02, M.dark, 0, -0.26, (chF + chR) / 2 + 0.1));
+  [zBack + 0.15, ra - 0.55, ra + 0.45, chR - 0.06].forEach(z => gc.add(rbox(0.8, 0.07, 0.06, 0.012, M.dark, 0, -0.2, z)));
+  /* engine sump, gearbox, transfer case, then the driveshafts to each diff */
+  gc.add(rbox(0.5, 0.17, 0.62, 0.05, steel, 0, -0.33, fa + 0.2));
+  gc.add(rbox(0.3, 0.26, 0.55, 0.05, M.trim, 0, -0.3, fa + 0.82));
+  gc.add(rbox(0.36, 0.3, 0.34, 0.05, steel, 0.05, -0.36, fa + 1.2));
+  gc.add(cyl(0.032, Math.max(0.2, ra - 0.08 - (fa + 1.3)), M.dark, 0.05, -0.38 - lift * 0.4, (fa + 1.3 + ra - 0.08) / 2, 'z', 12));
+  gc.add(cyl(0.028, 0.8, M.dark, 0.18, ycw + 0.12, fa + 0.45, 'z', 10));
+  /* fuel tank and spare-wheel winch area stay between the axles */
+  gc.add(rbox(0.7, 0.24, 0.84, 0.05, M.trim, 0, -0.36, ra - 0.98));
+  gc.add(rbox(0.7, 0.014, 0.86, 0.004, blackSt, 0, -0.485, ra - 0.98));
+  [-0.15, 0.15].forEach(dz => gc.add(rbox(0.72, 0.012, 0.03, 0.004, steel, 0, -0.36, ra - 0.98 + dz * 2.6)));
+  /* front axle: diff pumpkin, CV shafts, coil-over shocks and upper and lower arms on each side */
+  gc.add(rbox(0.26, 0.2, 0.22, 0.05, steel, 0.12, ycw + 0.01, fa));
+  gc.add(cyl(0.022, hT * 2 - 0.4, M.dark, 0, ycw, fa, 'x', 10));
+  [-1, 1].forEach(sd => {
+    const hx = sd * (hT - 0.1), sh = -0.27 - (ycw + 0.1);
+    gc.add(tube([[sd * 0.44, -0.26, fa - 0.14], [hx, ycw + 0.1, fa - 0.02]], 0.013, steel, 8));
+    gc.add(tube([[sd * 0.44, -0.2, fa + 0.1], [hx, ycw + 0.18, fa + 0.04]], 0.013, steel, 8));
+    gc.add(cyl(0.038, Math.max(0.1, sh), coil, hx * 0.86 + sd * 0.01, (ycw + 0.1 - 0.27) / 2 - 0.02, fa + 0.1, 'y', 14));
+    gc.add(cyl(0.024, Math.max(0.1, sh + 0.04), M.silver, hx * 0.86 + sd * 0.01, (ycw + 0.1 - 0.27) / 2 - 0.02, fa + 0.1, 'y', 10));
+    gc.add(cyl(0.05, 0.06, blackSt, sd * (hT - 0.14), ycw, fa, 'x', 16));
+  });
+  /* rear axle: banjo diff, leaf springs with a lift block and U-bolts, shocks that grow with the lift */
+  gc.add(cyl(0.05, hT * 2 - 0.2, M.dark, 0, ycw, ra, 'x', 12));
+  gc.add(cyl(0.13, 0.2, steel, 0.02, ycw, ra, 'x', 18));
+  gc.add(cyl(0.1, 0.15, steel, 0.02, ycw, ra + 0.14, 'z', 16));
+  [-1, 1].forEach(sd => {
+    const lx = sd * (hT - 0.1);
+    [[1.2, 0.034], [0.95, 0.028], [0.7, 0.024], [0.45, 0.02]].forEach(([len, th], i) => gc.add(rbox(0.06, th, len, 0.006, M.grey, lx * 0.8, ycw + 0.085 + lift * 0.5 + i * 0.026, ra)));
+    gc.add(rbox(0.08, 0.04 + lift, 0.12, 0.01, blackSt, lx * 0.8, ycw + 0.06 + lift / 2, ra));
+    [-0.04, 0.04].forEach(dz => gc.add(cyl(0.008, 0.18 + lift * 0.5, M.silver, lx * 0.8, ycw + 0.12 + lift * 0.3, ra + dz * 2, 'y', 8)));
+    gc.add(rbox(0.07, 0.06, 0.07, 0.01, M.dark, lx * 0.8, ycw + 0.2 + lift, ra - 0.6));
+    gc.add(rbox(0.07, 0.06, 0.07, 0.01, M.dark, lx * 0.8, ycw + 0.2 + lift, ra + 0.6));
+    const sh = -0.33 - ycw; /* shock: from the rail down to the axle, longer when lifted */
+    gc.add(cyl(0.022, Math.max(0.1, sh * 0.55), blackSt, lx + sd * 0.07, ycw + sh * 0.275 + 0.02, ra + 0.22, 'y', 10));
+    gc.add(cyl(0.014, Math.max(0.1, sh * 0.5), M.silver, lx + sd * 0.07, ycw + sh * 0.75, ra + 0.22, 'y', 8));
+    /* brake hose and a sway bar link on each side */
+    gc.add(tube([[lx - sd * 0.06, ycw + 0.05, ra - 0.1], [lx - sd * 0.1, ycw + 0.2 + lift * 0.5, ra - 0.2], [sd * 0.38, -0.3, ra - 0.25]], 0.004, rubber, 5));
+  });
+  if (bare) {
+    /* ladder frame details: rear lamps and plate on a bracket */
+    const lampR = std('#b3191f', 0.3, 0.05, { emissive: new THREE.Color('#ff2a2a'), emissiveIntensity: 0.35 }), lampA = std('#e89a2a', 0.3, 0.05, { emissive: new THREE.Color('#ff9a1f'), emissiveIntensity: 0.3 });
+    gc.add(rbox(0.98, 0.1, 0.03, 0.01, M.dark, 0, -0.17, chR + 0.02));
+    [-1, 1].forEach(sd => { gc.add(rbox(0.16, 0.08, 0.04, 0.012, M.black, sd * 0.43, -0.12, chR + 0.04)); gc.add(rbox(0.07, 0.055, 0.03, 0.01, lampR, sd * 0.46, -0.12, chR + 0.065)); gc.add(rbox(0.055, 0.055, 0.03, 0.01, lampA, sd * 0.39, -0.12, chR + 0.065)); });
+    gc.add(rbox(0.38, 0.13, 0.014, 0.006, M.plate, 0, -0.17, chR + 0.045));
+  }
+  /* front bash plate and recovery points under the nose */
+  gc.add(rbox(0.78, 0.014, Math.max(0.2, fa - zN + 0.05), 0.004, std('#8a8f95', 0.4, 0.7), 0, Y(S.chin + 8), (zN + fa) / 2 + 0.1));
+  [-1, 1].forEach(sd => { gc.add(rbox(0.05, 0.016, 0.1, 0.006, coil, sd * 0.32, Y(S.chin + 40), zN + 0.04)); gc.add(cyl(0.02, 0.07, M.dark, sd * 0.32, Y(S.chin + 40), zN + 0.02, 'y', 8)); });
+  /* wheels. The rim stays the same size when the tyre grows, so the tyre just gets taller and fatter. */
+  const rimK = (V.look === 'lc79' ? 0.56 : V.look === 'ranger' ? 0.68 : 0.66) * V.tyreR / TS.R * ((TS.rim || 17) / 17);
+  [[-1, fa], [1, fa], [-1, ra], [1, ra]].forEach(([sd, z]) => {
+    const w = wheelGroup(TS.R * MM, TS.W * MM, std, V.wheels, rimK); w.position.set(sd * hT, ycw, z);
+    if (sd < 0) w.rotation.y = Math.PI;
+    gc.add(w);
+  });
+  /* exhaust: pipe, muffler and tail pipe, hung from the rail */
   const exLen = Math.max(0.12, zEnd + 0.08 - (ra + 0.3));
-  g.add(cyl(0.03, exLen, M.dark, 0.55, -0.33, zEnd + 0.08 - exLen / 2, 'z', 10));
-  g.add(cyl(0.042, 0.1, M.silver, 0.55, -0.33, zEnd + 0.1, 'z', 10));
-  g.add(rbox(0.06, 0.07, 0.3, 0.02, M.dark, 0, bare ? -0.26 : -0.2, zEnd + (bare ? 0.46 : 0.3)));
-  if (T.spare !== 'carrier' || bare) g.add(cyl(0.025, 0.04, M.trim, 0, bare ? -0.205 : -0.145, zEnd + (bare ? 0.55 : 0.36), 'y', 10));
-  return g;
+  gc.add(cyl(0.03, exLen, M.dark, 0.55, -0.33, zEnd + 0.08 - exLen / 2, 'z', 10));
+  gc.add(cyl(0.075, Math.min(0.55, exLen * 0.7), steel, 0.55, -0.33, ra + 0.3 + Math.min(0.55, exLen * 0.7) / 2 + 0.05, 'z', 16));
+  gc.add(cyl(0.042, 0.1, M.silver, 0.55, -0.33, zEnd + 0.1, 'z', 12));
+  /* tow bar: receiver, tongue, ball, safety chain loops, wiring socket */
+  gc.add(rbox(0.06, 0.07, 0.3, 0.02, M.dark, 0, bare ? -0.26 : -0.2, zEnd + (bare ? 0.46 : 0.3)));
+  { const ty = bare ? -0.26 : -0.2, tz = zEnd + (bare ? 0.46 : 0.3);
+    gc.add(rbox(0.6, 0.06, 0.05, 0.01, M.dark, 0, ty, tz - 0.12));
+    gc.add(rbox(0.05, 0.03, 0.1, 0.006, std('#8a8f95', 0.4, 0.7), 0, ty - 0.048, tz + 0.1));
+    gc.add(cyl(0.025, 0.04, M.chrome, 0, ty - 0.003, tz + 0.1, 'y', 12)); gc.add(cyl(0.016, 0.03, M.chrome, 0, ty - 0.003 + 0.034, tz + 0.1, 'y', 10));
+    [-1, 1].forEach(sd => gc.add(rbox(0.02, 0.05, 0.02, 0.006, M.silver, sd * 0.12, ty, tz - 0.14)));
+    gc.add(cyl(0.025, 0.04, M.black, 0.22, ty + 0.06, tz - 0.12, 'z', 10)); }
+  if (T.spare !== 'carrier' || bare) gc.add(cyl(0.025, 0.04, M.trim, 0, bare ? -0.205 : -0.145, zEnd + (bare ? 0.55 : 0.36), 'y', 10));
+  /* body lift: the cab comes up off the chassis on blocks. The tray stays put. */
+  g.position.y = T.bodyLift * MM;
+  if (T.bodyLift) [-1, 1].forEach(sd => [zCab + 0.05, (zCab + zBack) / 2, zBack - 0.1].forEach(z => gc.add(rbox(0.06, T.bodyLift * MM, 0.06, 0.004, blackSt, sd * 0.62, -0.1 - T.bodyLift * MM / 2 + 0.02, z))));
+  const out = new THREE.Group(); out.add(g); out.add(gc);
+  return out;
 }
 
 /* ---------- Faces, drawn in front elevation (x half-width mm, h mm off the ground). fp(poly, material, how far it stands proud in m, mirror?) ---------- */
@@ -2391,6 +2628,28 @@ function faceRanger(C) {
   fp([[728, 655], [805, 655], [808, 610], [732, 610]], M.lamp, 0.024, true);
   fp([[-500, 525], [500, 525], [450, 455], [-450, 455]], M.silver, 0.028);
   fp([[-185, 690], [185, 690], [185, 605], [-185, 605]], M.plate, 0.03);
+}
+
+/* Colorodo RC: slim chrome-and-black upper grille, swept wedge headlamps, wide lower intake, round fogs in the bumper corners. */
+function faceColorado(C) {
+  const { fp, frame, grid, circle, M } = C;
+  const gr = [[-455, 1012], [455, 1012], [500, 970], [500, 905], [-500, 905], [-500, 970]];
+  fp(gr, M.mesh, 0.012);
+  grid(C.scaleP(gr, 0.92), 54, 22, 44, 9, 0.02, M.meshHi, false);
+  frame(gr, 22, M.chrome, 0.03);
+  fp([[-440, 880], [440, 880], [470, 835], [-470, 835]], M.chrome, 0.03);
+  const hl = [[520, 1040], [905, 1050], [925, 1000], [880, 925], [620, 915], [520, 940]];
+  fp(hl, M.black, 0.022, true);
+  fp(C.scaleP(hl, 0.8), M.lamp, 0.026, true);
+  fp([[540, 1030], [890, 1040], [896, 1022], [545, 1012]], M.chrome, 0.03, true);
+  fp([[760, 935], [895, 940], [880, 905], [750, 902]], M.amber, 0.03, true);
+  const intake = [[-590, 755], [590, 755], [640, 610], [-640, 610]];
+  fp(intake, M.mesh, 0.012);
+  grid(C.scaleP(intake, 0.9), 46, 30, 36, 12, 0.02, M.meshHi, true);
+  frame(intake, 26, M.black, 0.022);
+  [1, -1].forEach(sd => { fp(circle(sd * 745, 660, 52), M.black, 0.018); fp(circle(sd * 745, 660, 38), M.lamp, 0.026); });
+  fp([[-520, 560], [520, 560], [470, 495], [-470, 495]], M.silver, 0.028);
+  fp([[-185, 720], [185, 720], [185, 640], [-185, 640]], M.plate, 0.03);
 }
 
 /* Cruiser 79: flat upright front, round lamps in square bezels each side of a slatted grille, raised guards, steel bumper, bonnet scoop, snorkel, drip rails. */
@@ -2490,8 +2749,8 @@ function buildCanopy() {
   };
   const glassOn = (host, mesh) => { mesh.userData.door = true; mesh.castShadow = false; host.add(mesh); shellMeshes.push(mesh); };
   /* spare on the rear door: bracket and wheel ride on the door pivot, so they swing open with it. Tapping them toggles the doors like the door itself. */
-  const spareOnDoor = state.tray.spare === 'door';
-  const spY = Math.max(SP_R + 0.01, wH * 0.5);
+  const spareOnDoor = state.tray.spare === 'door' || state.tray.spare === 'door2', twoSpares = state.tray.spare === 'door2', spX = spR() + 0.015;
+  const spY = Math.max(spR() + 0.01, wH * 0.5);
   const addSpare = (parent, x, y, zFace, isDoor) => {
     const mg = new THREE.Group();
     spareMount(mg, x, y, zFace);
@@ -2547,7 +2806,7 @@ function buildCanopy() {
   if (C.rear === 'solid') {
     if (af) addM(polyMesh(outline, 0, 0, t)).position.z = zr;
     else add(cw, wH, t, 0, wH / 2, zr);
-    if (spareOnDoor) addSpare(g, 0, spY, z1, false);
+    if (spareOnDoor) (twoSpares ? [-spX, spX] : [0]).forEach(x => addSpare(g, x, spY, z1, false));
   } else {
     const yTopO = wH - m, gp = 0.0045;
     add(2 * xAt(wH - m / 2), m, t, 0, wH - m / 2, zr);
@@ -2570,7 +2829,7 @@ function buildCanopy() {
       const door = polyMesh(poly, 0, pivY, dd);
       piv.add(rbox(0.2, 0.04, 0.03, 0.012, dark, 0, (C.rear === 'hatch' ? sill + gp + 0.12 : yTopO - gp - 0.12) - pivY, dd / 2 + 0.012));
       if (C.windows) addGlass(piv, xin * 2 * 0.7, ph, 0.008, 0, yc - pivY, dd / 2 + 0.0045);
-      if (spareOnDoor) addSpare(piv, 0, spY - pivY, dd / 2, true);
+      if (spareOnDoor) (twoSpares ? [-spX, spX] : [0]).forEach(x => addSpare(piv, x, spY - pivY, dd / 2, true));
       addDoor(piv, 'x', C.rear === 'hatch' ? -1.75 : 1.5708, door);
     } else {
       [-1, 1].forEach(s => {
@@ -2581,7 +2840,7 @@ function buildCanopy() {
         const door = polyMesh(poly, h.hx, h.hy, dd);
         h.body.add(rbox(0.04, 0.16, 0.03, 0.012, dark, s * 0.055 - h.hx, yc - h.hy, dd / 2 + 0.012));
         if (C.windows) addGlass(h.body, xin * 0.7, ph, 0.008, s * xin / 2 - h.hx, yc - h.hy, dd / 2 + 0.0045);
-        if (spareOnDoor && s === -1) addSpare(h.body, -xin / 2 - h.hx, spY - h.hy, dd / 2, true);
+        if (spareOnDoor && (s === -1 || twoSpares)) addSpare(h.body, s * xin / 2 - h.hx, spY - h.hy, dd / 2, true);
         addDoor(h.piv, 'y', s * 1.75, door, h.body, h.wrap);
       });
     }
@@ -2615,12 +2874,12 @@ function buildCanopy() {
       });
     });
   }
-  /* false floor: cross beams in the canopy's own metal, 12 mm ply on top, marine carpet over that */
+  /* false floor: cross beams in the canopy's own metal, a ply or aluminium sheet on top (any thickness), marine carpet over that */
   if (C.floor) {
-    const bh = C.beam * MM, iw = cw - 2 * t, il = (z1 - z0) - 2 * t, zi = z0 + t, F = floorKg(C), bw = BEAM_W * MM, ph = FLOOR_PLY * MM;
+    const bh = C.beam * MM, iw = cw - 2 * t, il = (z1 - z0) - 2 * t, zi = z0 + t, F = floorKg(C), bw = BEAM_W * MM, ph = sheetT(C) * MM;
     for (let k = 0; k < F.n; k++) add(iw, bh, bw, 0, bh / 2, zi + bw / 2 + k * (il - bw) / (F.n - 1), 0.003);
-    const plyM = new THREE.MeshStandardMaterial({ color: C.ply, roughness: 0.75, metalness: 0, map: getPlyGrain() });
-    const ply = rbox(iw, ph, il, 0.001, plyM, 0, bh + ph / 2, zc); ply.receiveShadow = true; g.add(ply);
+    const plyM = C.floorMat === 'alu' ? shellMat('alu', C.floorFin, 'raw') : new THREE.MeshStandardMaterial({ color: C.ply, roughness: 0.75, metalness: 0, map: getPlyGrain() });
+    const ply = rbox(iw, ph, il, Math.min(0.001, ph / 3), plyM, 0, bh + ph / 2, zc); ply.receiveShadow = true; g.add(ply);
     const cp = CARPETS[C.carpet], top = bh + ph;
     if (cp && cp.t) {
       const ct = cp.t * MM, tex = getCarpetTex(C.carpet);
@@ -3465,13 +3724,13 @@ const ICON_HEAD = {
 };
 const ICON_LIGHT = {
   factory: svgS('0 0 40 40', '<rect x="12" y="4" width="16" height="9" rx="2"/><rect x="12" y="15.5" width="16" height="9" rx="2"/><rect x="12" y="27" width="16" height="9" rx="2"/>'),
-  round: svgS('0 0 40 40', '<circle cx="20" cy="9" r="5.5"/><circle cx="20" cy="20" r="5.5"/><circle cx="20" cy="31" r="5.5"/>'),
-  halo: svgS('0 0 40 40', '<circle cx="20" cy="20" r="14"/><circle cx="20" cy="20" r="9"/><circle cx="20" cy="20" r="3"/>'),
-  square: svgS('0 0 40 40', '<rect x="8" y="4" width="24" height="16" rx="2"/><rect x="8" y="23" width="11" height="12" rx="2"/><rect x="21" y="23" width="11" height="12" rx="2"/>'),
-  hbar: svgS('0 0 40 40', '<rect x="5" y="9" width="30" height="5" rx="2"/><rect x="5" y="17.5" width="30" height="5" rx="2"/><rect x="5" y="26" width="30" height="5" rx="2"/>'),
-  vbar: svgS('0 0 40 40', '<rect x="11" y="4" width="8" height="32" rx="3"/><rect x="23" y="4" width="5" height="20" rx="2"/><rect x="23" y="27" width="5" height="9" rx="2"/>'),
+  round3: svgS('0 0 40 40', '<rect x="1.5" y="12" width="37" height="16" rx="4" opacity=".5"/><circle cx="8" cy="20" r="5"/><circle cx="20" cy="20" r="5"/><circle cx="32" cy="20" r="5"/>'),
+  round2: svgS('0 0 40 40', '<rect x="4" y="11" width="32" height="18" rx="4" opacity=".5"/><circle cx="13" cy="20" r="6"/><circle cx="27" cy="20" r="6"/>'),
+  oval: svgS('0 0 40 40', '<rect x="2" y="12" width="36" height="16" rx="4" opacity=".5"/><ellipse cx="12" cy="20" rx="6.5" ry="4"/><ellipse cx="28" cy="20" rx="6.5" ry="4"/>'),
+  slim: svgS('0 0 40 40', '<rect x="5" y="9" width="30" height="5" rx="2"/><rect x="5" y="17.5" width="30" height="5" rx="2"/><rect x="5" y="26" width="30" height="5" rx="2"/>'),
+  pod: svgS('0 0 40 40', '<rect x="2" y="11" width="36" height="18" rx="3" opacity=".5"/><rect x="5" y="14" width="9" height="12" rx="1.5"/><rect x="15.5" y="14" width="9" height="12" rx="1.5"/><rect x="26" y="14" width="9" height="12" rx="1.5"/>'),
   strip: svgS('0 0 40 40', '<rect x="2" y="16" width="36" height="7" rx="3.5"/><path d="M9 16v7M30 16v7" opacity=".6"/>'),
-  corner: svgS('0 0 40 40', '<path d="M5 8h22l8 7v19H5z"/><path d="M27 8v26"/><path d="M10 14h12M10 20h12" opacity=".6"/>')
+  bar: svgS('0 0 40 40', '<rect x="4" y="14" width="32" height="12" rx="3" opacity=".5"/><rect x="7" y="17.5" width="20" height="5" rx="2"/><rect x="29" y="17.5" width="5" height="5" rx="2"/>')
 };
 /* a row of picture cards. opts: [value, name, sub, icon, disabledReason] */
 function picker(path, opts) {
@@ -3485,15 +3744,22 @@ function panelTray() {
   const presets = trayPresets().map((p, i) =>
     '<button type="button" class="chip ' + (T.len === p.len && T.wid === p.wid ? 'on' : '') + '" data-act="preset" data-i="' + i + '"><b>' + esc(p.name) + ' tray</b><span>' + p.sub + '</span></button>').join('');
 
-  const specs = 'Wheelbase ' + V.wb + ' mm · track ' + V.track + ' mm · width ' + V.bodyW + ' mm · deck ' + V.deckH + ' mm off the ground';
-  const doorNote = { solid: 'Bolted to the solid rear panel.', hatch: 'Mounted on the hatch, so it lifts with it.', barn: 'Mounted on the left barn door.', drop: 'Mounted on the drop-down door, so it hangs out with it.' }[state.canopy.rear];
-  const spareNote = T.spare === 'door' ? doorNote : T.spare === 'carrier' ? 'Swing-away carrier on the tow bar. The number plate moves onto the wheel.' : T.spare === 'under' ? 'Hung under the chassis behind the rear axle.' : '';
+  const specs = 'Wheelbase ' + V.wb + ' mm · track ' + V.track + ' mm · width ' + V.bodyW + ' mm · deck ' + rideH(T) + ' mm off the ground' + (V.est ? ' · figures are estimates' : '');
+  const two = T.spare === 'door2', cwNow = state.canopy.wid, needW = Math.round(4 * tyreSpec(T).R + 60);
+  const doorNote = { solid: 'Bolted to the solid rear panel.', hatch: 'Mounted on the hatch, so they lift with it.', barn: 'Mounted on the barn doors, one on each.', drop: 'Mounted on the drop-down door, so they hang out with it.' }[state.canopy.rear];
+  const spareNote = (T.spare === 'door' || two) ? (two ? 'Two spares side by side. ' : '') + (two && state.canopy.rear === 'barn' ? doorNote : doorNote.replace('on the barn doors, one on each', 'on the left barn door')) + (two && state.canopy.shape !== 'none' && cwNow < needW ? ' <b style="color:var(--warn)">They need about ' + needW + ' mm of canopy width to sit clear of each other.</b>' : '') + (state.canopy.shape === 'none' ? ' Needs a canopy to mount on.' : '') : T.spare === 'carrier' ? 'Swing-away carrier on the tow bar. The number plate moves onto the wheel.' : T.spare === 'under' ? 'Hung under the chassis behind the rear axle.' : '';
   const hasC = state.canopy.shape !== 'none';
   const designs = picker('tray.design', OPT.design.map(k => [k, TRAYS[k].name, TRAYS[k].sub, ICON_TRAY[k], k === 'none' && hasC ? 'Take the canopy off first' : '']));
   let h = '<h2 class="ttl">Your tray</h2><p class="lead">Start with your ute: pick the vehicle and cab. It starts as a bare cab-chassis, just as it leaves the factory. Then choose the tray that goes on the back.</p>' +
     '<div class="sec"><h3>Ute</h3><div class="chips">' + vehs + '</div><p class="note">' + specs + '. Modelled on the shape and size of the real thing, with no badges. Close, not exact, so check it against yours.</p>' +
     field('Cab', seg('tray.cab', V.cabs.map(k => [k, CABS[k].name])) + (V.cabNote && V.cabNote[T.cab] ? '<p class="note">' + esc(V.cabNote[T.cab]) + '</p>' : '')) +
     '<div class="ctl"><div class="lab">Ute paint</div>' + swatches('paint', OPT.paint, k => PAINTS[k][1], k => PAINTS[k][0]) + '</div></div>' +
+    '<div class="sec"><h3>Tyres and lift</h3>' +
+    field('Tyre', picker('tray.tyre', Object.keys(TYRES).map(k => [k, TYRES[k].name, TYRES[k].sub, '']))) +
+    field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) +
+    rng('tray.lift', 'Suspension lift', 0, 150, 5) +
+    field('Body lift', seg('tray.bodyLift', [[0, 'None'], [25, '1 inch'], [50, '2 inch']])) +
+    '<p class="note">' + tyreSpec(T).label + ' tyres stand ' + tyreSpec(T).R * 2 + ' mm tall. Deck is ' + rideH(T) + ' mm off the ground. ' + (archClear(T) < 0 ? '<b style="color:var(--bad)">The tyres are in the front arches.</b> Lift it or fit smaller tyres.' : archClear(T) < 25 ? '<b style="color:var(--warn)">Only ' + archClear(T) + ' mm of arch clearance, so they will rub.</b>' : archClear(T) + ' mm of arch clearance.') + ' Suspension lift raises the whole ute off the axles. A body lift raises only the cab off the chassis.</p></div>' +
     '<div class="sec"><h3>Tray</h3>' + designs +
     (bare ? '<p class="note">Pick a tray to carry on. Sizes, material, headboard and lights show up once you do.</p>' : '<p class="note">' + (T.design === 'flat' ? 'A plain deck you can add drop sides to.' : 'Sides run behind the canopy and wherever the tray is bare. Under a canopy the canopy sits on the deck.') + '</p>') + '</div>';
   if (bare) return h + nextRow(null, 1);
@@ -3509,7 +3775,14 @@ function panelTray() {
     field('Deck', seg('tray.finish', [['smooth', 'Smooth'], ['checker', 'Checkerplate']])) +
     field('Colour', swatchTray('tray.colour')) +
     (T.design === 'flat' ? field('Drop sides behind canopy', seg('tray.sides', [['none', 'None'], ['drop', 'Drop sides']])) : '') +
-    field('Under-tray boxes', seg('tray.boxes', [['none', 'None'], ['left', 'Left'], ['right', 'Right'], ['both', 'Both']])) + '</div>' +
+    '</div>' +
+    '<div class="sec"><h3>Under the tray</h3>' +
+    field('Toolboxes', seg('tray.boxes', [['none', 'None'], ['left', 'Left'], ['right', 'Right'], ['both', 'Both']])) +
+    (T.boxes !== 'none' ? field('Box style', picker('tray.boxStyle', Object.keys(BOX_STYLES).map(k => [k, BOX_STYLES[k].name, BOX_STYLES[k].sub, '']))) : '') +
+    field('Mud guards', picker('tray.guards', Object.keys(GUARDS).map(k => [k, GUARDS[k].name, GUARDS[k].sub, '']))) + '</div>' +
+    '<div class="sec"><h3>Spare wheels</h3>' +
+    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', carrier: 'Swing-away carrier on the tow bar', under: 'Hung under the chassis' })[k], '']))) +
+    (spareNote ? '<p class="note">' + spareNote + '</p>' : '') + '</div>' +
     '<div class="sec"><h3>Headboard</h3>' +
     field('Size', seg('tray.head', [['none', 'None'], ['half', 'Half'], ['full', 'Full rack']])) +
     (hasHead ? field('Shape', headShapes) +
@@ -3537,12 +3810,16 @@ function carpetPicker() {
   }).join('') + '</div>';
 }
 function floorPanel() {
-  const C = state.canopy, F = floorKg(C), kg = Math.round(F.beams + F.ply + F.carpet), H = floorH(C);
-  let h = tog('canopy.floor', 'False floor: beams, 12 mm ply and optional carpet');
+  const C = state.canopy, F = floorKg(C), kg = Math.round(F.beams + F.ply + F.carpet), H = floorH(C), alu = C.floorMat === 'alu';
+  let h = tog('canopy.floor', 'False floor: beams, a ply or aluminium top and optional carpet');
   if (!C.floor) return h + '<p class="note">Raises the load area off the tray deck. Gear in the canopy sits on top of it, so it costs you headroom.</p>';
   h += field('Beam height', seg('canopy.beam', BEAM_HTS.map(v => [v, v + ' mm']))) +
-    '<p class="note">' + F.n + ' cross beams in ' + (C.mat === 'alu' ? 'aluminium' : 'steel') + ' (the canopy\'s material), about ' + BEAM_PITCH + ' mm apart, under 12 mm marine ply.</p>' +
-    field('Plywood colour', hexSwatches('canopy.ply', PLY_COLS)) + field('Marine carpet', carpetPicker());
+    '<p class="note">' + F.n + ' cross beams in ' + (C.mat === 'alu' ? 'aluminium' : 'steel') + ' (the canopy\'s material), about ' + BEAM_PITCH + ' mm apart.</p>' +
+    field('Top sheet', seg('canopy.floorMat', Object.keys(FLOOR_MATS).map(k => [k, FLOOR_MATS[k]]))) +
+    (alu ? field('Sheet thickness', seg('canopy.aluT', ALU_TS.map(v => [v, v + ' mm']))) + field('Finish', seg('canopy.floorFin', [['checker', 'Checkerplate'], ['smooth', 'Smooth']])) +
+      '<p class="note">' + C.aluT + ' mm aluminium sheet is about ' + (C.aluT * 2.7).toFixed(1) + ' kg per square metre and does not soak up water. Thin sheet needs closer beams or a ply backing for heavy gear.</p>'
+      : field('Ply thickness', seg('canopy.plyT', PLY_TS.map(v => [v, v + ' mm']))) + '<p class="note">' + C.plyT + ' mm marine ply is about ' + (C.plyT * 0.65).toFixed(1) + ' kg per square metre.' + (C.plyT < 12 ? ' Thin ply flexes under heavy gear, so keep it for light loads.' : '') + '</p>' + field('Plywood colour', hexSwatches('canopy.ply', PLY_COLS))) +
+    field('Marine carpet', carpetPicker());
   if (C.carpet !== 'none') h += field('Carpet colour', hexSwatches('canopy.carpetCol', CARPET_COLS));
   return h + '<p class="note">Floor is ' + H + ' mm above the tray deck, leaving ' + Math.round(geo().innerH - H) + ' mm of headroom. Adds about ' + kg + ' kg.</p>';
 }
@@ -3914,8 +4191,9 @@ function bpCanopy(c, G, C, T, roofL) {
   c.restore();
 }
 function bpSpare(c, G, T, C) {
-  if (T.spare !== 'carrier' && T.spare !== 'door') return;
+  if (T.spare !== 'carrier' && T.spare !== 'door' && T.spare !== 'door2') return;
   let cx = 0, z0;
+  const sR = tyreSpec(T).R, sW = tyreSpec(T).W;
   if (T.spare === 'carrier') {
     z0 = T.len / 2 + 510;
     c.save(); c.strokeStyle = BP.soft; c.lineWidth = 3;
@@ -3926,8 +4204,10 @@ function bpSpare(c, G, T, C) {
   }
   c.save();
   c.fillStyle = 'rgba(23,24,26,.88)'; c.strokeStyle = BP.line; c.lineWidth = 1.3;
-  bpRectW(c, cx - 395, z0, cx + 395, z0 + 265, 60); c.fill(); c.stroke();
-  bpText(c, 'SPARE', bpX(cx), bpY(z0 + 132), { size: 9, color: BP.soft });
+  (T.spare === 'door2' ? (C.rear === 'barn' ? [-(C.wid - 110) / 4, (C.wid - 110) / 4] : [-sR - 15, sR + 15]) : [cx]).forEach(x => {
+    bpRectW(c, x - sR, z0, x + sR, z0 + sW, 60); c.fill(); c.stroke();
+    bpText(c, 'SPARE', bpX(x), bpY(z0 + sW / 2), { size: 9, color: BP.soft });
+  });
   c.restore();
 }
 function bpItem(c, it, L, sel, cover) {
@@ -4333,7 +4613,7 @@ function updateHud() {
   if (st) {
     const lay = layout(), iss = state.items.reduce((n, i) => n + (lay.get(i.id) && lay.get(i.id).issues.length ? 1 : 0), 0), M = massList();
     const roofKg = Math.round(M.filter(m => m.roof).reduce((a, m) => a + m.kg, 0)), V = VEHICLES[state.tray.veh] || VEHICLES[VEH_DEFAULT];
-    const high = ((state.carOff ? standDrop() : V.deckH) + roofTop()) / 1000, ic = d => svgI(d);
+    const high = ((state.carOff ? standDrop() : rideH()) + roofTop()) / 1000, ic = d => svgI(d);
     st.innerHTML =
       '<span class="st">' + ic('<path d="M12 3v3"/><path d="M5 8h14l-2.5 6h-9z"/><path d="M8 20h8"/><path d="M12 14v6"/>') + 'Load <b>' + L.add + '</b>/ ' + pay + ' kg<span class="sb"><i class="' + cls + '" style="width:' + Math.min(100, pct) + '%"></i></span></span>' +
       '<span class="st opt">' + ic('<path d="M4 10h16"/><path d="M6 10V7h12v3"/><path d="M5 14h14"/>') + 'Roof <b>' + roofKg + '</b> kg</span>' +

@@ -47,6 +47,26 @@ TEST = r"""
   // extreme custom values
   for (const [b, r, i] of [[300,160,0],[300,160,600],[1400,160,600],[300,1000,600],[800,700,0],[10,10,10]]) { C.shape='custom'; C.bend=b; C.rise=r; C.inset=i; clampState(); run('custom '+[b,r,i], () => { buildCanopy(); panelCanopy(); layout(); }); }
   for (const [b, u, i] of [[100,0,0],[100,1000,400],[800,300,400],[250,10,50]]) { T.head='half'; T.headShape='custom'; T.hbBend=b; T.hbTop=u; T.hbIn=i; clampState(); run('hb custom '+[b,u,i], () => { buildTray(); panelTray(); }); }
+  // new options: vehicles, tyres, lift, boxes, guards, spares, floor sheets
+  for (const v of Object.keys(VEHICLES)) for (const cab of VEHICLES[v].cabs) for (const ty of Object.keys(TYRES)) for (const sz of Object.keys(TYRE_SIZES)) {
+    T.veh = v; T.cab = cab; T.tyre = ty; T.tyreSize = sz; T.lift = [0, 50, 150][n % 3]; T.bodyLift = [0, 25, 50][(n >> 1) % 3]; T.design = 'factory'; C.shape = 'none'; n++; clampState();
+    run('veh ' + [v, cab, ty, sz, T.lift, T.bodyLift].join('/'), () => { buildVehicle(); buildTray(); panelTray(); loadCheck(); partsList(); });
+  }
+  T.veh = 'colorado'; T.cab = 'dual'; T.tyreSize = 'std'; T.lift = 0; T.bodyLift = 0; T.tyre = 'at';
+  for (const bs of Object.keys(BOX_STYLES)) for (const gd of Object.keys(GUARDS)) for (const bx of ['none', 'left', 'both']) { T.design = 'factory'; T.boxStyle = bs; T.guards = gd; T.boxes = bx; clampState(); run('boxes ' + [bs, gd, bx].join('/'), () => { buildTray(); panelTray(); partsList(); }); }
+  for (const sp of Object.keys(SPARE)) for (const rear of ['solid', 'hatch', 'barn', 'drop']) for (const sz of ['std', '35x12.5R17']) {
+    T.design = 'factory'; T.spare = sp; T.tyreSize = sz; C.shape = 'aframe'; C.rear = rear; clampState();
+    run('spare ' + [sp, rear, sz].join('/'), () => { buildCanopy(); buildTray(); buildVehicle(); panelTray(); loadCheck(); partsList(); layout(); });
+  }
+  T.spare = 'none'; T.tyreSize = 'std';
+  for (const fm of Object.keys(FLOOR_MATS)) for (const t of (fm === 'ply' ? PLY_TS : ALU_TS)) for (const fin of ['checker', 'smooth']) {
+    C.shape = 'aframe'; C.floor = true; C.floorMat = fm; if (fm === 'ply') C.plyT = t; else C.aluT = t; C.floorFin = fin; clampState();
+    run('floor ' + [fm, t, fin].join('/'), () => { buildCanopy(); panelCanopy(); partsList(); weights(); layout(); });
+  }
+  C.floor = false; C.floorMat = 'ply'; clampState();
+  run('defaults', () => { const d = defaultState(); if (d.tray.head !== 'full' || d.tray.headShape !== 'angled') throw new Error('default headboard is not tall angled'); });
+  run('legacy light', () => { const o = JSON.parse(atob(exportCode())); o.tray.lightStyle = 'vbar'; if (!importCode(btoa(JSON.stringify(o))) || state.tray.lightStyle !== 'bar') throw new Error('light migration: ' + state.tray.lightStyle); });
+  T.veh = 'hilux'; clampState();
   // gear in an A-frame canopy
   C.shape = 'aframe'; C.rear='hatch'; clampState();
   run('add gear', () => { ['slide75','bra63','jerry','battery','solar200','boards'].forEach(k => addItem(k)); layout(); /* syncItems() skipped: the stub THREE cannot fake an awning's userData */ });
