@@ -2169,10 +2169,10 @@ function bodyRing(p, yb, Y, zOf, cr) {
   let [hw, ym, ys, wsO, wsI, hh, yh, yc] = p;
   ym = Math.max(ym, yb + 70); ys = Math.max(ys, ym + 90); wsO = Math.min(wsO, hw - 10);
   const R = [[0, yb], [hw * 0.5, yb]];
-  for (let i = 0; i <= 3; i++) { const t = i / 3 * Math.PI / 2; R.push([hw - 50 + 46 * Math.sin(t), yb + 40 - 40 * Math.cos(t)]); }
+  for (let i = 0; i <= 8; i++) { const t = i / 8 * Math.PI / 2; R.push([hw - 50 + 46 * Math.sin(t), yb + 40 - 40 * Math.cos(t)]); }
   /* the side: a gentle bulge, plus an optional character line cr = { h, inB, inA } (a scooped panel below it, a ledge above it) */
   const y0 = yb + 41, y1 = ys - 61, hs = [];
-  for (let i = 0; i <= 11; i++) hs.push(y0 + (y1 - y0) * i / 11);
+  for (let i = 0; i <= 22; i++) hs.push(y0 + (y1 - y0) * i / 22);
   const ch = cr ? clamp(cr.h, y0 + 30, y1 - 30) : (y0 + y1) / 2;
   hs.push(ch - 14, ch, ch + 5); hs.sort((a, b) => a - b);
   hs.forEach(y => {
@@ -2183,7 +2183,7 @@ function bodyRing(p, yb, Y, zOf, cr) {
     }
     R.push([x, y]);
   });
-  for (let i = 0; i <= 4; i++) { const t = i / 4 * Math.PI / 2; R.push([wsO + (hw - 6 - wsO) * Math.cos(t), ys - 60 + 60 * Math.sin(t)]); }
+  for (let i = 0; i <= 9; i++) { const t = i / 9 * Math.PI / 2; R.push([wsO + (hw - 6 - wsO) * Math.cos(t), ys - 60 + 60 * Math.sin(t)]); }
   R.push([wsI, ys], [(wsI + hh) / 2, (ys + yh) / 2], [hh, yh], [hh * 0.66, yh + (yc - yh) * 0.6], [hh * 0.33, yh + (yc - yh) * 0.9], [0, yc]);
   const L = R.slice(1, -1).reverse().map(([x, y]) => [-x, y]);
   return R.concat(L).map(([x, y]) => { const X = x * MM, YY = Y(y); return [X, YY, zOf(X, YY)]; });
@@ -2221,8 +2221,8 @@ const VSPEC = {
     face: { cx: 420, back: 0.21, bumpTop: 790, bumpFwd: 0.06, roundY: 985, roundK: 1.25 },
     cab: { ym: 880, beltF: 1198, beltR: 1238 },
     gh: { k: 0.29, r: 78, wsTopU: 1045, roofF: 1768, peak: 1802, roofR: 1788, backTop: 1748, header: 46, ap: 85, crown: 14 },
-    dloBlack: true, handle: 'chrome', step: [110, 'dark'], crease: { hF: 1040, hR: 1095, inB: 11, inA: 4 },
-    mirror: { u: 150, w: 0.09, h: 0.15, d: 0.24, out: 0.17, up: 0.1, ind: true },
+    dloBlack: true, handle: 'chrome', hstyle: 'hilux', step: [110, 'dark'], crease: { hF: 1040, hR: 1095, inB: 14, inA: 6 },
+    mirror: { u: 150, w: 0.09, h: 0.15, d: 0.24, out: 0.17, up: 0.1, ind: true, cap: true },
     dlo: (cab, uc, ub) => cab === 'single' ? { wins: [{ u0: uc, u1: ub - 280 }], seams: [uc + 190, ub - 200], handles: [ub - 360] }
       : cab === 'extra' ? { wins: [{ u0: uc, u1: uc + 1170 }, { u0: uc + 1265, u1: ub - 215, slant: 70 }], seams: [uc + 190, uc + 1218, ub - 150], handles: [uc + 1030] }
       : { wins: [{ u0: uc, u1: uc + 1150 }, { u0: uc + 1240, u1: ub - 300, slant: 115 }], seams: [uc + 190, uc + 1195, ub - 205], handles: [uc + 1000, ub - 390] },
@@ -2235,8 +2235,8 @@ const VSPEC = {
     face: { cx: 600, back: 0.12, bumpTop: 830, bumpFwd: 0.05, roundY: 1105, roundK: 0.9 },
     cab: { ym: 900, beltF: 1250, beltR: 1282 },
     gh: { k: 0.27, r: 72, wsTopU: 1235, roofF: 1835, peak: 1862, roofR: 1856, backTop: 1815, header: 50, ap: 92, crown: 10 },
-    dloBlack: true, handle: 'black', step: [130, 'dark'], crease: { hF: 1100, hR: 1110, inB: 3, inA: 15 },
-    mirror: { u: 170, w: 0.1, h: 0.19, d: 0.27, out: 0.18, up: 0.11, ind: true },
+    dloBlack: true, handle: 'black', hstyle: 'ranger', step: [130, 'dark'], crease: { hF: 1100, hR: 1110, inB: 5, inA: 18 },
+    mirror: { u: 170, w: 0.1, h: 0.19, d: 0.27, out: 0.18, up: 0.11, ind: true, cap: true, capCol: 'black' },
     dlo: (cab, uc, ub) => cab === 'single' ? { wins: [{ u0: uc, u1: ub - 290 }], seams: [uc + 190, ub - 210], handles: [ub - 370] }
       : cab === 'extra' ? { wins: [{ u0: uc, u1: uc + 1170 }, { u0: uc + 1265, u1: ub - 215, slant: 60, kick: 40 }], seams: [uc + 190, uc + 1218, ub - 150], handles: [uc + 1030] }
       : { wins: [{ u0: uc, u1: uc + 1150 }, { u0: uc + 1240, u1: ub - 300, slant: 90, kick: 48 }], seams: [uc + 190, uc + 1195, ub - 205], handles: [uc + 1000, ub - 390] },
@@ -2249,7 +2249,7 @@ const VSPEC = {
     face: { cx: 790, back: 0.035, bumpTop: 0, bumpFwd: 0, roundY: 1180, roundK: 0.7 },
     cab: { ym: 900, beltF: 1265, beltR: 1265 },
     gh: { k: 0.13, r: 42, wsTopU: 700, roofF: 1915, peak: 1935, roofR: 1935, backTop: 1925, header: 52, ap: 70, crown: 8 },
-    dloBlack: false, handle: 'chrome', step: [90, 'dark'],
+    dloBlack: false, handle: 'chrome', hstyle: 'lc79', step: [90, 'dark'],
     mirror: { u: 60, w: 0.06, h: 0.28, d: 0.19, out: 0.24, up: 0.2, ind: false, frame: true },
     dlo: (cab, uc, ub) => cab === 'single' ? { wins: [{ u0: uc, u1: ub - 250 }], seams: [uc + 190, ub - 180], handles: [ub - 340] }
       : cab === 'extra' ? { wins: [{ u0: uc, u1: uc + 1120 }, { u0: uc + 1225, u1: ub - 185 }], seams: [uc + 190, uc + 1170, ub - 120], handles: [uc + 980] }
@@ -2266,8 +2266,8 @@ VSPEC.colorado = Object.assign({}, VSPEC.hilux, {
   face: { cx: 450, back: 0.19, bumpTop: 780, bumpFwd: 0.07, roundY: 990, roundK: 1.15 },
   cab: { ym: 880, beltF: 1190, beltR: 1225 },
   gh: { k: 0.28, r: 76, wsTopU: 1030, roofF: 1745, peak: 1782, roofR: 1770, backTop: 1730, header: 46, ap: 85, crown: 12 },
-  handle: 'black', step: [105, 'dark'], crease: { hF: 1030, hR: 1085, inB: 9, inA: 5 },
-  mirror: { u: 150, w: 0.1, h: 0.16, d: 0.25, out: 0.17, up: 0.1, ind: true },
+  handle: 'chrome', hstyle: 'rc', step: [105, 'dark'], crease: { hF: 1030, hR: 1085, inB: 12, inA: 8 },
+  mirror: { u: 150, w: 0.1, h: 0.16, d: 0.25, out: 0.17, up: 0.1, ind: true, cap: true },
   faceFn: 'colorado'
 });
 
@@ -2312,8 +2312,8 @@ function buildVehicle() {
   const fr = [];
   [0, 0.012, 0.035, 0.07, 0.11].forEach(d => fr.push(bodyRing(stAt(zN), S.chin, Y, (x, y) => zFace(x, y) + d, crAt(zN))));
   const zStart = zN + F.back + 0.14, zsF = [zCab];
-  for (let i = 0; i <= 30; i++) zsF.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 30));
-  for (let z = zStart; z < zCab; z += 0.06) zsF.push(z);
+  for (let i = 0; i <= 56; i++) zsF.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 56));
+  for (let z = zStart; z < zCab; z += 0.03) zsF.push(z);
   uniqSorted(zsF.filter(z => z >= zStart && z <= zCab), 0.012).forEach(z => fr.push(bodyRing(stAt(z), ybAt(z), Y, () => z, crAt(z))));
   g.add(loft(fr, paint));
 
@@ -2324,8 +2324,8 @@ function buildVehicle() {
     return bodyRing([hw, S.cab.ym, b, hw - 22, hw - 50, hw - 75, b, b], Math.max(S.sill, archY(z)), Y, () => z, crAt(z));
   };
   const zsC = [zCab - 0.03, zBack - 0.06, zBack - 0.02];
-  for (let i = 0; i <= 30; i++) zsC.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 30));
-  for (let z = zCab; z < zBack; z += 0.1) zsC.push(z);
+  for (let i = 0; i <= 56; i++) zsC.push(fa + Ra * MM * Math.sin(-Math.PI / 2 + Math.PI * i / 56));
+  for (let z = zCab; z < zBack; z += 0.045) zsC.push(z);
   g.add(loft(uniqSorted(zsC.filter(z => z >= zCab - 0.03 && z <= zBack - 0.02), 0.012).map(cabRing), paint));
 
   /* ---- greenhouse: windscreen, roof and pillars, leaning in ---- */
@@ -2349,8 +2349,8 @@ function buildVehicle() {
     return Rt.concat(Lt).map(([x, y]) => [x * MM, Y(y), Z(u)]);
   };
   const ghU = [ub - 60, ub - 20, ub - 120];
-  for (let i = 0; i <= 6; i++) ghU.push(uc + (G.wsTopU - uc) * i / 6);
-  for (let u = G.wsTopU + 100; u < ub - 120; u += 100) ghU.push(u);
+  for (let i = 0; i <= 14; i++) ghU.push(uc + (G.wsTopU - uc) * i / 14);
+  for (let u = G.wsTopU + 50; u < ub - 120; u += 50) ghU.push(u);
   for (let i = 1; i <= 3; i++) ghU.push(ub - 120 + 25 * i);
   g.add(loft(uniqSorted(ghU, 8).map(ghRing), paint));
 
@@ -2408,15 +2408,31 @@ function buildVehicle() {
   { const path = [];
     for (let z = zN + F.back * 0.6 + 0.1; z < zCab - 0.03; z += 0.08) { const p = stAt(z); path.push([p[5] * MM, Y(p[6]) + 0.001, z]); }
     if (path.length > 1) [-1, 1].forEach(s => g.add(tube(path.map(([x, y, z]) => [s * x, y, z]), 0.004, M.mesh, 6))); }
-  const hMat = S.handle === 'chrome' ? M.chrome : M.black;
-  D.handles.forEach(u => { const z = Z(u), y = Y(beltAt(u) - 120), x = ringXAt(cabRing(z), y); [-1, 1].forEach(s => { g.add(rbox(0.02, 0.05, 0.2, 0.014, M.mesh, s * (x - 0.004), y, z)); g.add(rbox(0.026, 0.032, 0.17, 0.012, hMat, s * (x + 0.008), y + 0.004, z)); }); });
+  /* door handles: each ute has its own shape, set into a dark pocket. The driver's front door also gets a key barrel. */
+  const HS = S.hstyle || 'hilux', chromeM = M.chrome;
+  D.handles.forEach((u, hi) => { const z = Z(u), y = Y(beltAt(u) - 120), x = ringXAt(cabRing(z), y); [-1, 1].forEach(sd => {
+    const X = sd * x, o = sd * 0.004, add = (w, h, d, r, m, dx, dy, dz) => g.add(rbox(w, h, d, r, m, X + sd * dx, y + (dy || 0), z + (dz || 0)));
+    if (HS === 'hilux') {            /* chrome pull handle in a long pocket with a smart-key sensor */
+      add(0.016, 0.075, 0.23, 0.01, M.mesh, -0.004, 0); add(0.028, 0.036, 0.185, 0.016, chromeM, 0.01, 0.006); add(0.02, 0.012, 0.15, 0.005, M.mesh, 0.012, -0.022);
+      add(0.012, 0.03, 0.03, 0.006, M.black, 0.013, 0.006, 0.075);
+    } else if (HS === 'ranger') {    /* black handle with a chrome top strip, deep tall pocket */
+      add(0.018, 0.085, 0.2, 0.01, M.mesh, -0.004, 0); add(0.028, 0.045, 0.17, 0.014, M.black, 0.01, 0); add(0.03, 0.007, 0.168, 0.003, chromeM, 0.011, 0.02);
+    } else if (HS === 'lc79') {      /* chunky chrome flap handle on a base plate with a square lock */
+      add(0.012, 0.07, 0.22, 0.008, chromeM, 0.0, 0); add(0.034, 0.044, 0.175, 0.01, chromeM, 0.016, 0.004); add(0.036, 0.02, 0.12, 0.004, M.mesh, 0.018, -0.006);
+      add(0.024, 0.046, 0.04, 0.006, M.black, 0.01, 0, -0.095);
+    } else {                         /* rc: wide chrome paddle in a big scooped pocket, finger groove below, lock barrel on the front doors */
+      add(0.02, 0.1, 0.27, 0.014, M.mesh, -0.006, 0); add(0.032, 0.056, 0.21, 0.02, chromeM, 0.012, 0.01); add(0.034, 0.012, 0.19, 0.005, M.black, 0.013, -0.02);
+      add(0.012, 0.008, 0.27, 0.004, chromeM, 0.004, -0.05);
+      if (hi === 0 && sd === -1) { const k = g.add(cyl(0.011, 0.014, M.black, X + sd * 0.018, y + 0.006, z - 0.1, 'x', 12)); }
+    }
+  }); });
 
   /* ---- wheel arches: liner inside, flare outside, both swept round the arch ---- */
   const xsArch = stAt(fa)[0] * MM - 0.012, yc = Y(R);
   const sweepArch = (prof, mat) => {
     const pts = [];
-    for (let i = 0; i <= 26; i++) {
-      const th = -Math.PI / 2 + Math.PI * i / 26, s = Math.sin(th), c = Math.cos(th), p = 2 / S.archN, r = Ra * MM;
+    for (let i = 0; i <= 52; i++) {
+      const th = -Math.PI / 2 + Math.PI * i / 52, s = Math.sin(th), c = Math.cos(th), p = 2 / S.archN, r = Ra * MM;
       pts.push([fa + r * sgnV(s) * Math.pow(Math.abs(s), p), yc + r * Math.pow(Math.abs(c), p)]);
     }
     const nrm = pts.map((p, i) => {
@@ -2436,7 +2452,13 @@ function buildVehicle() {
   const densify = poly => { const o = []; poly.forEach((a, i) => { const b = poly[(i + 1) % poly.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 60)); for (let k = 0; k < n; k++) o.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); }); return o; };
   const mirror = poly => poly.map(([x, h]) => [-x, h]).reverse();
   const fp = (poly, mat, out, sym, back) => {
-    const one = P => { P = densify(P); g.add(flat([P.map(([x, h]) => [x * MM, Y(h), zFace(x * MM, Y(h)) - out]), P.map(([x, h]) => [x * MM, Y(h), zFace(x * MM, Y(h)) + (back || 0.04)])], mat)); };
+    /* the visible face is built from nested rings that each follow the curved nose, so wide shapes never leave a flat cap hidden behind it */
+    const one = P => {
+      P = densify(P); const c = cen(P);
+      const at = (k, zo) => P.map(([x, h]) => { const xx = c[0] + (x - c[0]) * k, hh = c[1] + (h - c[1]) * k; return [xx * MM, Y(hh), zFace(xx * MM, Y(hh)) + zo]; });
+      const rings = [at(0.3, -out), at(0.55, -out), at(0.8, -out), at(1, -out), at(1, back || 0.04)];
+      g.add(flat(rings, mat));
+    };
     one(poly); if (sym) one(mirror(poly));
   };
   const cen = poly => [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length];
@@ -2456,15 +2478,17 @@ function buildVehicle() {
     }
     g.add(Mg.mesh(mat));
   };
-  const C = { g, M, S, Y, Z, fp, frame, circle, grid, scaleP, zN, zBack, uc, ub, stAt, xPlane };
+  const C = { g, M, S, Y, Z, fp, frame, circle, grid, scaleP, zN, zBack, zCab, uc, ub, stAt, xPlane };
   ({ hilux: faceHilux, ranger: faceRanger, lc79: face79, colorado: faceColorado })[S.faceFn](C);
+  if (C.bonnet) C.bonnet();
 
   /* ---- mirrors: lofted heads, glass, indicator, arm ---- */
   { const m = S.mirror, z = Z(uc + m.u), yb = Y(beltAt(uc + m.u)), xb = ringXAt(cabRing(Math.max(z, zCab)), yb - 0.05);
     const sec = (cx, cy, z0, w, h, k) => Array.from({ length: 20 }, (_, i) => { const a = i / 20 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); return [cx + w / 2 * k * Math.sign(c) * Math.pow(Math.abs(c), 0.35), cy + h / 2 * k * Math.sign(sn) * Math.pow(Math.abs(sn), 0.35), z0]; });
     [-1, 1].forEach(s => {
       const xh = s * (xb + m.out), cy = yb + m.up, z0 = z + 0.02 - m.d / 2;
-      g.add(loft([0, 0.25, 0.6, 0.85, 1].map((f, i) => sec(xh, cy, z0 + f * m.d, m.w, m.h, [0.55, 0.9, 1, 1, 0.97][i])), M.black));
+      g.add(loft([0, 0.25, 0.6, 0.85, 1].map((f, i) => sec(xh, cy, z0 + f * m.d, m.w, m.h, [0.55, 0.9, 1, 1, 0.97][i])), m.cap && m.capCol !== 'black' ? M.paint : M.black));
+      if (m.cap) { g.add(rbox(m.w * 0.9, 0.012, m.d * 0.7, 0.006, M.black, xh, cy - m.h * 0.46, z0 + m.d * 0.55)); }
       g.add(flat([sec(xh, cy, z0 + m.d + 0.002, m.w * 0.8, m.h * 0.85, 1), sec(xh, cy, z0 + m.d - 0.01, m.w * 0.8, m.h * 0.85, 1)], M.glass));
       if (m.ind) g.add(rbox(0.014, 0.022, m.d * 0.55, 0.008, M.amber, xh + s * m.w * 0.47, cy - m.h * 0.18, z - 0.01));
       if (m.frame) [m.h * 0.38, -m.h * 0.38].forEach(dy => g.add(tube([[s * (xb - 0.01), cy + dy * 0.6, z + 0.05], [s * (xb + m.out * 0.5), cy + dy, z + 0.03], [s * (xb + m.out - m.w / 2), cy + dy, z + 0.02]], 0.011, M.black, 8)));
@@ -2478,6 +2502,21 @@ function buildVehicle() {
       [0.15, 0.5, 0.85].forEach(f => g.add(rbox(0.12, 0.08, 0.04, 0.01, M.dark, s * (S.hw - 80) * MM, Y(S.sill - 20), z0 + (z1 - z0) * f)));
     }); }
 
+  /* ---- body side trim: rocker cladding, a shoulder bead along the doors, the fuel flap ---- */
+  { const zA = Z(D.seams[0] - 60), zB = Math.min(zBack - 0.03, Z(D.seams[D.seams.length - 1] + 70));
+    const stripBox = (hMid, hStrip, t, mat, step) => { const Mg = new Merge(), n = Math.max(8, Math.round((zB - zA) / step));
+      [-1, 1].forEach(sd => { for (let i = 0; i < n; i++) { const z = zA + (zB - zA) * (i + 0.5) / n, x = ringXAt(cabRing(z), Y(hMid)); Mg.box(sd * (x + t / 2 - 0.0015), Y(hMid), z, t, hStrip, (zB - zA) / n * 1.12, 0); } });
+      g.add(Mg.mesh(mat)); };
+    if (V.look !== 'lc79') stripBox(S.sill + 52, 0.105, 0.014, V.look === 'ranger' ? M.black : M.trim, 0.04);       /* rocker cladding */
+    if (V.look === 'ranger') stripBox(S.sill + 135, 0.006, 0.008, M.chrome, 0.05);                                 /* the sill chrome line */
+    if (V.look !== 'lc79') stripBox(beltAt(uc + 600) - 300, 0.012, 0.007, M.paint, 0.05);                          /* shoulder bead */
+    /* fuel filler flap, rear left */
+    { const u = ub - 150, h = beltAt(u) - 400, z = Z(u), x = ringXAt(cabRing(z), Y(h));
+      g.add(rbox(0.01, 0.2, 0.16, 0.012, M.mesh, -(x + 0.001), Y(h), z)); g.add(rbox(0.012, 0.185, 0.145, 0.012, M.paint, -(x + 0.003), Y(h), z)); g.add(rbox(0.014, 0.03, 0.012, 0.004, M.black, -(x + 0.008), Y(h) + 0.03, z - 0.05)); }
+    /* side repeaters and a front-guard vent */
+    [-1, 1].forEach(sd => { const z = Z(-120), h = V.look === 'lc79' ? 1050 : 960, x = ringXAt(cabRing(Math.max(z, zCab + 0.01)), Y(h));
+      g.add(rbox(0.012, 0.03, 0.08, 0.008, M.amber, sd * (Math.max(x, stAt(z)[0] * MM) + 0.004), Y(h), z)); });
+  }
   /* ---- small things that make each one read true ---- */
   if (V.look !== 'ranger') { /* whip aerial on an A-pillar: passenger side on the HyLux, driver side on the 79 */
     const s = V.look === 'lc79' ? 1 : -1, b0 = [s * (wB - 30) * MM, Y(beltAt(uc) + 30), Z(uc + 40)];
@@ -2583,97 +2622,191 @@ function buildVehicle() {
 
 /* ---------- Faces, drawn in front elevation (x half-width mm, h mm off the ground). fp(poly, material, how far it stands proud in m, mirror?) ---------- */
 
-/* HyLux: big hexagonal grille with a thick chrome surround running down into the bumper, slim swept LED headlamps, vertical fog pods, silver skid plate. */
+/* ---------- Face toolkit: x is half-width in mm, h is height off the ground in mm. Everything is drawn as layered shapes projected onto the curved nose. ---------- */
+/* x extents of an outline at height h */
+function polyAt(poly, h) {
+  let a = 1e9, b = -1e9;
+  poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; if ((p[1] - h) * (q[1] - h) <= 0 && p[1] !== q[1]) { const x = p[0] + (q[0] - p[0]) * (h - p[1]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } });
+  return a > b ? null : [a, b];
+}
+const rectP = (x0, x1, h0, h1) => [[x0, h1], [x1, h1], [x1, h0], [x0, h0]];
+/* horizontal slats across an outline at each height in hs */
+function slatsIn(C, poly, hs, th, mat, out, inset, sym) { hs.forEach(h => { const e = polyAt(poly, h); if (e) C.fp(rectP(e[0] + (inset || 0), e[1] - (inset || 0), h - th / 2, h + th / 2), mat, out, sym); }); }
+/* a curved band as a run of small quads, so it never needs a concave cap: centre, inner and outer radius, angles in radians */
+function arcBand(C, cx, cy, r0, r1, a0, a1, n, mat, out, sym) {
+  for (let i = 0; i < n; i++) {
+    const p = a0 + (a1 - a0) * i / n, q = a0 + (a1 - a0) * (i + 1) / n;
+    C.fp([[cx + Math.cos(p) * r1, cy + Math.sin(p) * r1], [cx + Math.cos(q) * r1, cy + Math.sin(q) * r1], [cx + Math.cos(q) * r0, cy + Math.sin(q) * r0], [cx + Math.cos(p) * r0, cy + Math.sin(p) * r0]], mat, out, sym);
+  }
+}
+/* a round lamp built up in layers: bezel, reflector, lens, bulb, with a clear cover over it */
+function roundLamp(C, cx, cy, r, mats, out, sym) {
+  const { fp, circle } = C;
+  fp(circle(cx, cy, r + 8, 28), mats.bezel, out, sym);
+  fp(circle(cx, cy, r, 28), mats.refl || C.M.silver, out + 0.004, sym);
+  fp(circle(cx, cy, r * 0.78, 24), mats.lens, out + 0.008, sym);
+  fp(circle(cx, cy, r * 0.38, 16), mats.core || C.M.black, out + 0.012, sym);
+  fp(circle(cx, cy, r * 0.16, 10), mats.lens, out + 0.016, sym);
+}
+/* height of the bonnet top at distance x from the centre, at a given z (m) */
+function bonnetH(C, z, x) {
+  const p = C.stAt(z), hh = p[5], yh = p[6], yc = p[7], wsI = p[4], ys = p[2];
+  const pts = [[0, yc], [hh * 0.33, yh + (yc - yh) * 0.9], [hh * 0.66, yh + (yc - yh) * 0.6], [hh, yh], [(wsI + hh) / 2, (ys + yh) / 2], [wsI, ys]];
+  x = Math.abs(x);
+  for (let i = 0; i + 1 < pts.length; i++) if (x <= pts[i + 1][0]) return pts[i][1] + (pts[i + 1][1] - pts[i][1]) * (x - pts[i][0]) / Math.max(1, pts[i + 1][0] - pts[i][0]);
+  return ys;
+}
+/* a raised rib or bulge down the bonnet. wid in m, hgt in m, taper = 0..1 how much it fades in at the front */
+function bonnetRib(C, x, wid, hgt, z0, z1, mat, taper, sym) {
+  const { g, Y } = C, Mg = new Merge(), n = Math.max(6, Math.round((z1 - z0) / 0.035));
+  (sym ? [1, -1] : [1]).forEach(sd => {
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, hh = hgt * (taper ? Math.min(1, t / taper) : 1), xx = sd * x;
+      const h0 = bonnetH(C, z, xx), h1 = bonnetH(C, z + 0.04, xx), sl = Math.atan2(Y(h1) - Y(h0), 0.04);
+      Mg.box(xx * MM, Y(h0) + hh / 2 - 0.002, z, wid, hh, (z1 - z0) / n * 1.15, -sl);
+    }
+  });
+  g.add(Mg.mesh(mat));
+}
+const clearLens = () => std('#dfe8ef', 0.05, 0.15, { transparent: true, opacity: 0.4, depthWrite: false });
+const ledMat = () => std('#ffffff', 0.1, 0, { emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0 });
+const redTow = () => std('#c8321f', 0.5, 0.2);
+
+/* HyLux (HiLux N80 SR5 look): huge hexagon of black mesh in a thick chrome frame that sweeps down into the bumper, slim swept LED lamps with a bright LED strip, vertical chrome fog pods. */
 function faceHilux(C) {
-  const { fp, frame, grid, circle, M } = C;
+  const { fp, frame, grid, circle, M } = C, lens = clearLens(), led = ledMat();
   const hex = [[-470, 1002], [470, 1002], [545, 930], [628, 790], [560, 560], [-560, 560], [-628, 790], [-545, 930]];
-  fp(hex, M.mesh, 0.012);
-  grid(C.scaleP(hex, 0.9), 62, 34, 46, 14, 0.02, M.meshHi, true);
-  frame(hex, 38, M.chrome, 0.03);
-  fp([[-520, 905], [520, 905], [524, 885], [-524, 885]], M.chrome, 0.032);
-  const hl = [[478, 1014], [880, 1022], [905, 990], [868, 942], [610, 930], [528, 955]];
-  fp(hl, M.black, 0.022, true);
-  fp(C.scaleP(hl, 0.78), M.lamp, 0.026, true);
-  fp([[505, 1002], [872, 1010], [878, 998], [508, 990]], M.lamp, 0.03, true);
-  fp(circle(800, 972, 34), M.chrome, 0.03, true);
+  fp(hex, M.black, 0.01);
+  grid(C.scaleP(hex, 0.9), 40, 22, 34, 9, 0.02, M.meshHi, true);                              /* fine mesh */
+  slatsIn(C, C.scaleP(hex, 0.95), [985, 962, 939], 11, M.meshHi, 0.024, 24);                 /* upper horizontal bars */
+  frame(hex, 44, M.chrome, 0.034);
+  frame(C.scaleP(hex, 0.93), 8, M.silver, 0.037);
+  fp(rectP(-545, 545, 884, 910), M.chrome, 0.038);                                            /* the cross bar */
+  fp(rectP(-470, 470, 1002, 1012), M.chrome, 0.034);                                          /* bonnet lip */
+  /* headlamp: black housing, chrome brow, two projectors, LED strip, amber indicator, clear cover */
+  const hl = [[478, 1014], [880, 1024], [908, 992], [872, 940], [610, 928], [528, 952]];
+  fp(hl, M.black, 0.02, true);
+  fp(C.scaleP(hl, 0.9), M.silver, 0.024, true);
+  roundLamp(C, 630, 976, 28, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.026, true);
+  roundLamp(C, 735, 984, 28, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.026, true);
+  fp([[505, 1006], [872, 1014], [884, 1004], [506, 996]], led, 0.034, true);                  /* LED brow */
+  fp([[520, 944], [870, 952], [878, 944], [525, 936]], led, 0.03, true);
+  fp([[800, 962], [892, 984], [884, 958], [800, 944]], M.amber, 0.03, true);                  /* indicator */
+  fp(hl, lens, 0.04, true);
+  /* chrome-ringed vertical fog pods */
   const pod = [[650, 770], [805, 765], [848, 620], [828, 520], [690, 540], [645, 640]];
   fp(pod, M.black, 0.018, true);
-  frame(pod, 18, M.chrome, 0.022, true);
-  fp([[690, 650], [785, 650], [790, 600], [692, 600]], M.lamp, 0.026, true);
+  frame(pod, 20, M.chrome, 0.026, true);
+  roundLamp(C, 740, 640, 36, { bezel: M.chrome, lens: M.lamp, core: M.silver }, 0.026, true);
+  fp([[690, 720], [800, 724], [806, 708], [694, 704]], led, 0.028, true);
+  /* bumper: black valance, silver skid plate, red recovery hooks, number plate */
   fp([[-565, 545], [565, 545], [505, 470], [-505, 470]], M.black, 0.01);
   fp([[-430, 478], [430, 478], [385, 428], [-385, 428]], M.silver, 0.03);
+  slatsIn(C, [[-420, 474], [420, 474], [380, 432], [-380, 432]], [466, 452, 438], 5, M.grey, 0.036, 20);
+  [-1, 1].forEach(sd => fp(rectP(sd * 300 - 18, sd * 300 + 18, 440, 478), redTow(), 0.034));
   fp([[-185, 548], [185, 548], [185, 465], [-185, 465]], M.plate, 0.035);
+  C.bonnet = () => { bonnetRib(C, 330, 0.07, 0.016, C.zN + 0.55, C.zCab - 0.1, C.M.paint, 0.5, true); bonnetRib(C, 0, 0.5, 0.008, C.zN + 0.9, C.zCab - 0.2, C.M.paint, 0.8, false); };
 }
 
-/* Rangar: tall square nose, wide grille with a thick bar running into C-clamp headlamps, body-colour bumper with a wide black intake. */
+/* Rangar (Ranger PX3): tall flat nose, very wide grille with two chunky chrome bars over honeycomb, big C-shaped LED lamps, power-bulge bonnet, angular fog pods in a body-colour bumper. */
 function faceRanger(C) {
-  const { fp, frame, grid, circle, M } = C;
+  const { fp, frame, grid, circle, M } = C, lens = clearLens(), led = ledMat();
   const gr = [[-600, 1108], [600, 1108], [640, 1070], [640, 850], [600, 822], [-600, 822], [-640, 850], [-640, 1070]];
-  fp(gr, M.mesh, 0.012);
-  grid(C.scaleP(gr, 0.94), 44, 30, 36, 12, 0.02, M.meshHi, true);
-  frame(gr, 22, M.black, 0.022);
-  fp([[-660, 1012], [660, 1012], [660, 958], [-660, 958]], M.grey, 0.036);
+  fp(gr, M.black, 0.01);
+  grid(C.scaleP(gr, 0.95), 30, 22, 26, 8, 0.02, M.meshHi, true);                             /* honeycomb */
+  frame(gr, 26, M.black, 0.026);
+  fp(rectP(-640, 640, 1040, 1072), M.chrome, 0.034);                                          /* upper bar */
+  fp(rectP(-640, 640, 950, 980), M.chrome, 0.034);                                            /* lower bar */
+  fp(rectP(-600, 600, 1076, 1100), M.black, 0.03);
+  fp(rectP(-640, 640, 1012, 1020), M.grey, 0.03);
+  /* C-clamp headlamp */
   const hl = [[650, 1112], [905, 1106], [925, 1050], [918, 852], [650, 860], [640, 985]];
-  fp(hl, M.black, 0.022, true);
-  fp(circle(775, 1045, 48), M.chrome, 0.028, true);
-  fp(circle(775, 1045, 36), M.lamp, 0.032, true);
-  fp(circle(775, 905, 30), M.lamp, 0.03, true);
-  fp([[668, 1104], [902, 1099], [902, 1078], [668, 1083]], M.lamp, 0.03, true);
-  fp([[874, 1099], [904, 1099], [900, 860], [872, 862]], M.lamp, 0.03, true);
-  fp([[668, 880], [900, 873], [900, 852], [668, 859]], M.lamp, 0.03, true);
+  fp(hl, M.black, 0.02, true);
+  fp(C.scaleP(hl, 0.93), M.mesh, 0.024, true);
+  arcBand(C, 790, 985, 74, 90, -2.3, 2.3, 18, led, 0.034, true);                              /* the C of LEDs */
+  roundLamp(C, 790, 985, 56, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.028, true);
+  roundLamp(C, 790, 905, 28, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.028, true);
+  fp([[668, 1104], [902, 1099], [902, 1086], [668, 1091]], led, 0.032, true);
+  fp([[860, 960], [912, 962], [908, 880], [858, 880]], M.amber, 0.03, true);
+  fp(hl, lens, 0.042, true);
+  /* body-colour bumper, wide trapezoid intake, angular fog pods, silver skid plate */
+  fp([[-660, 1012], [660, 1012], [660, 958], [-660, 958]], M.grey, 0.036);
   const intake = [[-600, 705], [600, 705], [645, 585], [-645, 585]];
   fp(intake, M.mesh, 0.01);
-  grid(C.scaleP(intake, 0.9), 50, 30, 38, 12, 0.018, M.meshHi, false);
-  fp([[700, 770], [825, 765], [842, 525], [712, 545]], M.black, 0.016, true);
-  fp([[728, 655], [805, 655], [808, 610], [732, 610]], M.lamp, 0.024, true);
-  fp([[-500, 525], [500, 525], [450, 455], [-450, 455]], M.silver, 0.028);
-  fp([[-185, 690], [185, 690], [185, 605], [-185, 605]], M.plate, 0.03);
-}
-
-/* Colorodo RC: slim chrome-and-black upper grille, swept wedge headlamps, wide lower intake, round fogs in the bumper corners. */
-function faceColorado(C) {
-  const { fp, frame, grid, circle, M } = C;
-  const gr = [[-455, 1012], [455, 1012], [500, 970], [500, 905], [-500, 905], [-500, 970]];
-  fp(gr, M.mesh, 0.012);
-  grid(C.scaleP(gr, 0.92), 54, 22, 44, 9, 0.02, M.meshHi, false);
-  frame(gr, 22, M.chrome, 0.03);
-  fp([[-440, 880], [440, 880], [470, 835], [-470, 835]], M.chrome, 0.03);
-  const hl = [[520, 1040], [905, 1050], [925, 1000], [880, 925], [620, 915], [520, 940]];
-  fp(hl, M.black, 0.022, true);
-  fp(C.scaleP(hl, 0.8), M.lamp, 0.026, true);
-  fp([[540, 1030], [890, 1040], [896, 1022], [545, 1012]], M.chrome, 0.03, true);
-  fp([[760, 935], [895, 940], [880, 905], [750, 902]], M.amber, 0.03, true);
-  const intake = [[-590, 755], [590, 755], [640, 610], [-640, 610]];
-  fp(intake, M.mesh, 0.012);
-  grid(C.scaleP(intake, 0.9), 46, 30, 36, 12, 0.02, M.meshHi, true);
+  grid(C.scaleP(intake, 0.9), 34, 24, 28, 8, 0.018, M.meshHi, false);
   frame(intake, 26, M.black, 0.022);
-  [1, -1].forEach(sd => { fp(circle(sd * 745, 660, 52), M.black, 0.018); fp(circle(sd * 745, 660, 38), M.lamp, 0.026); });
-  fp([[-520, 560], [520, 560], [470, 495], [-470, 495]], M.silver, 0.028);
-  fp([[-185, 720], [185, 720], [185, 640], [-185, 640]], M.plate, 0.03);
+  fp(rectP(-600, 600, 718, 736), M.chrome, 0.03);
+  const fogp = [[700, 770], [825, 765], [842, 525], [712, 545]];
+  fp(fogp, M.black, 0.016, true);
+  frame(fogp, 14, M.silver, 0.022, true);
+  roundLamp(C, 772, 650, 32, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.026, true);
+  fp([[-500, 525], [500, 525], [450, 455], [-450, 455]], M.silver, 0.028);
+  [-1, 1].forEach(sd => fp(rectP(sd * 330 - 16, sd * 330 + 16, 462, 520), redTow(), 0.032));
+  fp([[-185, 690], [185, 690], [185, 605], [-185, 605]], M.plate, 0.03);
+  C.bonnet = () => { bonnetRib(C, 330, 0.17, 0.03, C.zN + 0.5, C.zCab - 0.05, C.M.paint, 0.35, true); bonnetRib(C, 0, 0.28, 0.012, C.zN + 0.2, C.zN + 0.6, C.M.paint, 0.9, false); };
 }
 
-/* Cruiser 79: flat upright front, round lamps in square bezels each side of a slatted grille, raised guards, steel bumper, bonnet scoop, snorkel, drip rails. */
+/* Colorodo RC (Colorado 2008-12): split face, slim upper grille with a chrome bar, big swept twin-eye headlamps, wide intake with chrome edging and round fogs, a raised centre bonnet. */
+function faceColorado(C) {
+  const { fp, frame, grid, circle, M } = C, lens = clearLens(), led = ledMat();
+  const gr = [[-440, 1016], [440, 1016], [492, 984], [492, 934], [-492, 934], [-492, 984]];
+  fp(gr, M.black, 0.01);
+  slatsIn(C, C.scaleP(gr, 0.96), [1000, 982, 964, 946], 9, M.meshHi, 0.022, 14);
+  frame(gr, 18, M.chrome, 0.03);
+  fp(rectP(-500, 500, 905, 936), M.chrome, 0.034);                                            /* the broad chrome cross bar between the lamps */
+  fp(rectP(-500, 500, 912, 918), M.silver, 0.037);
+  fp([[-440, 1020], [440, 1020], [440, 1028], [-440, 1028]], M.chrome, 0.028);
+  /* headlamp: tall swept boomerang with two big round eyes */
+  const hl = [[505, 1062], [868, 1072], [925, 1022], [918, 952], [872, 902], [640, 898], [505, 934]];
+  fp(hl, M.black, 0.02, true);
+  fp(C.scaleP(hl, 0.93), M.silver, 0.024, true);
+  roundLamp(C, 628, 985, 46, { bezel: M.chrome, lens: M.lamp, core: M.black, refl: M.chrome }, 0.026, true);
+  roundLamp(C, 770, 995, 46, { bezel: M.chrome, lens: M.lamp, core: M.black, refl: M.chrome }, 0.026, true);
+  fp([[820, 938], [908, 958], [904, 926], [818, 912]], M.amber, 0.03, true);                  /* indicator on the lower outer corner */
+  fp([[520, 1050], [860, 1062], [866, 1054], [524, 1042]], M.chrome, 0.034, true);            /* brow */
+  fp(hl, lens, 0.042, true);
+  /* bumper: wide chrome-edged intake, round fogs, silver skid */
+  const intake = [[-600, 760], [600, 760], [650, 612], [-650, 612]];
+  fp(intake, M.black, 0.012);
+  grid(C.scaleP(intake, 0.92), 28, 28, 18, 24, 0.02, M.meshHi, false);                        /* vertical fins */
+  frame(intake, 18, M.chrome, 0.026);
+  fp(rectP(-480, 480, 786, 802), M.chrome, 0.026);
+  [-1, 1].forEach(sd => { fp(circle(sd * 748, 668, 56), M.black, 0.016); roundLamp(C, sd * 748, 668, 40, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.022); });
+  fp([[-520, 568], [520, 568], [470, 498], [-470, 498]], M.silver, 0.028);
+  [-1, 1].forEach(sd => fp(rectP(sd * 330 - 16, sd * 330 + 16, 470, 540), redTow(), 0.03));
+  fp([[-185, 740], [185, 740], [185, 652], [-185, 652]], M.plate, 0.03);
+  C.bonnet = () => { bonnetRib(C, 0, 0.5, 0.03, C.zN + 0.35, C.zCab - 0.15, C.M.paint, 0.7, false); bonnetRib(C, 260, 0.05, 0.012, C.zN + 0.3, C.zCab - 0.1, C.M.paint, 0.4, true); };
+}
+
+/* Cruiser 79: flat upright front, big rectangular lamps with round projectors, three bold silver bars, steel bumper with fogs, bonnet scoop, snorkel. */
 function face79(C) {
-  const { g, fp, circle, M, Y, Z, S } = C;
+  const { g, fp, frame, circle, M, Y, Z, S } = C, lens = clearLens(), led = ledMat();
   fp([[-785, 1140], [785, 1140], [792, 880], [-792, 880]], M.mesh, 0.01);
-  [1108, 1062, 1016, 970, 924].forEach(h => fp([[-430, h + 13], [430, h + 13], [430, h - 13], [-430, h - 13]], M.grey, 0.022));
+  [1108, 1062, 1016, 970, 924].forEach(h => fp(rectP(-430, 430, h - 15, h + 15), M.silver, 0.026));
+  frame([[-440, 1130], [440, 1130], [440, 905], [-440, 905]], 14, M.black, 0.03);
   fp([[430, 1135], [452, 1135], [452, 885], [430, 885]], M.grey, 0.022, true);
-  fp([[468, 1125], [772, 1125], [778, 900], [462, 900]], M.black, 0.02, true);
-  fp(circle(618, 1022, 98, 24), M.chrome, 0.026, true);
-  fp(circle(618, 1022, 84, 24), M.lamp, 0.03, true);
-  fp(circle(618, 1022, 30, 16), M.black, 0.034, true);
-  fp([[488, 930], [752, 930], [752, 910], [488, 910]], M.amber, 0.026, true);
+  /* headlamp: rectangular black unit, chrome bezel, round projector, LED strip, indicator, clear cover */
+  const hl = [[468, 1125], [772, 1125], [778, 900], [462, 900]];
+  fp(hl, M.black, 0.02, true);
+  frame(hl, 12, M.chrome, 0.026, true);
+  roundLamp(C, 618, 1030, 86, { bezel: M.chrome, lens: M.lamp, core: M.black, refl: M.silver }, 0.028, true);
+  fp([[488, 936], [752, 936], [752, 914], [488, 914]], M.amber, 0.028, true);
+  fp([[488, 1112], [752, 1112], [752, 1100], [488, 1100]], led, 0.03, true);
+  fp(hl, lens, 0.044, true);
+  /* steel bumper, corner indicators, fogs, recovery hooks, plate */
   const bump = std('#2a2d31', 0.45, 0.55);
   fp([[-935, 705], [935, 705], [935, 515], [-935, 515]], bump, 0.17, false, 0.02);
-  fp([[-930, 700], [930, 700], [930, 690], [-930, 690]], M.grey, 0.175);
-  fp(circle(560, 610, 52), M.chrome, 0.176, true);
-  fp(circle(560, 610, 42), M.lamp, 0.18, true);
+  fp([[-930, 700], [930, 700], [930, 690], [-930, 690]], M.silver, 0.176);
+  fp([[-930, 560], [930, 560], [930, 548], [-930, 548]], M.grey, 0.176);
+  [-1, 1].forEach(sd => { fp(rectP(sd * 840 - 55, sd * 840 + 55, 600, 665), M.amber, 0.178); fp(rectP(sd * 300 - 20, sd * 300 + 20, 520, 570), M.black, 0.178); });
+  roundLamp(C, 560, 612, 46, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.176, true);
   fp([[-185, 660], [185, 660], [185, 575], [-185, 575]], M.plate, 0.18);
   fp([[800, 1185], [878, 1185], [878, 1150], [800, 1150]], M.amber, 0.012, true);
-  /* bonnet scoop */
+  /* bonnet scoop, with hinge blocks at the back of the bonnet */
   const hz = C.zN + 0.5, hy = Y(C.stAt(hz)[7]);
   g.add(rbox(0.42, 0.075, 0.5, 0.03, M.paint, 0, hy + 0.03, hz));
   g.add(rbox(0.34, 0.035, 0.02, 0.01, M.mesh, 0, hy + 0.04, hz - 0.25));
+  [-1, 1].forEach(sd => { g.add(rbox(0.09, 0.02, 0.07, 0.006, M.black, sd * 0.62, Y(C.stAt(C.zCab - 0.06)[7]) + 0.004, C.zCab - 0.06)); });
   /* snorkel up the left A-pillar */
   const G = S.gh, xp = h => C.xPlane(C.uc, h);
   const path = [[-(S.hw + 40), 1000, 140], [-(S.hw + 40), 1150, 190], [-(S.hw + 25), 1290, 300], [-(xp(1600) + 75), 1600, 470], [-(xp(1890) + 75), 1890, 600]];
@@ -2685,6 +2818,7 @@ function face79(C) {
   /* drip rails */
   const yR = Y(G.peak - G.r + 6), xR = (C.xPlane(C.ub, G.peak - G.r) + 6) * MM, z0 = Z(G.wsTopU), z1 = C.zBack - 0.05;
   [-1, 1].forEach(s => g.add(rbox(0.02, 0.022, z1 - z0, 0.006, M.paint, s * xR, yR, (z0 + z1) / 2)));
+  C.bonnet = () => { [-1, 1].forEach(sd => bonnetRib(C, sd * 470, 0.03, 0.012, C.zN + 0.1, C.zCab - 0.1, C.M.paint, 0.2, false)); };
 }
 /* ---------- The canopy: frame, doors on pivots, optional rack and awning ---------- */
 let doorList = [], shellMeshes = [], shellMats = [], doorK = 0;
