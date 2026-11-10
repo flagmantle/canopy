@@ -106,3 +106,13 @@ It cannot check how anything *looks*. To render for real offline, `npm pack thre
 - A-frame clash check in `layout()` ("Pokes through the angled side") is approximate: it compares item height against the wall's slope at the item's edge.
 - Swing-out and barn doors on an A-frame hinge on the bottom-to-top chord line, so check they open without clipping the roof edge.
 - Ideas from the user: more customisation everywhere ("My Dream Setup" style), more tray designs, more tail-light designs, more gear; sponsor brand swap; Steam release (likely wrap with Electron or Tauri later).
+
+## Item colours, tents, camera, share render, spares, jack (latest round)
+
+- **Item colours:** `KIND_PALETTES` / `COLOUR_SLOTS` / `itemSlots` / `itemPalette`; each item has up to two colour slots (export rows `[key,x,z,rot,dy,rx,rz,f,cw,c1,c2]`). Default is the factory colour. `FEATURES.freeColour = true` allows any colour; set false once real brands exist so only factory colourways show. `colourCard()` is in the Fit-out panel.
+- **Tents:** `case 'tent'` in `buildItem`; styles soft / clam / box animate via `g.userData.awn.apply(k, drop)` like awnings (driven by `it.open`).
+- **Camera:** FOV 54, near 0.05, slower orbit/zoom, WASD/shift walk (`walkStep`).
+- **Share render:** button "Share render" -> `openRender` / `startRender` / `renderGrid`: 4 preset angles (1 large + 3 small), accumulated jittered passes with sun + random sky light for AA, soft shadows and AO, composed on a 2D canvas. Save/Share PNG.
+- **Spares:** tray panel only offers `none | under`. Other positions are Fit-out items (`spareroof`, `spareflat`, `sparedeck`, `sparerear` with `mount: 'rear'`).
+- **Jack-off:** `jackHole` choice; two receiver holes per corner 200 mm apart, legs stand 260 mm out.
+- **Spec/cost/power/guide** (PC Building Simulator ideas): `PRICES`, `priceOf`, `buildCost`, `powerBudget`, `buildGuide`, `specCard()`, `costSection/powerSection/guideSection`.

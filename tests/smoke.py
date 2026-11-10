@@ -108,6 +108,30 @@ TEST = r"""
     run('share code round trip', () => { Object.assign(A, TRAY_PRESETS.pressed.set); clampState(); const c = exportCode(); importCode(c); if (exportCode() !== c) throw new Error('round trip differs'); if (state.tray.hbStyle !== 'hex' || !state.tray.stays) throw new Error('new options lost'); });
   }
   FEATURES.vehicles = true;
+  // item colours, tents that open, spare wheel items, jack-off legs with two holes, power / cost / build guide
+  FEATURES.vehicles = false;
+  { const A = state.tray, B = state.canopy;
+    Object.assign(A, TRAY_PRESETS.factory.set); B.shape = 'aframe'; B.jack = true; B.rack = 'queens'; state.items.length = 0; clampState();
+    for (const hole of ['lower', 'upper']) for (const off of [false, true]) { B.jackHole = hole; state.carOff = off; clampState(); run('jack ' + hole + off, () => { buildCanopy(); partsList(); }); }
+    state.carOff = false; B.jack = false;
+    const keys = Object.keys(ITEMS);
+    for (const k of keys) {
+      state.items.length = 0; state.nextId = 1; clampState();
+      run('item ' + k, () => {
+        addItem(k); const it = state.items[state.items.length - 1]; if (!it) return;
+        const d = ITEMS[k], pal = itemPalette(d);
+        for (let c = 0; c <= pal.length; c++) { it.cw = c; it.c1 = c % 2 ? '#aa3322' : ''; it.c2 = c % 3 ? '#2233aa' : ''; const o = itemColourOverride(it); buildItem(k, { colour: o, rack: 'queens' }); }
+        if (isOpenable(d)) { const m = buildItem(k, { rack: 'queens', sx: -1, sz: 1 }); for (const kk of [0, 0.3, 0.6, 1]) m.userData.awn.apply(kk, 1.2); it.open = true; }
+        panelFit(); layout(); specCard(); colourCard(); partsList(); weights();
+      });
+    }
+    run('colour round trip', () => { state.canopy.shape = 'aframe'; clampState(); state.items.length = 0; state.nextId = 1; addItem('engal45'); addItem('tentBraHard'); state.items[0].cw = 2; state.items[0].c1 = '#112233'; state.items[1].open = true; const c = exportCode(); importCode(c); if (exportCode() !== c) throw new Error('round trip differs'); if (state.items[0].cw !== 2 || state.items[0].c1 !== '#112233' || !state.items[1].open) throw new Error('colour or open flag lost'); });
+    run('load sections', () => { state.canopy.shape = 'aframe'; clampState(); state.items.length = 0; ['battery', 'engal60', 'solar200', 'dcdc25', 'sparerear', 'sparedeck', 'tent'].forEach(k => addItem(k)); costSection(); powerSection(); guideSection(); panelLoad(); const p = powerBudget(); if (!(p.ah === 100 && p.solarW === 200)) throw new Error('power budget wrong: ' + JSON.stringify(p)); if (buildCost().total <= 0) throw new Error('no cost'); });
+    run('rear spare layout', () => { state.canopy.shape = 'aframe'; state.items.length = 0; addItem('sparerear'); const L = layout().get(state.items[0].id); if (L.issues.length) throw new Error('rear spare should fit behind the canopy: ' + L.issues[0]); });
+    run('only under-tray spare on the tray', () => { const Z = state.tray; Z.spare = 'door2'; clampState(); if (Z.spare !== 'none') throw new Error('door spare should be removed from the tray'); Z.spare = 'under'; clampState(); if (Z.spare !== 'under') throw new Error('under spare lost'); });
+    state.items.length = 0; state.canopy.shape = 'none'; clampState();
+  }
+  FEATURES.vehicles = true;
   // vehicles switched off: the tray stands on trestles and the tools work on the canopy set-up alone
   FEATURES.vehicles = false;
   { const S2 = state.tray, K2 = state.canopy;

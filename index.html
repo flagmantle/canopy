@@ -194,6 +194,7 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
 .tbl.parts td{font-size:13px;vertical-align:top}.tbl.parts td:last-child{white-space:nowrap;padding-left:8px}
 .tbl.parts .dm{font-size:11.5px;color:var(--muted)}
 .nextrow{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+.guide{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--muted)}.guide li::marker{color:var(--faint);font-weight:600}
 
 @media (max-width:1100px){ #stats .st.opt{display:none} }
 @media (max-width:820px){
@@ -239,6 +240,12 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
   #selbar .acts,#selbar .grpl,#selbar .nudge,#selbar .lift{gap:2px}
   #selbar .mini{min-width:22px;font-size:12px}
 }
+#renderOv{position:absolute;inset:0;z-index:6;background:rgba(10,10,12,.88);display:grid;place-items:center;padding:18px;overflow:auto}
+#renderOv[hidden]{display:none}
+.rbox{width:min(980px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.rbox h3{margin:0;font-size:16px}
+#renderPrev{width:100%;height:auto;border-radius:12px;background:#0c0d0f}
+.rbarwrap{height:8px;background:var(--panel3);border-radius:8px;overflow:hidden}.rbarwrap i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
 /* photo mode: the panel folds away and the view takes the whole width */
 .photo-only{display:none}
 #app.photo{grid-template-columns:68px minmax(0,1fr);grid-template-areas:"rail top" "rail stage"}
@@ -271,9 +278,9 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
       <div class="grp no-bp" role="group" aria-label="Doors">
         <button data-act="doors" id="doorsBtn">Open doors</button>
       </div>
-      <div class="grp no-bp" role="group" aria-label="Photo mode"><button data-act="photo" id="photoBtn" aria-pressed="false" title="Outdoor scene with the high-poly models">Photo mode</button></div>
+      <div class="grp no-bp" role="group" aria-label="Photo mode"><button data-act="photo" id="photoBtn" aria-pressed="false" title="Outdoor scene with the high-poly models">Photo mode</button><button data-act="render" title="Four soft-lit pictures from fixed angles">Share render</button></div>
       <div class="grp photo-only" role="group" aria-label="Photo tools">
-        <button data-act="photo" data-off="1">← Back to editor</button><button data-act="cam" data-v="photoF">Front 3/4</button><button data-act="cam" data-v="rear34">Rear 3/4</button><button data-act="cam" data-v="side">Side</button><button data-act="cam" data-v="front">Front</button><button data-act="cam" data-v="rear">Rear</button><button data-act="savephoto">Save photo</button><button data-act="sharephoto">Share</button>
+        <button data-act="photo" data-off="1">← Back to editor</button><button data-act="cam" data-v="photoF">Front 3/4</button><button data-act="cam" data-v="rear34">Rear 3/4</button><button data-act="cam" data-v="side">Side</button><button data-act="cam" data-v="front">Front</button><button data-act="cam" data-v="rear">Rear</button><button data-act="render">Share render</button><button data-act="savephoto">Save photo</button><button data-act="sharephoto">Share</button>
       </div>
       <div class="grp no-bp" role="group" aria-label="Camera">
         <button data-act="cam" data-v="rear34">3/4</button><button data-act="cam" data-v="side">Side</button><button data-act="cam" data-v="rear">Rear</button><button data-act="cam" data-v="top">Top</button>
@@ -292,6 +299,17 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
       <button class="hud" id="hud" data-act="step" data-i="4" aria-label="Open load summary"></button>
     </div>
     <div id="fail" hidden></div>
+    <div id="renderOv" hidden role="dialog" aria-label="Share render">
+      <div class="rbox">
+        <h3>Share render</h3>
+        <p class="note">Four pictures from fixed angles, one large and three small, lit with soft sun and sky light so every build comes out in the same layout and style. It takes a little while; leave the page open.</p>
+        <div id="renderOpts"><div class="seg"><button type="button" data-rq="fast">Fast</button><button type="button" data-rq="standard">Standard</button><button type="button" data-rq="ultra">Ultra</button></div>
+          <div class="btn-row" style="margin-top:10px"><button class="btn pri" data-act="rstart">Start render</button><button class="btn" data-act="rclose">Cancel</button></div></div>
+        <div id="renderProg" hidden><div class="rbarwrap"><i id="renderBar"></i></div><div id="renderMsg" class="note"></div></div>
+        <canvas id="renderPrev" hidden></canvas>
+        <div id="renderDone" class="btn-row" hidden><button class="btn pri" data-act="rsave">Save image</button><button class="btn" data-act="rshare">Share</button><button class="btn" data-act="ropen">Render again</button><button class="btn" data-act="rclose">Close</button></div>
+      </div>
+    </div>
   </main>
   <aside id="panel"><div id="bpInsp" hidden></div><div id="pbody" aria-live="polite"></div></aside>
 </div>
@@ -302,7 +320,7 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
 /* ---------- Catalogue: swap brand names here when sponsors sign on ---------- */
 const MM = 0.001, HB_T = 40, WALL_T = 30, ROOF_T = 40;
 /* Vehicles are switched off for now: the tray and canopy stand on trestles and the tools work on the canopy set-up alone. All the ute code and data stay in the file, so flipping this back on restores them. */
-const FEATURES = { vehicles: false };
+const FEATURES = { vehicles: false, freeColour: true };   /* freeColour: any colour on gear. Turn it off once the real brands are in: gear then only offers its factory colourways. */
 
 const BRANDS = {
   bra:    { name: 'BRA',     real: 'ARB' },
@@ -328,7 +346,7 @@ const BRANDS = {
 
 const CATS = [
   ['all', 'All'], ['fridge', 'Fridges'], ['storage', 'Storage'], ['kitchen', 'Kitchen'],
-  ['power', 'Power'], ['water', 'Water & fuel'], ['roof', 'Roof'], ['tent', 'Roof tents'], ['awning', 'Awnings']
+  ['power', 'Power'], ['water', 'Water & fuel'], ['wheels', 'Spare wheels'], ['roof', 'Roof'], ['tent', 'Roof tents'], ['awning', 'Awnings']
 ];
 
 /* L = long side (runs front to back at rotation 0), W = across, H = height, all mm. est = not yet checked against a spec sheet. */
@@ -389,7 +407,30 @@ addDef('awnSteel180','awning','steel',  'Deluxe 180 Wing',          1800, 220, 1
 addDef('awnBra2025','awning', 'bra',    'Touring Awning 2.0 × 2.5', 2100, 120, 130, 11, 'awning', { est: true, style: 'straight', reach: 2500, col: '#2d322f', can: '#b4a888', acc: '#e3e0d6' });
 addDef('awnBra2525','awning', 'bra',    'Touring Awning 2.5 × 2.5', 2600, 120, 130, 13, 'awning', { est: true, style: 'straight', reach: 2500, col: '#2d322f', can: '#b4a888', acc: '#e3e0d6' });
 addDef('awnQueens23','awning','queens', 'Awning 2.0 × 3.0',         2100, 125, 135, 12, 'awning', { est: true, style: 'straight', reach: 3000, col: '#3a3f36', can: '#7b7564', acc: '#c9bd9f' });
-addDef('spareroof','roof',   'gen',     'Spare Wheel 265/65R17',  790, 790, 265, 28, 'wheel');
+addDef('spareroof','roof',   'gen',     'Spare wheel, flat on the roof or rack', 790, 790, 265, 28, 'wheel');
+addDef('spareflat','wheels', 'gen',     'Spare wheel, flat on the floor',  790, 790, 265, 28, 'wheel');
+addDef('sparedeck','wheels', 'gen',     'Spare wheel, standing on the deck', 330, 790, 790, 30, 'spare');
+addDef('sparerear','wheels', 'gen',     'Spare wheel, on the canopy rear', 330, 790, 790, 32, 'spare', { mount: 'rear' });
+
+/* Factory colourways. The first one for every item is the colour it is drawn in by default (its own definition); these are the others it can be had in.
+   With the real brands, replace a palette with the brand's exact colour list and turn FEATURES.freeColour off. */
+const KIND_PALETTES = {
+  fridge: [['Charcoal', { col: '#2f3438', lid: '#c9ced2' }], ['Sand', { col: '#b9a57d', lid: '#e6dcc4' }], ['Olive', { col: '#4a5a3e', lid: '#c9cfc0' }], ['White', { col: '#e8eaec', lid: '#cfd3d6' }], ['Black', { col: '#1d1f22', lid: '#3a3e43' }]],
+  tent: [['Olive', { col: '#59624e', acc: '#c9bd9f' }], ['Sand', { col: '#c9b58a', acc: '#2b2f33' }], ['Charcoal', { col: '#2b2e31', acc: '#d0a24a' }], ['White', { col: '#e8e6e1', acc: '#2b2f33' }]],
+  awning: [['Sand canvas', { col: '#2d322f', can: '#b4a888' }], ['Olive', { col: '#3a3f36', can: '#6f6a5a' }], ['Grey', { col: '#2a2d31', can: '#7b7f84' }], ['Navy', { col: '#1d2a3a', can: '#9fb0c4' }]],
+  generic: [['Black', { col: '#1d1f22' }], ['Grey', { col: '#6c737a' }], ['Sand', { col: '#b9a57d' }], ['Olive', { col: '#4a5a3e' }], ['White', { col: '#e8eaec' }], ['Red', { col: '#b5342a' }]]
+};
+const COLOUR_SLOTS = { fridge: [['col', 'Body'], ['lid', 'Lid']], tent: [['col', 'Cover'], ['acc', 'Trim']], awning: [['col', 'Bag'], ['can', 'Canvas']] };
+const itemSlots = d => d.col ? (COLOUR_SLOTS[d.kind] || [['col', 'Body']]) : [];
+const itemPalette = d => d.colours || KIND_PALETTES[d.kind] || KIND_PALETTES.generic;
+/* the overrides one item's colour choice puts on its definition, or null for the factory colour */
+function itemColourOverride(it) {
+  const d = ITEMS[it.key], o = {}, pal = itemPalette(d);
+  if (it.cw > 0 && pal[it.cw - 1]) Object.assign(o, pal[it.cw - 1][1]);
+  if (FEATURES.freeColour) { const sl = itemSlots(d); if (it.c1 && sl[0] && /^#[0-9a-f]{6}$/i.test(it.c1)) o[sl[0][0]] = it.c1; if (it.c2 && sl[1] && /^#[0-9a-f]{6}$/i.test(it.c2)) o[sl[1][0]] = it.c2; }
+  return Object.keys(o).length ? o : null;
+}
+const itemColourSig = it => (it.cw || 0) + '/' + (FEATURES.freeColour ? (it.c1 || '') + '/' + (it.c2 || '') : '');
 
 /* How each tent works with a rack.
    Soft shells fold open over the top, so they sit ON a rack: mnt = rack rails their brackets suit, spMin = least spread between their mounting points.
@@ -477,6 +518,8 @@ function awnShape(it) {
   return pts;
 }
 const itemKg = i => ITEMS[i.key].kg;
+/* gear that opens out: awnings unfold, roof tents pop up */
+const isOpenable = d => d.kind === 'awning' || d.kind === 'tent';
 
 const COLOURS = {
   raw:   { name: 'Raw',    alu: '#c6cdd3', steel: '#8b9197' },
@@ -683,7 +726,7 @@ const OPT = {
   boxes: ['none', 'left', 'right', 'both'], lights: Object.keys(LIGHTS), colour: Object.keys(COLOURS),
   design: Object.keys(TRAYS), headShape: ['match', 'angled', 'square', 'custom'], lightStyle: Object.keys(LIGHT_STYLES), shape: ['none', 'aframe', 'square', 'custom'],
   style: ['gull', 'barn'], rear: ['solid', 'hatch', 'barn', 'drop'], rack: ['none'].concat(Object.keys(RACKS)), carpet: Object.keys(CARPETS), beam: BEAM_HTS, paint: Object.keys(PAINTS),
-  tyre: Object.keys(TYRES), tyreSize: Object.keys(TYRE_SIZES), boxStyle: Object.keys(BOX_STYLES), guards: Object.keys(GUARDS), bodyLift: [0, 25, 50],
+  tyre: Object.keys(TYRES), tyreSize: Object.keys(TYRE_SIZES), jackHole: ['lower', 'upper'], boxStyle: Object.keys(BOX_STYLES), guards: Object.keys(GUARDS), bodyLift: [0, 25, 50],
   hbStyle: Object.keys(HB_STYLES), hbColour: Object.keys(HB_COLOURS), sideStyle: Object.keys(SIDE_STYLES), latch: Object.keys(LATCHES), rearStyle: Object.keys(REAR_STYLES), boxLock: Object.keys(BOX_LOCKS),
   floorMat: Object.keys(FLOOR_MATS), plyT: PLY_TS, aluT: ALU_TS, floorFin: ['checker', 'smooth']
 };
@@ -693,7 +736,7 @@ function defaultState() {
   return {
     step: 0, paint: 'silver',
     tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: FEATURES.vehicles ? 'none' : 'factory', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'match', hbStyle: 'tube', hbColour: 'match', sideStyle: 'ribbed', sideH: 270, latch: 'black', stays: false, rail: true, rearStyle: 'flat', rearH: 200, skirt: 75, boxH: 0, boxLock: 'round', archAt: 700, archR: 480, hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'rubber', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
-    canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
+    canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, jackHole: 'lower', floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
     photo: false, items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
   };
 }
@@ -706,6 +749,7 @@ function clampState() {
   const V = VEHICLES[T.veh];
   if (V.cabs.indexOf(T.cab) < 0) T.cab = V.cabs.indexOf('dual') >= 0 ? 'dual' : V.cabs[0];
   if (!SPARE[T.spare]) T.spare = 'none';
+  if (!FEATURES.vehicles && T.spare !== 'none' && T.spare !== 'under') T.spare = 'none';   /* other spare positions are fit-out items now */
   if (OPT.design.indexOf(T.design) < 0) T.design = 'none';
   if (!FEATURES.vehicles) { T.veh = VEH_DEFAULT; T.lift = 0; T.bodyLift = 0; state.people = 0; if (T.design === 'tub') T.design = 'factory'; }
   if (OPT.headShape.indexOf(T.headShape) < 0) T.headShape = 'match';
@@ -749,6 +793,7 @@ function clampState() {
   if (C.shape === 'custom') C.hgt = C.bend + C.rise;
   C.inset = Math.round(clamp(nm(C.inset, 250), 0, Math.max(0, Math.floor((C.wid - 700) / 2))));
   if (OPT.beam.indexOf(C.beam) < 0) C.beam = 40;
+  if (OPT.jackHole.indexOf(C.jackHole) < 0) C.jackHole = 'lower';
   if (!FLOOR_MATS[C.floorMat]) C.floorMat = 'ply';
   if (PLY_TS.indexOf(C.plyT) < 0) C.plyT = 12;
   if (ALU_TS.indexOf(C.aluT) < 0) C.aluT = 3;
@@ -845,6 +890,7 @@ function box(it) {
 /* where an item may go: tents can hang past the roof, awnings sit on its edge, other roof gear can also ride on a tent's top bars */
 function areaFor(it) {
   const G = geo(), d = ITEMS[it.key], R = G.roof;
+  if (d.mount === 'rear') return { x0: G.outer.x0, x1: G.outer.x1, z0: G.outer.z1, z1: G.outer.z1 + 700 };
   if (d.mount !== 'roof') return G.deck;
   if (d.kind === 'tent') return { x0: R.x0 - TENT_OVER.x, x1: R.x1 + TENT_OVER.x, z0: R.z0 - TENT_OVER.f, z1: R.z1 + TENT_OVER.r };
   if (d.kind === 'awning') { const f = dims(it), p = Math.min(f.w, f.d) + 40; return { x0: R.x0 - p, x1: R.x1 + p, z0: R.z0 - Math.max(p, 700), z1: R.z1 + Math.max(p, 700) }; }
@@ -862,7 +908,7 @@ function ov(a, b, tol) {
 function layout(items) {
   items = items || state.items;
   const G = geo(), out = new Map();
-  const floor = items.filter(i => ITEMS[i.key].mount === 'floor');
+  const floor = items.filter(i => ITEMS[i.key].mount === 'floor' || ITEMS[i.key].mount === 'rear');
   const roof = items.filter(i => ITEMS[i.key].mount === 'roof');
   const boxes = new Map();
   const dyOf = i => i.dy || 0;
@@ -881,7 +927,8 @@ function layout(items) {
   });
   floor.forEach(i => {
     const b = boxes.get(i.id), o = out.get(i.id), top = o.y + b.h;
-    if (b.x0 < G.deck.x0 - 1 || b.x1 > G.deck.x1 + 1 || b.z0 < G.deck.z0 - 1 || b.z1 > G.deck.z1 + 1) o.issues.push('Hangs off the tray');
+    if (ITEMS[i.key].mount === 'rear') { if (G.none || b.x0 < G.outer.x0 - 1 || b.x1 > G.outer.x1 + 1 || b.z0 < G.outer.z1 - 1) o.issues.push('Mount it on the back of the canopy'); }
+    else if (b.x0 < G.deck.x0 - 1 || b.x1 > G.deck.x1 + 1 || b.z0 < G.deck.z0 - 1 || b.z1 > G.deck.z1 + 1) o.issues.push('Hangs off the tray');
     if (ov(b, G.outer)) {
       if (b.x0 < G.inner.x0 - 1 || b.x1 > G.inner.x1 + 1 || b.z0 < G.inner.z0 - 1 || b.z1 > G.inner.z1 + 1) o.issues.push('Clashes with the canopy wall');
       else if (top > G.innerH + 1) o.issues.push('Too tall by ' + Math.round(top - G.innerH) + ' mm');
@@ -953,7 +1000,7 @@ function findSpot(key) {
       if (clear({ id: -1, key, x, z, rot })) return { x: rnd(x), z: rnd(z), rot, ok: true };
     return { x: rnd(R.x0 - d.W / 2), z: rnd(zc), rot: 0, ok: false };
   }
-  const passes = d.mount === 'roof' ? [[R, 25], [areaFor({ key, rot: 0 }), 25]] : [[G.inner, 25], [G.deck, 50]];
+  const passes = d.mount === 'roof' ? [[R, 25], [areaFor({ key, rot: 0 }), 25]] : d.mount === 'rear' ? [[areaFor({ key, rot: 0 }), 25]] : [[G.inner, 25], [G.deck, 50]];
   for (const [area, step] of passes) {
     for (const rot of [0, 90]) {
       const w = rot ? d.L : d.W, dp = rot ? d.W : d.L, cand = [];
@@ -964,7 +1011,7 @@ function findSpot(key) {
       for (const [x, z] of cand) if (clear({ id: -1, key, x, z, rot })) return { x: rnd(x), z: rnd(z), rot, ok: true };
     }
   }
-  const a = d.mount === 'roof' ? R : G.deck;
+  const a = d.mount === 'roof' ? R : d.mount === 'rear' ? areaFor({ key, rot: 0 }) : G.deck;
   return { x: 0, z: rnd((a.z0 + a.z1) / 2), rot: 0, ok: false };
 }
 
@@ -976,7 +1023,7 @@ function snapPos(it, x, z, o) {
   const G = geo(), d = dims(it), mount = ITEMS[it.key].mount;
   const area = areaFor(it);
   const inC = ov({ x0: x - d.w / 2, x1: x + d.w / 2, z0: z - d.d / 2, z1: z + d.d / 2 }, G.outer);
-  const wall = mount === 'floor' && inC ? G.inner : area;
+  const wall = (mount === 'floor' || mount === 'rear') && inC && mount !== 'rear' ? G.inner : area;
   const half = o.x0 !== undefined, g = o.g || 10;
   const rnd = v => Math.round(v * 2) / 2; /* half millimetres, so an item flush to a wall has a gap of exactly 0 even when its width is odd */
   const tx = [], tz = [];
@@ -1262,6 +1309,48 @@ function loadCheck() {
 }
 
 /* ---------- Parts list ---------- */
+/* ---------- Real-part thinking, borrowed from PC building games: every part has a spec sheet (size, weight, draw, price, part number), the build checks that parts fit,
+   there is a budget, a power benchmark and an order to assemble it in. Prices are retail estimates in AUD until the real brands and their lists are in. ---------- */
+const PRICES = { engal45: 1450, engal60: 1850, bra63: 1790, bra96: 2390, dom45: 1599, dom75: 2399, slide45: 349, slide75: 499, drawer1: 1350, drawer2: 2150, pantry: 890, toolbox: 120, cooker: 320,
+  battery: 780, battery200: 1450, dcdc25: 289, dcdc40: 349, dcdc50: 449, inv1000: 549, inv2000: 899, batE125: 849, batV200: 1650, dcdcP25: 380, dcdcE40: 420, invV1600: 990, usbpanel: 59, ledstrip: 29, fuse6: 69,
+  tank60: 420, pump: 89, jerry: 55, solar200: 399, solarq: 349, boards: 249, spareroof: 0, spareflat: 0, sparedeck: 0, sparerear: 0 };
+const priceOf = d => PRICES[d.key] !== undefined ? PRICES[d.key] : ({ fridge: 1500, storage: 900, kitchen: 300, power: 500, water: 150, wheels: 0, roof: 300, tent: 3200, awning: 900 })[d.cat] || 0;
+const skuOf = d => (BRANDS[d.brand].name || 'GEN').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-' + d.key.toUpperCase();
+const AVG_W = { engal45: 12, engal60: 14, bra63: 13, bra96: 21, dom45: 11, dom75: 19 };
+const avgW = d => AVG_W[d.key] !== undefined ? AVG_W[d.key] : d.kind === 'fridge' ? 14 : d.kind === 'inverter' ? 8 : d.kind === 'panel' ? 2 : d.kind === 'light' ? 2 : d.kind === 'dcdc' ? 1 : 0;
+const batteryAh = d => { const m = /(\d+)\s*Ah/i.exec(d.name); return d.kind === 'battery' && m ? +m[1] : 0; };
+const panelW = d => { const m = /(\d+)\s*W/i.exec(d.name); return d.kind === 'solar' && m ? +m[1] : 0; };
+/* a power benchmark: how long the battery runs the fridges and lights, and what the sun and the drive put back */
+function powerBudget() {
+  const ds = state.items.map(i => ITEMS[i.key]), ah = ds.reduce((a, d) => a + batteryAh(d), 0), wh = ah * 12.8 * 0.9, load = ds.reduce((a, d) => a + avgW(d), 0), solarW = ds.reduce((a, d) => a + panelW(d), 0);
+  const dayWh = load * 24, solarWh = solarW * 4.5 * 0.75, dcA = ds.filter(d => d.kind === 'dcdc').reduce((a, d) => a + (d.amps || 0), 0);
+  const net = solarWh - dayWh, days = dayWh <= solarWh ? Infinity : wh / (dayWh - solarWh);
+  return { ah, wh: Math.round(wh), load, dayWh: Math.round(dayWh), solarW, solarWh: Math.round(solarWh), dcA, driveAh: Math.round(dcA * 0.85), net: Math.round(net), days };
+}
+/* a retail-price estimate for the whole build, by section */
+function buildCost() {
+  const T = state.tray, C = state.canopy, alu = m => m === 'alu', rows = [];
+  if (T.design !== 'none') rows.push(['Tray', Math.round((T.len * T.wid / 1e6) * (alu(T.mat) ? 1250 : 850) + (T.head === 'full' ? 650 : T.head === 'half' ? 280 : 0) + (T.boxes === 'both' ? 2 : T.boxes === 'none' ? 0 : 1) * 780 + (T.rearStyle !== 'flat' ? 450 : 0) + (T.stays ? 120 : 0) + (T.guards !== 'none' ? 260 : 0) + 600)]);
+  if (C.shape !== 'none') rows.push(['Canopy', Math.round(((2 * C.len * C.hgt + 2 * C.wid * C.hgt + C.wid * C.len) / 1e6) * (alu(C.mat) ? 520 : 380) + (C.left + C.right + (C.rear === 'solid' ? 0 : C.rear === 'barn' ? 2 : 1)) * 230 + (C.floor ? 480 : 0) + (C.jack ? 650 : 0) + (RACKS[C.rack] ? 700 : 0) + 900)]);
+  CATS.slice(1).forEach(([c, label]) => { const sum = state.items.filter(i => ITEMS[i.key].cat === c).reduce((a, i) => a + priceOf(ITEMS[i.key]), 0); if (sum) rows.push([label, sum]); });
+  return { rows, total: rows.reduce((a, r) => a + r[1], 0) };
+}
+/* the order to put it together in: base first, heavy gear low and forward, then wiring, then the roof */
+function buildGuide() {
+  const T = state.tray, C = state.canopy, G = geo(), lay = layout(), out = [], pos = it => (Math.abs(it.x) < 150 ? 'centre' : it.x < 0 ? 'left' : 'right') + ', ' + (it.z < G.outer.z0 + (G.outer.z1 - G.outer.z0) / 3 ? 'forward' : it.z > G.outer.z0 + 2 * (G.outer.z1 - G.outer.z0) / 3 ? 'rearward' : 'mid');
+  if (T.design !== 'none') out.push('Fit the ' + TRAYS[T.design].name.toLowerCase() + ' tray to the chassis and torque its mounts.' + (T.boxes !== 'none' ? ' Hang the toolboxes before the tray goes on.' : ''));
+  if (C.shape === 'none') return out;
+  if (C.floor) out.push('Lay the false floor: ' + floorKg(C).n + ' cross beams, then the ' + (C.floorMat === 'alu' ? C.aluT + ' mm aluminium sheet' : C.plyT + ' mm ply') + '.');
+  out.push('Lift the canopy onto the tray with two people or a hoist, and clamp it down.' + (C.jack ? ' The jack-off pockets stay on the sides.' : ''));
+  const floor = state.items.filter(i => ITEMS[i.key].mount === 'floor').sort((a, b) => ITEMS[b.key].kg - ITEMS[a.key].kg);
+  floor.forEach(i => out.push('Fit ' + itemName(ITEMS[i.key]) + ' (' + ITEMS[i.key].kg + ' kg): ' + pos(i) + '. ' + (ITEMS[i.key].kg > 25 ? 'Two people.' : '')));
+  if (state.wires.length) out.push('Run the ' + state.wires.length + ' cable' + (state.wires.length > 1 ? 's' : '') + ' and fit the fuses, then check the battery with a meter before connecting.');
+  if (RACKS[C.rack]) out.push('Bolt on the ' + rackName(C.rack).toLowerCase() + '.');
+  state.items.filter(i => ITEMS[i.key].kind === 'tent').forEach(i => out.push('Lift the ' + itemName(ITEMS[i.key]) + ' onto the roof (' + ITEMS[i.key].kg + ' kg, two or three people) and bolt it down.'));
+  state.items.filter(i => ITEMS[i.key].kind === 'awning' || ITEMS[i.key].mount === 'rear' || ITEMS[i.key].cat === 'roof').forEach(i => out.push('Mount ' + itemName(ITEMS[i.key]) + '.'));
+  out.push('Check every door, latch and the load, then weigh it.');
+  return out;
+}
 function partsList() {
   const T = state.tray, C = state.canopy, V = VEHICLES[T.veh], w = weights(), S = [];
   const nm = d => (BRANDS[d.brand].name ? BRANDS[d.brand].name + ' ' : '') + d.name;
@@ -1290,7 +1379,7 @@ function partsList() {
   const doors = C.left + C.right, cr = [['Canopy, ' + (C.shape === 'square' ? 'square' : 'A-frame') + ', ' + mat(C.mat) + ' ' + fin(C.finish) + ', ' + COLOURS[C.colour].name.toLowerCase(), C.len + ' × ' + C.wid + ' × ' + C.hgt + ' mm' + (C.shape === 'square' ? '' : ', bend at ' + canopyProf(C).bend + ' mm, ' + canopyProf(C).inset + ' mm in each side'), 1, w.canopy]];
   if (doors) cr.push([(C.style === 'gull' ? 'Gullwing' : 'Barn') + ' side doors' + (C.windows ? ' with windows' : ''), C.left + ' left, ' + C.right + ' right', doors, '']);
   cr.push(['Rear: ' + ({ solid: 'solid panel', hatch: 'lift-up hatch', barn: 'barn doors', drop: 'drop-down door' })[C.rear], '', 1, '']);
-  if (C.jack) cr.push(['Jack-off receivers, square tube set into the base rail at each corner', '40 × 40 mm', 4, ''], ['Wind-up jack-off legs (stay home)', '', 4, '']);
+  if (C.jack) cr.push(['Jack-off receivers, square tube set into the base rail (two stacked, 200 mm apart) at each corner', '40 × 40 mm', 8, ''], ['Wind-up jack-off legs (stay home)', '', 4, '']);
   if (C.floor) {
     const f = floorKg(C), iw = C.wid - 2 * WALL_T, il = C.len - 2 * WALL_T, cp = CARPETS[C.carpet];
     cr.push(['False floor beams, ' + mat(C.mat) + ' ' + BEAM_W + ' × ' + C.beam + ' mm', iw + ' mm long, about ' + BEAM_PITCH + ' mm apart', f.n, Math.round(f.beams * 10) / 10],
@@ -1337,7 +1426,7 @@ function standDrop() {
 /* gear that rides on the tray outside the canopy stays with the ute */
 function inCanopy(it) {
   const d = ITEMS[it.key];
-  if (d.mount === 'roof') return true;
+  if (d.mount === 'roof' || d.mount === 'rear') return true;
   const G = geo(), b = box(it);
   return b.z0 >= G.outer.z0 - 1 && b.z1 <= G.outer.z1 + 1;
 }
@@ -1347,7 +1436,7 @@ function exportCode() {
   const r1 = v => Math.round(v);
   const o = { v: 1, paint: state.paint, tray: state.tray, canopy: state.canopy, payload: state.payload, pc: state.payloadCustom ? 1 : 0, people: state.people, off: state.carOff ? 1 : 0,
     wires: state.wires.map(w => [state.items.findIndex(i => i.id === w.a.id), w.a.t, state.items.findIndex(i => i.id === w.b.id), w.b.t, w.pts.map(q => [r1(q[0]), r1(q[1]), r1(q[2]), q[3]])]),
-    items: state.items.map(i => { const r = [i.key, Math.round(i.x * 2) / 2, Math.round(i.z * 2) / 2, i.rot, Math.round(i.dy || 0)], f = i.open ? 2 : 0; if (!isUpright(i) || f) r.push(i.rx || 0, i.rz || 0); if (f) r.push(f); return r; }) };
+    items: state.items.map(i => { const r = [i.key, Math.round(i.x * 2) / 2, Math.round(i.z * 2) / 2, i.rot, Math.round(i.dy || 0)], f = i.open ? 2 : 0, hc = (i.cw || 0) > 0 || (FEATURES.freeColour && (i.c1 || i.c2)); if (!isUpright(i) || f || hc) r.push(i.rx || 0, i.rz || 0); if (f || hc) r.push(f); if (hc) r.push(i.cw || 0, FEATURES.freeColour ? i.c1 || '' : '', FEATURES.freeColour ? i.c2 || '' : ''); return r; }) };
   return btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function applyData(o) {
@@ -1388,7 +1477,8 @@ function applyData(o) {
     const dy = isFinite(r[4]) ? Math.round(clamp(+r[4], 0, DY_MAX)) : 0;
     const q = v => [0, 90, 180, 270].indexOf(v) >= 0 ? v : 0, rx = q(r[5]), rz = q(r[6]);
     const f = Number.isInteger(r[7]) ? r[7] : 0, d = ITEMS[r[0]];
-    state.items.push({ id: state.nextId++, key: r[0], x: +r[1], z: +r[2], rot, rx, rz, dy, open: !!(f & 2) && d.kind === 'awning' });
+    const nPal = itemPalette(d).length, cw = Number.isInteger(r[8]) && r[8] >= 0 && r[8] <= nPal ? r[8] : 0, hx = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : '';
+    state.items.push({ id: state.nextId++, key: r[0], x: +r[1], z: +r[2], rot, rx, rz, dy, open: !!(f & 2) && (d.kind === 'awning' || d.kind === 'tent'), cw, c1: hx(r[9]), c2: hx(r[10]) });
   });
   if (oldAwn) { const G = geo(), d = ITEMS.awnBra2025; state.items.push({ id: state.nextId++, key: 'awnBra2025', x: (oldAwn === 'left' ? G.roof.x0 - d.W / 2 : G.roof.x1 + d.W / 2), z: (G.roof.z0 + G.roof.z1) / 2, rot: 0, rx: 0, rz: 0, dy: 0 }); }
   /* wires refer to items by their place in the list (-1 is the vehicle feed) */
@@ -1562,7 +1652,7 @@ function initScene() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(38, 1, 0.1, 90);
+  camera = new THREE.PerspectiveCamera(54, 1, 0.05, 90);   /* a wide lens and a close near plane, so you can stand right next to the canopy */
 
   shedLights(scene);
   envG = new THREE.Group();
@@ -2073,7 +2163,7 @@ function buildSides(g, T, B, M) {
 function underBoxes(g, T, M) {
   if (T.boxes === 'none') return;
   const { edge, dark, steelDk, zinc } = M, W = T.wid * MM, L = T.len * MM, BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop, A = archGeo(T), hq = LOD.hq, sk = T.skirt * MM;
-  const H = (T.boxH > 0 ? T.boxH : BS.h) * MM, bw = BS.w * MM, yt = -sk + 0.005, yb = yt - H, rearGap = T.rearStyle === 'flat' ? 0.1 : 0.27, zEnd = L / 2 - rearGap;
+  const H = (T.boxH > 0 ? T.boxH : BS.h) * MM, bw = BS.w * MM, yt = -sk - 0.014, yb = yt - H, rearGap = T.rearStyle === 'flat' ? 0.1 : 0.27, zEnd = L / 2 - rearGap;
   const Rg = A.R + 0.05, zAt = y => { const dy = y - A.y; return A.z + (Math.abs(dy) < Rg ? Math.sqrt(Rg * Rg - dy * dy) : 0); };
   const lock = std('#c9ced3', 0.3, 0.8), blk = std('#101113', 0.55, 0.3), seal = std('#0c0d0f', 0.9, 0.05);
   const zMin = -L / 2 + 0.06, front = [], kind = BS.arch;
@@ -2178,12 +2268,14 @@ function buildTray() {
   g.add(rbox(W, sk, 0.03, 0.008, edge, 0, -sk / 2, L / 2 - 0.015));
   g.add(rbox(W, sk, 0.03, 0.008, edge, 0, -sk / 2, -L / 2 + 0.015));
   { const U = new Merge(), nX = Math.max(3, Math.floor(L / 0.36));
-    for (let i = 0; i < nX; i++) U.box(0, -0.048, -L / 2 + 0.2 + i * (L - 0.4) / (nX - 1), W - 0.1, 0.04, 0.05);
+    /* cross members stop short of any toolbox on that side, so nothing pokes into it */
+    const hc = sd => (T.boxes === 'both' || T.boxes === (sd < 0 ? 'left' : 'right')) ? W / 2 - (BOX_STYLES[T.boxStyle] || BOX_STYLES.drop).w * MM - 0.02 : W / 2 - 0.05;
+    for (let i = 0; i < nX; i++) [-1, 1].forEach(sd => U.box(sd * hc(sd) / 2, -0.048, -L / 2 + 0.2 + i * (L - 0.4) / (nX - 1), hc(sd), 0.04, 0.05));
     [-1, 1].forEach(s => {
       U.box(s * 0.42, -0.075, 0, 0.06, 0.1, L - 0.14);
       for (let x = 0.62; x < W / 2 - 0.09; x += 0.17) U.box(s * x, -0.026, 0, 0.026, 0.016, L - 0.12);
     });
-    U.box(0, -0.07, L / 2 - 0.1, W - 0.12, 0.09, 0.07);
+    [-1, 1].forEach(sd => U.box(sd * hc(sd) / 2, -0.07, L / 2 - 0.1, hc(sd), 0.09, 0.07));
     [-L / 2 + 0.35, -L * 0.1, L * 0.16, L / 2 - 0.34].forEach(z => [-1, 1].forEach(s => { U.box(s * 0.42, -0.13, z, 0.12, 0.012, 0.1); U.box(s * 0.46, -0.138, z - 0.03, 0.014, 0.014, 0.014); U.box(s * 0.38, -0.138, z + 0.03, 0.014, 0.014, 0.014); }));
     g.add(U.mesh(steelDk)); }
 
@@ -2502,7 +2594,7 @@ function updateContact() {
     const o = G.outer, cw = state.canopy.wid * MM, cl = (o.z1 - o.z0) * MM, zc = (o.z0 + o.z1) / 2 * MM;
     aimLights(zc);
     contactG.add(contactBlob(cw * 1.35, cl * 1.3, 0, zc, state.canopy.jack ? 0.3 : 0.55));
-    if (state.canopy.jack) [o.z0 + 240, o.z1 - 240].forEach(z => [-1, 1].forEach(s => contactG.add(contactBlob(0.42, 0.42, s * (cw / 2 + 0.17), z * MM, 0.6))));
+    if (state.canopy.jack) [o.z0 + 240, o.z1 - 240].forEach(z => [-1, 1].forEach(s => contactG.add(contactBlob(0.42, 0.42, s * (cw / 2 + 0.26), z * MM, 0.6))));
     else [zc - cl / 4, zc + cl / 4].forEach(z => contactG.add(contactBlob(1.1, 1.1, 0, z, 0.7)));
   }
 }
@@ -2591,7 +2683,7 @@ function buildOutdoors() {
   const limb = (t, a, b, r0, r1, m, near) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz), c = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, L, 14, 1), m);
     c.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dx / L, dy / L, dz / L)); c.castShadow = near; t.add(c); };
   for (let i = 0; i < 46; i++) {
-    const ang = rnd() * Math.PI * 2, rad = 8 + rnd() * 85, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3;
+    const ang = rnd() * Math.PI * 2, rad = 17 + rnd() * 85, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3;
     if (Math.abs(x) < 6.5 && Math.abs(z + 2) < 40) continue;
     const t = new THREE.Group(), h = 4.5 + rnd() * 6, near = rad < 20, m = i % 3 ? trunkM : barkM, lean = [(rnd() - 0.5) * 0.6, (rnd() - 0.5) * 0.6];
     const top = [lean[0], h, lean[1]]; limb(t, [0, 0, 0], top, 0.24 + rnd() * 0.1, 0.12, m, near);
@@ -2603,7 +2695,7 @@ function buildOutdoors() {
   }
   /* rocks and spinifex tufts */
   const rockGeo = [0, 1, 2].map(k => blobGeo(3, 0.22, 90 + k)), rockM = ['#7d6a5a', '#8a7766', '#6e5d4f'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.92 }));
-  for (let i = 0; i < 46; i++) { const ang = rnd() * Math.PI * 2, rad = 5 + rnd() * 60, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3; if (Math.abs(x) < 3.8) continue; const sc = 0.18 + rnd() * rnd() * 1.5, r = new THREE.Mesh(rockGeo[i % 3], rockM[i % 3]); r.scale.set(sc * (1 + rnd() * 0.6), sc * 0.6, sc * (1 + rnd() * 0.6)); r.position.set(x, GY + sc * 0.18, z); r.rotation.y = rnd() * 6; r.castShadow = rad < 14; r.receiveShadow = true; g.add(r); }
+  for (let i = 0; i < 46; i++) { const ang = rnd() * Math.PI * 2, rad = 8 + rnd() * 60, x = Math.sin(ang) * rad, z = Math.cos(ang) * rad - 3; if (Math.abs(x) < 3.8) continue; const sc = 0.18 + rnd() * rnd() * 1.5, r = new THREE.Mesh(rockGeo[i % 3], rockM[i % 3]); r.scale.set(sc * (1 + rnd() * 0.6), sc * 0.6, sc * (1 + rnd() * 0.6)); r.position.set(x, GY + sc * 0.18, z); r.rotation.y = rnd() * 6; r.castShadow = rad < 14; r.receiveShadow = true; g.add(r); }
   if (THREE.InstancedMesh) {
     const blade = new THREE.ConeGeometry(0.009, 0.5, 3, 1); blade.translate(0, 0.25, 0);
     const tones = ['#b0a464', '#8f8a4e'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 1 })), n = 9000, d = new THREE.Object3D();
@@ -2617,12 +2709,12 @@ function buildOutdoors() {
       g.add(im);
     });
     const bushGeo = [blobGeo(3, 0.25, 140), blobGeo(3, 0.25, 141)], bm = ['#7a8247', '#6d7a46'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
-    for (let i = 0; i < 44; i++) { const ang = rnd() * Math.PI * 2, rad = 6 + rnd() * 50, x = Math.sin(ang) * rad; if (Math.abs(x) < 4.2) continue; const b = new THREE.Mesh(bushGeo[i % 2], bm[i % 2]), sc = 0.25 + rnd() * 0.45; b.scale.set(sc * 1.4, sc * 0.8, sc * 1.4); b.position.set(x, GY + sc * 0.4, Math.cos(ang) * rad - 3); b.castShadow = rad < 14; b.receiveShadow = true; g.add(b); }
+    for (let i = 0; i < 44; i++) { const ang = rnd() * Math.PI * 2, rad = 10 + rnd() * 50, x = Math.sin(ang) * rad; if (Math.abs(x) < 4.2) continue; const b = new THREE.Mesh(bushGeo[i % 2], bm[i % 2]), sc = 0.25 + rnd() * 0.45; b.scale.set(sc * 1.4, sc * 0.8, sc * 1.4); b.position.set(x, GY + sc * 0.4, Math.cos(ang) * rad - 3); b.castShadow = rad < 14; b.receiveShadow = true; g.add(b); }
   }
   /* a fence line along one side of the track */
   { const post = new THREE.MeshStandardMaterial({ color: '#5e4c3a', roughness: 1 }), wire = new THREE.MeshStandardMaterial({ color: '#8c9096', roughness: 0.5, metalness: 0.8 });
-    for (let z = -60; z <= 40; z += 6) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), post); p.position.set(9.5, GY + 0.62, z); p.castShadow = Math.abs(z) < 14; g.add(p); }
-    [0.45, 0.8, 1.15].forEach(y => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 100, 4), wire); w.rotation.x = Math.PI / 2; w.position.set(9.5, GY + y, -10); g.add(w); }); }
+    for (let z = -60; z <= 40; z += 6) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), post); p.position.set(15, GY + 0.62, z); p.castShadow = Math.abs(z) < 14; g.add(p); }
+    [0.45, 0.8, 1.15].forEach(y => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 100, 4), wire); w.rotation.x = Math.PI / 2; w.position.set(15, GY + y, -10); g.add(w); }); }
   g.traverse(o => { if (o.isMesh && !o.userData.sky && !o.castShadow) o.receiveShadow = true; });
   /* lights: warm sun with soft shadows, sky and ground bounce */
   sunLight = new THREE.DirectionalLight(0xfff0d8, 1.1);
@@ -2686,6 +2778,152 @@ function sharePhoto() {
     else { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = 'canopy-build.png'; document.body.appendChild(a); a.click(); a.remove(); }
   });
 }
+/* ---------- Share render: four pictures from fixed angles, drawn with soft light and shadow, laid out as one big picture and three small ones ---------- */
+let rendering = false, renderResult = null;
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+const R2 = i => [((0.7548776662466927 * (i + 1)) % 1), ((0.5698402909980532 * (i + 1)) % 1)];     /* low-discrepancy points for jitter and light directions */
+function visibleBox(root) {
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  const walk = o => {
+    if (!o.visible || (o.userData && (o.userData.fx || o.userData.noPick))) return;
+    if (o.isMesh && o.geometry && o.geometry.attributes && o.geometry.attributes.position) {
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); if (isFinite(tmp.min.x) && !tmp.isEmpty()) box.union(tmp);
+    }
+    o.children.forEach(walk);
+  };
+  walk(root); return box;
+}
+async function renderGrid(opts) {
+  if (!renderer || rendering) return null;
+  opts = opts || {};
+  const N = opts.samples || 32, scale = opts.scale || 1, ov = $('#renderOv'), bar = $('#renderBar'), msg = $('#renderMsg'), prev = $('#renderPrev');
+  rendering = true;
+  const wasPhoto = state.photo, saved = { cam: Object.assign({}, cam), open: state.open, doorK, view: state.view, bpOn: bp.on, sunI: sunLight ? sunLight.intensity : 1.1, hemiI: skyHemi ? skyHemi.intensity : 0.4, pr: renderer.getPixelRatio() };
+  const warns = [], skyL = new THREE.DirectionalLight(0xbcd7f5, 1.0);
+  try {
+    if (bp.on) bpSet(false);
+    if (state.view !== 'solid') setView('solid');
+    if (!wasPhoto) setPhoto(true);
+    for (let i = 0; i < 10; i++) await nextFrame();
+    msg.textContent = 'Lighting the scene'; await nextFrame();
+    /* hide editing helpers */
+    if (selOutline) selOutline.visible = false; if (wiresG) wiresG.visible = false;
+    itemObjs.forEach(go => { if (go.userData.warn) { warns.push([go.userData.warn, go.userData.warn.visible]); go.userData.warn.visible = false; } });
+    /* two shadow-casting lights, re-aimed for every sample: the sun (a little blurred) and the sky dome (one direction of many each time).
+       Averaging the samples gives soft shadows, contact darkening where things meet, and smooth edges. */
+    skyL.castShadow = true; skyL.shadow.mapSize.set(2048, 2048); skyL.shadow.bias = -0.0004; skyL.shadow.normalBias = 0.03; scene.add(skyL, skyL.target);
+    if (skyHemi) skyHemi.intensity = 0.07;
+    const sun0 = new THREE.Vector3(SUN_V[0], SUN_V[1], SUN_V[2]).normalize();
+    const FOV = 36, W0 = Math.round(2400 * scale), H0 = Math.round(1500 * scale), gap = Math.round(30 * scale);
+    const heroW = Math.round(1560 * scale), smallW = W0 - heroW - gap, smallH = Math.round((H0 - 2 * gap) / 3);
+    const slots = [
+      { x: 0, y: 0, w: heroW, h: H0, shot: { name: 'Rear three-quarter', az: 0.66, el: 0.19, open: false, margin: 1.05 } },
+      { x: heroW + gap, y: 0, w: smallW, h: smallH, shot: { name: 'Side', az: Math.PI / 2, el: 0.07, open: false, margin: 1.12 } },
+      { x: heroW + gap, y: smallH + gap, w: smallW, h: smallH, shot: { name: 'Doors and gear open', az: -0.16, el: 0.13, open: true, margin: 1.12 } },
+      { x: heroW + gap, y: 2 * (smallH + gap), w: smallW, h: smallH, shot: { name: 'Front high', az: Math.PI - 0.62, el: 0.34, open: false, margin: 1.12 } }
+    ];
+    const out = document.createElement('canvas'); out.width = W0; out.height = H0 + Math.round(70 * scale);
+    const oc = out.getContext('2d');
+    const bg = oc.createLinearGradient(0, 0, 0, out.height); bg.addColorStop(0, '#15171a'); bg.addColorStop(1, '#0c0d0f'); oc.fillStyle = bg; oc.fillRect(0, 0, out.width, out.height);
+    const work = document.createElement('canvas'), wc = work.getContext('2d', { willReadFrequently: true });
+    const total = slots.length * N; let done = 0;
+    for (let si = 0; si < slots.length; si++) {
+      const S = slots[si], shot = S.shot, W = S.w, H = S.h;
+      /* pose the scene for this shot: doors and gear open or shut, then measure what is in view */
+      state.open = shot.open; doorK = shot.open ? 1 : 0; applyDoors();
+      itemObjs.forEach((go, id) => { const a = go.userData.awn; if (!a) return; const it = getItem(id), k = shot.open || (it && it.open) ? 1 : 0; go.userData.openK = k; a.apply(k, go.userData.drop || 1); });
+      await nextFrame();
+      const body = visibleBox(vehicleG).union(visibleBox(trayG)).union(visibleBox(canopyG)), full = body.clone().union(visibleBox(itemsG));
+      if (body.isEmpty()) body.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
+      if (full.isEmpty()) full.copy(body);
+      const bc = body.getCenter(new THREE.Vector3()), fc = full.getCenter(new THREE.Vector3()), sz = body.getSize(new THREE.Vector3()), fs = full.getSize(new THREE.Vector3());
+      const ctr = bc.clone().lerp(fc, 0.5), rad = Math.max(0.8, sz.length() / 2, fs.length() / 2 * 0.62);
+      ctr.y -= sz.y * 0.04;
+      const aspect = W / H, vf = FOV * Math.PI / 360, hf = Math.atan(Math.tan(vf) * aspect), dist = rad * shot.margin / Math.sin(Math.min(vf, hf));
+      camera.fov = FOV; camera.aspect = aspect; camera.far = 700; camera.updateProjectionMatrix();
+      const ce = Math.cos(shot.el);
+      camera.position.set(ctr.x + dist * Math.sin(shot.az) * ce, ctr.y + dist * Math.sin(shot.el), ctr.z + dist * Math.cos(shot.az) * ce); camera.lookAt(ctr); camera.updateMatrixWorld();
+      /* light cameras sized to the subject so shadows stay sharp */
+      const ext = rad * 1.7;
+      [sunLight, skyL].forEach(L => { Object.assign(L.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 90 }); L.shadow.camera.updateProjectionMatrix(); L.target.position.copy(ctr); L.target.updateMatrixWorld(); });
+      renderer.setPixelRatio(1); renderer.setSize(W, H, false); work.width = W; work.height = H;
+      const acc = new Float32Array(W * H * 3);
+      for (let i = 0; i < N; i++) {
+        const [u, v] = R2(i + si * 7), [ju, jv] = R2(i * 3 + 11);
+        const sd = sun0.clone(); sd.x += (u - 0.5) * 0.07; sd.z += (v - 0.5) * 0.07; sd.normalize();
+        sunLight.position.copy(ctr).addScaledVector(sd, 32);
+        const phi = u * Math.PI * 2, ct = 0.12 + 0.88 * v, st = Math.sqrt(1 - ct * ct);
+        skyL.position.set(ctr.x + Math.cos(phi) * st * 32, ctr.y + ct * 32, ctr.z + Math.sin(phi) * st * 32);
+        camera.setViewOffset(W, H, ju - 0.5, jv - 0.5, W, H);
+        renderer.render(scene, camera);
+        wc.drawImage(renderer.domElement, 0, 0, W, H);
+        const px = wc.getImageData(0, 0, W, H).data;
+        for (let p = 0, q = 0; p < px.length; p += 4, q += 3) { acc[q] += px[p]; acc[q + 1] += px[p + 1]; acc[q + 2] += px[p + 2]; }
+        done++; bar.style.width = (done / total * 100).toFixed(1) + '%'; msg.textContent = shot.name + ': pass ' + (i + 1) + ' of ' + N;
+        if (i % 2 === 1) await nextFrame();
+      }
+      camera.clearViewOffset();
+      /* average, grade (a gentle contrast curve, a touch of saturation, a soft vignette) and place into the layout */
+      const img = wc.createImageData(W, H), d = img.data, inv = 1 / N;
+      for (let y = 0, q = 0, p = 0; y < H; y++) {
+        const ny = (y / H - 0.5) * 2;
+        for (let x = 0; x < W; x++, q += 3, p += 4) {
+          let r = acc[q] * inv / 255, g = acc[q + 1] * inv / 255, b = acc[q + 2] * inv / 255;
+          const l = 0.299 * r + 0.587 * g + 0.114 * b, sat = 1.12; r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat;
+          const nx = (x / W - 0.5) * 2, vig = 1 - 0.16 * (nx * nx + ny * ny) * 0.5, cc = v => { v = Math.max(0, Math.min(1, v)); return (v * v * (3 - 2 * v) * 0.35 + v * 0.65) * vig; };
+          d[p] = cc(r) * 255; d[p + 1] = cc(g) * 255; d[p + 2] = cc(b) * 255; d[p + 3] = 255;
+        }
+      }
+      wc.putImageData(img, 0, 0);
+      oc.save(); oc.beginPath();
+      if (oc.roundRect) oc.roundRect(S.x, S.y, W, H, 22 * scale); else oc.rect(S.x, S.y, W, H);
+      oc.clip(); oc.drawImage(work, S.x, S.y); oc.restore();
+      oc.strokeStyle = 'rgba(255,255,255,0.1)'; oc.lineWidth = 2 * scale; oc.beginPath(); if (oc.roundRect) oc.roundRect(S.x + 1, S.y + 1, W - 2, H - 2, 22 * scale); else oc.rect(S.x + 1, S.y + 1, W - 2, H - 2); oc.stroke();
+      oc.fillStyle = 'rgba(12,13,15,0.62)'; const lw = Math.round((shot.name.length * 11 + 36) * scale), lh = Math.round(34 * scale); oc.beginPath(); if (oc.roundRect) oc.roundRect(S.x + 18 * scale, S.y + H - lh - 18 * scale, lw, lh, 17 * scale); else oc.rect(S.x + 18 * scale, S.y + H - lh - 18 * scale, lw, lh); oc.fill();
+      oc.fillStyle = '#f4f4f5'; oc.font = '500 ' + Math.round(17 * scale) + 'px Inter, system-ui, sans-serif'; oc.textBaseline = 'middle'; oc.fillText(shot.name, S.x + 36 * scale, S.y + H - lh / 2 - 18 * scale);
+    }
+    /* footer: what was built */
+    const T = state.tray, C = state.canopy, w = weights();
+    oc.fillStyle = '#f4f4f5'; oc.font = '600 ' + Math.round(26 * scale) + 'px Inter, system-ui, sans-serif'; oc.textBaseline = 'middle';
+    oc.fillText('Canopy Builder', 30 * scale, H0 + 36 * scale);
+    oc.fillStyle = '#8b8b94'; oc.font = '400 ' + Math.round(19 * scale) + 'px Inter, system-ui, sans-serif'; oc.textAlign = 'right';
+    oc.fillText((C.shape === 'none' ? TRAYS[T.design].name + ' tray ' + T.len + ' × ' + T.wid + ' mm' : (C.shape === 'square' ? 'Square' : 'A-frame') + ' canopy ' + C.len + ' × ' + C.wid + ' × ' + C.hgt + ' mm') + '  ·  ' + w.total + ' kg  ·  ' + state.items.length + ' items', W0 - 30 * scale, H0 + 36 * scale);
+    return out;
+  } finally {
+    skyL.castShadow = false; scene.remove(skyL, skyL.target); skyL.shadow && skyL.shadow.map && skyL.shadow.map.dispose();
+    if (sunLight) { sunLight.intensity = saved.sunI; Object.assign(sunLight.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 60 }); sunLight.shadow.camera.updateProjectionMatrix(); }
+    if (skyHemi) skyHemi.intensity = saved.hemiI;
+    camera.clearViewOffset(); camera.fov = 54; camera.far = state.photo ? 700 : 90; camera.updateProjectionMatrix();
+    if (selOutline) selOutline.visible = true; if (wiresG) wiresG.visible = true;
+    warns.forEach(([m, v]) => { m.visible = v; });
+    state.open = saved.open; doorK = saved.doorK === undefined ? (saved.open ? 1 : 0) : saved.doorK; applyDoors();
+    itemObjs.forEach((go, id) => { const a = go.userData.awn, it = getItem(id); if (a) { const k = it && it.open ? 1 : 0; go.userData.openK = k; a.apply(k, go.userData.drop || 1); } });
+    Object.assign(cam, saved.cam); renderer.setPixelRatio(saved.pr);
+    rendering = false;
+    if (!wasPhoto) setPhoto(false);
+    syncViewButtons(); resize(); invalidate();
+  }
+}
+const RENDER_QUALITY = { fast: 12, standard: 32, ultra: 96 };
+let renderQ = 'standard';
+async function startRender() {
+  const ov = $('#renderOv'), prev = $('#renderPrev');
+  $('#renderOpts').hidden = true; $('#renderProg').hidden = false; $('#renderDone').hidden = true; prev.hidden = true;
+  $('#renderBar').style.width = '0%'; $('#renderMsg').textContent = 'Starting';
+  try {
+    const out = await renderGrid({ samples: RENDER_QUALITY[renderQ] || 32, scale: window.__renderScale || 1 });
+    if (!out) throw new Error('3D is not available here');
+    renderResult = out;
+    prev.hidden = false; prev.width = 1200; prev.height = Math.round(1200 * out.height / out.width); prev.getContext('2d').drawImage(out, 0, 0, prev.width, prev.height);
+    $('#renderProg').hidden = true; $('#renderDone').hidden = false;
+  } catch (e) { $('#renderMsg').textContent = 'The render stopped: ' + (e && e.message ? e.message : e); rendering = false; $('#renderOpts').hidden = false; }
+}
+function openRender() { if (!renderer || rendering) return; const ov = $('#renderOv'); ov.hidden = false; $('#renderOpts').hidden = false; $('#renderProg').hidden = true; $('#renderDone').hidden = !renderResult; $('#renderPrev').hidden = !renderResult; document.querySelectorAll('[data-rq]').forEach(b => b.classList.toggle('on', b.dataset.rq === renderQ)); }
+function closeRender() { if (rendering) return; $('#renderOv').hidden = true; }
+function saveRender() { if (!renderResult) return; renderResult.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'canopy-build-grid.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png'); }
+function shareRender() { if (!renderResult) return; renderResult.toBlob(b => { if (!b) return; const f = new File([b], 'canopy-build-grid.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] }) && navigator.share) navigator.share({ files: [f], title: 'My canopy build', text: 'Built in Canopy Builder' }).catch(() => {}); else saveRender(); }, 'image/png'); }
 /* ---------- The utes: HyLux (HiLux), Rangar (Ranger), Cruiser 79 (LandCruiser 79). Real shapes, no badges.
    Authored in mm: u = along the ute from the front axle (rear is +), h = height off the ground, x = half-widths.
    The body is lofted from cross-sections, so it has real curves: rounded nose, crowned bonnet, shouldered doors, a greenhouse that leans in.
@@ -3577,21 +3815,23 @@ function buildCanopy() {
      ends. Each wind-up leg stands beside its corner and slides its arm in sideways, then winds the canopy up off the tray. Legs stay home while you drive. */
   const drop = standDrop() * MM, off = state.carOff;
   if (C.jack) {
-    const lm = std('#2a2d31', 0.5, 0.45), zinc = std('#b8bec4', 0.35, 0.7), hole = std('#060708', 0.95, 0), py = sill / 2, rq = 0.04;
+    /* two receiver holes at each corner, one above the other 200 mm apart, in a bolted-on corner pocket. The leg slides its arm into whichever hole you pick. */
+    const lm = std('#2a2d31', 0.5, 0.45), zinc = std('#b8bec4', 0.35, 0.7), hole = std('#060708', 0.95, 0), rq = 0.04, HS = 0.2, lowY = sill / 2, hy = [lowY, lowY + HS];
+    const pickY = C.jackHole === 'upper' ? hy[1] : hy[0], reach = 0.26;
     [z0 + 0.055, z1 - 0.055].forEach(zr => {
       [-1, 1].forEach(s => {
         const X = x => s * (cw / 2 + x);
-        /* the receiver mouth: a zinc lip around a dark square opening, flush with the side */
-        g.add(rbox(0.004, rq + 0.012, rq + 0.012, 0.002, zinc, X(0.001), py, zr));
-        g.add(rbox(0.004, rq - 0.004, rq - 0.004, 0.001, hole, X(0.0025), py, zr));
+        g.add(rbox(0.012, hy[1] - hy[0] + 0.15, 0.09, 0.008, lm, X(0.006), (hy[0] + hy[1]) / 2, zr));                  /* the corner pocket */
+        hy.forEach(yy => { g.add(rbox(0.005, rq + 0.014, rq + 0.014, 0.002, zinc, X(0.0135), yy, zr)); g.add(rbox(0.005, rq - 0.004, rq - 0.004, 0.001, hole, X(0.016), yy, zr)); });
+        [hy[0] - 0.06, hy[1] + 0.06].forEach(yy => g.add(cyl(0.007, 0.012, zinc, X(0.0135), yy, zr, 'x', 8)));          /* pocket bolts */
         if (!off) return;
-        const xp = cw / 2 + 0.17, x = s * xp, top = Math.max(0.34, sill + 0.2), mid = -drop * 0.42;
+        const xp = cw / 2 + reach, x = s * xp, top = Math.max(0.5, pickY + 0.3), mid = -drop * 0.42;
         g.add(rbox(0.065, top - mid, 0.065, 0.008, lm, x, (top + mid) / 2, zr));
         g.add(rbox(0.05, mid + drop + 0.04, 0.05, 0.006, zinc, x, (mid - drop) / 2 + 0.02, zr));
-        g.add(rbox(0.22, 0.012, 0.22, 0.004, lm, x, -drop + 0.006, zr));
-        g.add(rbox(0.09, 0.09, 0.09, 0.008, lm, x, py, zr));
-        /* the arm runs in from the leg and 300 mm into the receiver */
-        g.add(rbox(xp + 0.3 - cw / 2 + 0.0, rq - 0.006, rq - 0.006, 0.004, zinc, s * (cw / 2 - 0.3 + (xp + 0.3 - cw / 2) / 2), py, zr));
+        g.add(rbox(0.26, 0.012, 0.26, 0.004, lm, x, -drop + 0.006, zr));
+        g.add(rbox(0.09, 0.09, 0.09, 0.008, lm, x, pickY, zr));
+        /* the arm runs in from the leg and 300 mm into the chosen receiver */
+        g.add(rbox(xp + 0.3 - cw / 2 + 0.0, rq - 0.006, rq - 0.006, 0.004, zinc, s * (cw / 2 - 0.3 + (xp + 0.3 - cw / 2) / 2), pickY, zr));
         g.add(rbox(0.09, 0.03, 0.09, 0.008, lm, x, top + 0.015, zr));
         g.add(cyl(0.01, 0.06, zinc, x, top + 0.06, zr, 'y', 8));
         g.add(rbox(0.016, 0.016, 0.16, 0.006, zinc, x, top + 0.09, zr - Math.sign(zr - zc) * 0.07));
@@ -3632,7 +3872,7 @@ function buildCanopy() {
 /* ---------- Gear models. Local origin is the bottom centre; x = across (W), z = long side (L). ---------- */
 function buildItem(key, opts) {
   opts = opts || {};
-  const d = ITEMS[key], w = d.W * MM, dp = d.L * MM, h = d.H * MM, g = new THREE.Group();
+  const d = opts.colour ? Object.assign({}, ITEMS[key], opts.colour) : ITEMS[key], w = d.W * MM, dp = d.L * MM, h = d.H * MM, g = new THREE.Group();
   const roof = d.mount === 'roof';
   const S = (c, r, mt) => roof ? std(c, r, mt, {}) : std(c, r, mt);
   const dark = S('#2a2d31', 0.6, 0.15), steelM = S('#b9bec3', 0.4, 0.35);
@@ -3741,6 +3981,15 @@ function buildItem(key, opts) {
       for (let k = 0; k < 6; k++) g.add(rbox(w * 0.9, 0.01, 0.03, 0.004, dark, 0, h + 0.003, -dp / 2 + 0.1 + k * (dp - 0.2) / 5));
       break;
     }
+    case 'spare': {
+      /* a wheel standing on its edge, facing the back, on a bracket plate; mounted on the canopy rear or standing on the deck */
+      const R = spR(), Wd = spW(), wg = wheelGroup(R, Wd, std);
+      wg.rotation.y = -Math.PI / 2; wg.position.set(0, h / 2, dp / 2 - Wd / 2 - 0.045); g.add(wg);
+      const dk = S('#1f2226', 0.6, 0.2);
+      g.add(rbox(0.3, 0.3, 0.014, 0.012, dk, 0, h / 2, -dp / 2 + 0.007)); g.add(cyl(0.03, 0.05, dk, 0, h / 2, -dp / 2 + 0.04, 'z', 12));
+      if (d.mount !== 'rear') { g.add(rbox(0.26, 0.05, dp * 0.9, 0.014, dk, 0, 0.025, 0)); [-1, 1].forEach(sd => g.add(rbox(0.05, h * 0.5, 0.04, 0.012, dk, sd * (w / 2 - 0.1), h * 0.25, -dp / 2 + 0.03))); }
+      break;
+    }
     case 'wheel': {
       const wg = wheelGroup(w / 2, h, S);
       wg.rotation.z = Math.PI / 2; wg.position.y = h / 2;
@@ -3749,35 +3998,99 @@ function buildItem(key, opts) {
     }
     case 'tent': {
       const sh = S(d.col || '#2b2e31', 0.5, 0.12), ac = S(d.acc || '#c9bd9f', 0.55, 0.08), st = d.style || 'box';
-      const ring = (z, y0, y1, ww, r) => Array.from({ length: 20 }, (_, i) => { const a = i / 20 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a), k = 0.35;
+      const canvas = std(d.can || '#d9d2bf', 0.95, 0, { side: THREE.DoubleSide }), alu = S('#9aa0a6', 0.4, 0.6), dkc = S('#1b1d20', 0.7, 0.05);
+      const ring = (z, y0, y1, ww, r) => Array.from({ length: 28 }, (_, i) => { const a = i / 28 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a), k = 0.35;
         return [ww / 2 * Math.sign(c) * Math.pow(Math.abs(c), k), (y0 + y1) / 2 + (y1 - y0) / 2 * Math.sign(sn) * Math.pow(Math.abs(sn), k), z]; });
+      /* canvas that moves: a mesh of triangles whose corners are set every frame while the tent opens */
+      const dyn = n => { const gm = new THREE.BufferGeometry(), pos = new Float32Array(n * 9); gm.setAttribute('position', new THREE.BufferAttribute(pos, 3)); const m = new THREE.Mesh(gm, canvas); m.castShadow = true; m.frustumCulled = false;
+        return { mesh: m, n: 0, tri(a, b, c) { pos.set([a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]], this.n * 9); this.n++; }, quad(a, b, c, e) { this.tri(a, b, c); this.tri(a, c, e); }, flush() { gm.setDrawRange(0, this.n * 3); this.n = 0; gm.attributes.position.needsUpdate = true; gm.computeVertexNormals(); } }; };
+      /* a ladder that reaches down to the ground: two rails and rungs, set to length each frame */
+      const ladder = () => { const L = new THREE.Group(), rm = S('#c4c9ce', 0.35, 0.7), rails = [-1, 1].map(sd => { const r = rbox(0.03, 1, 0.03, 0.008, rm, sd * 0.2, -0.5, 0); L.add(r); return r; }), rungs = Array.from({ length: 14 }, () => { const r = rbox(0.4, 0.025, 0.04, 0.008, rm, 0, 0, 0); L.add(r); return r; });
+        L.userData.setLen = len => { rails.forEach(r => { r.scale.y = Math.max(0.01, len); r.position.y = -len / 2; }); rungs.forEach((r, i) => { const y = -0.22 - i * 0.26; r.visible = -y < len - 0.05; r.position.y = y; }); }; L.visible = false; return L; };
+      let apply = () => {};
       if (st === 'soft') {
-        /* aluminium base, PVC travel cover with a zip line and two straps */
-        g.add(rbox(w, h * 0.16, dp, 0.008, S('#9aa0a6', 0.4, 0.6), 0, h * 0.08, 0));
-        g.add(loft([-0.5, -0.47, -0.4, 0.4, 0.47, 0.5].map((f, i) => ring(f * dp, h * 0.15, h * (i === 0 || i === 5 ? 0.82 : 1), w * (i === 0 || i === 5 ? 0.94 : 0.99))), sh));
-        g.add(rbox(w * 1.002, 0.014, dp * 1.002, 0.005, ac, 0, h * 0.34, 0));
-        [-0.27, 0.27].forEach(f => g.add(rbox(0.05, h * 0.88, dp * 1.01, 0.01, S('#1b1d20', 0.7, 0.05), f * w, h * 0.57, 0)));
-        g.add(rbox(w * 0.3, 0.06, 0.02, 0.01, S('#b9bec3', 0.4, 0.6), 0, h * 0.22, dp / 2 + 0.008));
+        /* aluminium base with a hinged floor panel that folds out sideways, a PVC travel cover that comes off, and canvas that rises over the doubled floor */
+        const y0 = h * 0.16, Hr = Math.min(1.25, 0.8 + h * 1.2), Hr2 = Hr * 0.62;
+        g.add(rbox(w, y0, dp, 0.008, alu, 0, y0 / 2, 0));
+        const flo = new THREE.Group(); flo.position.set(w / 2, y0, 0); g.add(flo);
+        flo.add(rbox(w, 0.05, dp, 0.012, alu, -w / 2, 0.025, 0)); flo.add(rbox(w * 0.97, 0.06, dp * 0.97, 0.02, S('#d8d3c4', 0.95, 0), -w / 2, 0.08, 0));
+        const cov = new THREE.Group(); g.add(cov);
+        cov.add(loft([-0.5, -0.47, -0.4, 0.4, 0.47, 0.5].map((f, i) => ring(f * dp, h * 0.17, h * (i === 0 || i === 5 ? 0.82 : 1), w * (i === 0 || i === 5 ? 0.94 : 0.99))), sh));
+        cov.add(rbox(w * 1.002, 0.014, dp * 1.002, 0.005, ac, 0, h * 0.34, 0));
+        [-0.27, 0.27].forEach(f => cov.add(rbox(0.05, h * 0.88, dp * 1.01, 0.01, dkc, f * w, h * 0.57, 0)));
+        cov.add(rbox(w * 0.3, 0.06, 0.02, 0.01, S('#b9bec3', 0.4, 0.6), 0, h * 0.22, dp / 2 + 0.008));
+        const roll = rbox(0.18, 0.16, dp * 0.9, 0.06, sh, -w / 2 - 0.14, y0 + 0.08, 0); roll.visible = false; g.add(roll);
+        const tn = dyn(14); g.add(tn.mesh);
+        const lad = ladder(); lad.position.set(1.5 * w - 0.1, y0, dp * 0.22); g.add(lad);
+        const poles = [[-w / 2, -dp / 2], [-w / 2, dp / 2], [1.5 * w, -dp / 2], [1.5 * w, dp / 2]].map(([x, z]) => { const p = rbox(0.02, 1, 0.02, 0.006, alu, x, 0, z); g.add(p); return p; });
+        apply = (k, drop) => {
+          const e = k * k * (3 - 2 * k);
+          flo.rotation.z = -Math.PI * Math.min(1, Math.max(0, (k - 0.1) / 0.5));
+          cov.visible = k < 0.06; roll.visible = k > 0.4;
+          const up = Math.min(1, Math.max(0, (k - 0.55) / 0.45)), He = Hr2 * up, Hp = Hr * up, X0 = -w / 2, X1 = 1.5 * w, Z0 = -dp / 2, Z1 = dp / 2, XM = w / 2;
+          tn.mesh.visible = up > 0.01;
+          if (up > 0.01) {
+            const F = [[X0, y0, Z0], [X0, y0, Z1], [X1, y0, Z0], [X1, y0, Z1]], E = [[X0, y0 + He, Z0], [X0, y0 + He, Z1], [X1, y0 + He, Z0], [X1, y0 + He, Z1]], Pk = [[XM, y0 + Hp, Z0], [XM, y0 + Hp, Z1]];
+            tn.quad(F[0], F[1], E[1], E[0]); tn.quad(F[2], F[3], E[3], E[2]); tn.quad(E[0], E[1], Pk[1], Pk[0]); tn.quad(Pk[0], Pk[1], E[3], E[2]);
+            tn.tri(F[0], F[2], E[2]); tn.tri(F[0], E[2], E[0]); tn.tri(E[0], E[2], Pk[0]); tn.tri(F[1], F[3], E[3]); tn.tri(F[1], E[3], E[1]); tn.tri(E[1], E[3], Pk[1]);
+            tn.flush();
+          }
+          poles.forEach(p => { p.visible = up > 0.3; p.scale.y = Math.max(0.01, He); p.position.y = y0 + He / 2; });
+          lad.visible = up > 0.9; lad.userData.setLen(drop + y0);
+        };
       } else if (st === 'clam') {
-        /* hard shell that hinges at the front and lifts at the back: a low base and a wedge lid */
-        g.add(rbox(w, h * 0.32, dp, 0.03, sh, 0, h * 0.16, 0));
-        g.add(loft([-0.5, -0.46, 0, 0.46, 0.5].map((f, i) => { const top = h * (0.55 + 0.45 * (f + 0.5)); return ring(f * dp, h * 0.3, top, w * (i === 0 || i === 4 ? 0.95 : 1)); }), sh));
-        g.add(rbox(w * 1.004, 0.016, dp * 1.004, 0.006, ac, 0, h * 0.32, 0));
-        [-0.42, 0.42].forEach(f => g.add(rbox(0.05, 0.03, 0.03, 0.01, ac, f * w, h * 0.33, dp / 2 + 0.01)));
-        for (let i = 0; i < 3; i++) g.add(rbox(w * 0.7, 0.008, 0.03, 0.004, S('#000000', 0.6, 0.1), 0, h * (0.6 + 0.12 * i) + 0.004, (-0.25 + 0.25 * i) * dp));
+        /* hard shell that hinges at the front: the rear of the lid lifts to about 60 degrees, canvas fills the gap, and a ladder drops from the back */
+        const y0 = h * 0.32, amax = 1.05;
+        g.add(rbox(w, y0, dp, 0.03, sh, 0, y0 / 2, 0));
+        const piv = new THREE.Group(); piv.position.set(0, y0, -dp / 2); g.add(piv);
+        const lid = new THREE.Group(); lid.position.set(0, -y0, dp / 2); piv.add(lid);
+        lid.add(loft([-0.5, -0.46, 0, 0.46, 0.5].map((f, i) => { const top = h * (0.55 + 0.45 * (f + 0.5)); return ring(f * dp, h * 0.3, top, w * (i === 0 || i === 4 ? 0.95 : 1)); }), sh));
+        g.add(rbox(w * 1.004, 0.016, dp * 1.004, 0.006, ac, 0, y0, 0));
+        [-0.42, 0.42].forEach(f => lid.add(rbox(0.05, 0.03, 0.03, 0.01, ac, f * w, h * 0.33, dp / 2 + 0.01)));
+        for (let i = 0; i < 3; i++) lid.add(rbox(w * 0.7, 0.008, 0.03, 0.004, S('#000000', 0.6, 0.1), 0, h * (0.6 + 0.12 * i) + 0.004, (-0.25 + 0.25 * i) * dp));
+        const tn = dyn(8); g.add(tn.mesh);
+        const lad = ladder(); lad.position.set(w * 0.24, y0 + 0.02, dp / 2 + 0.08); g.add(lad);
+        if (opts.rack && RACKS[opts.rack]) rackModel(lid, RACKS[opts.rack], w, dp, h, Math.min(RACKS[opts.rack].spread || 0, d.L - 200) * MM, 0, S, z => h * (0.55 + 0.45 * (z / dp + 0.5)));
+        apply = (k, drop) => {
+          const a = amax * k * k * (3 - 2 * k);
+          piv.rotation.x = -a;
+          const ez = -dp / 2 + dp * Math.cos(a), ey = y0 + dp * Math.sin(a), X = w / 2 - 0.01;
+          tn.mesh.visible = k > 0.05;
+          if (k > 0.05) {
+            const A = [[-X, y0, -dp / 2], [X, y0, -dp / 2]], B = [[-X, y0, dp / 2], [X, y0, dp / 2]], Cc = [[-X, ey, ez], [X, ey, ez]];
+            tn.tri(A[0], B[0], Cc[0]); tn.tri(A[1], B[1], Cc[1]); tn.quad(B[0], B[1], Cc[1], Cc[0]); tn.flush();
+          }
+          lad.visible = k > 0.85; lad.userData.setLen(drop + y0 + 0.02);
+        };
       } else {
-        /* box shell: two flat shells that lift straight up, latches all round */
-        g.add(rbox(w, h * 0.5, dp, 0.04, sh, 0, h * 0.25, 0));
-        g.add(rbox(w * 1.004, h * 0.5, dp * 1.004, 0.07, sh, 0, h * 0.75, 0));
-        g.add(rbox(w * 1.008, 0.016, dp * 1.008, 0.006, S('#121416', 0.6, 0.1), 0, h * 0.5, 0));
+        /* box shell: the whole top lifts straight up on four struts, canvas fills the sleeve round it, ladder at the back */
+        const y0 = h * 0.5, lift = d.slim ? 0.85 : 1.0;
+        g.add(rbox(w, y0, dp, 0.04, sh, 0, y0 / 2, 0));
+        const top = new THREE.Group(); g.add(top);
+        top.add(rbox(w * 1.004, h * 0.5, dp * 1.004, 0.07, sh, 0, h * 0.75, 0));
+        top.add(rbox(w * 1.008, 0.016, dp * 1.008, 0.006, S('#121416', 0.6, 0.1), 0, h * 0.5, 0));
         [[-0.4, 0.5], [0.4, 0.5], [-0.4, -0.5], [0.4, -0.5]].forEach(([fx, fz]) => g.add(rbox(0.05, 0.05, 0.02, 0.008, ac, fx * w, h * 0.5, fz * (dp + 0.016))));
-        [-0.3, 0, 0.3].forEach(f => g.add(rbox(w * 0.8, 0.01, 0.04, 0.005, S(d.col || '#2b2e31', 0.4, 0.2), 0, h + 0.004, f * dp)));
+        [-0.3, 0, 0.3].forEach(f => top.add(rbox(w * 0.8, 0.01, 0.04, 0.005, S(d.col || '#2b2e31', 0.4, 0.2), 0, h + 0.004, f * dp)));
+        const tn = dyn(8); g.add(tn.mesh);
+        const struts = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => { const p = rbox(0.03, 1, 0.03, 0.008, alu, sx * (w / 2 - 0.07), 0, sz * (dp / 2 - 0.07)); g.add(p); return p; });
+        const lad = ladder(); lad.position.set(0, y0 + 0.02, dp / 2 + 0.05); g.add(lad);
+        if (opts.rack && RACKS[opts.rack]) rackModel(top, RACKS[opts.rack], w, dp, h, Math.min(RACKS[opts.rack].spread || 0, d.L - 200) * MM, 0, S, null);
+        apply = (k, drop) => {
+          const e = k * k * (3 - 2 * k), up = lift * e, X = w / 2 - 0.004, Z = dp / 2 - 0.004;
+          top.position.y = up;
+          tn.mesh.visible = up > 0.01;
+          if (up > 0.01) {
+            const lo = [[-X, y0, -Z], [X, y0, -Z], [X, y0, Z], [-X, y0, Z]], hi = lo.map(p => [p[0], y0 + up, p[2]]);
+            for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; tn.quad(lo[i], lo[j], hi[j], hi[i]); }
+            tn.flush();
+          }
+          struts.forEach(p => { p.visible = up > 0.02; p.scale.y = Math.max(0.01, up); p.position.y = y0 + up / 2; });
+          lad.visible = k > 0.9; lad.userData.setLen(drop + y0 + 0.02);
+        };
       }
-      if (opts.rack && RACKS[opts.rack] && st !== 'soft') {
-        /* the canopy's roof rack, riding on the lid. A clam lid slopes, so the towers grow towards the low end to keep it level. */
-        const lidAt = st === 'clam' ? (z => h * (0.55 + 0.45 * (z / dp + 0.5))) : null;
-        rackModel(g, RACKS[opts.rack], w, dp, h, Math.min(RACKS[opts.rack].spread || 0, d.L - 200) * MM, 0, S, lidAt);
-      }
+      if (opts.rack && RACKS[opts.rack] && st === 'soft') { /* a soft shell sits on the rack, it does not carry one */ }
+      g.userData.awn = { apply };
+      apply(0, 1);
       break;
     }
     case 'awning': {
@@ -3965,11 +4278,11 @@ function syncItems() {
     let go = itemObjs.get(it.id);
     const dk = ITEMS[it.key], aw = dk.kind === 'awning' ? awnSides(it) : null;
     const onLid = rackOnTent() && rackHost() === it ? state.canopy.rack : '';
-    const sig = it.key + (onLid ? '|rack:' + onLid : '') + (aw ? '|' + aw.sx + aw.sz : '');
+    const sig = it.key + (onLid ? '|rack:' + onLid : '') + (aw ? '|' + aw.sx + aw.sz : '') + '|c' + itemColourSig(it);
     if (go && go.userData.sig !== sig) { itemsG.remove(go); disposeObj(go); itemObjs.delete(it.id); go = null; }
     if (!go) {
       /* spin (Y) > roll (Z) > tip (X) > model, turning about the item's centre */
-      const model = buildItem(it.key, { rack: onLid, sx: aw && aw.sx, sz: aw && aw.sz }), gz = new THREE.Group(), gx = new THREE.Group();
+      const model = buildItem(it.key, { rack: onLid, sx: aw && aw.sx, sz: aw && aw.sz, colour: itemColourOverride(it) }), gz = new THREE.Group(), gx = new THREE.Group();
       go = new THREE.Group(); go.userData = model.userData; model.userData = {};
       model.position.y = -ITEMS[it.key].H * MM / 2;
       gx.add(model); gz.add(gx); go.add(gz); go.userData.gz = gz; go.userData.gx = gx; go.userData.sig = sig;
@@ -4030,12 +4343,12 @@ function fitDist(R) {
 function camPreset(name) {
   const T = state.tray, G = geo(), L = T.len * MM, W = T.wid * MM, cz = (G.outer.z0 + G.outer.z1) / 2 * MM;
   let p;
-  if (name === 'side') p = { az: Math.PI / 2, el: 0.06, tx: 0, ty: -0.1, tz: -0.5, R: 3.5 };
-  else if (name === 'rear') p = { az: 0, el: 0.12, tx: 0, ty: 0.3, tz: 0, R: Math.max(W, 1.7) / 2 + 0.6 };
+  if (name === 'side') p = { az: Math.PI / 2, el: 0.06, tx: 0, ty: -0.1, tz: cz, R: Math.max(L, 1.8) / 2 + 0.9 };
+  else if (name === 'rear') p = { az: 0, el: 0.12, tx: 0, ty: 0.3, tz: 0, R: Math.max(W, 1.7) / 2 + 0.35 };
   else if (name === 'front') p = { az: Math.PI - 0.62, el: 0.16, tx: 0, ty: -0.2, tz: -2.2, R: 3.7 };
   else if (name === 'photoF') p = { az: Math.PI - 0.7, el: 0.12, tx: 0, ty: -0.2, tz: -1.9, R: 3.1 };
   else if (name === 'top') p = { az: 0, el: 1.5, tx: 0, ty: 0, tz: cz, R: Math.max(L, W) / 2 + 0.15 };
-  else p = { az: 0.62, el: 0.3, tx: 0, ty: 0.05, tz: -0.55, R: 3.5 };
+  else p = { az: 0.62, el: 0.3, tx: 0, ty: 0.0, tz: cz, R: Math.max(L, W) / 2 + 1.0 };
   cam.goal = { az: cam.az + wrapPi(p.az - cam.az), el: p.el, dist: fitDist(p.R), tx: p.tx, ty: p.ty, tz: p.tz };
   invalidate();
 }
@@ -4043,9 +4356,9 @@ function panBy(dx, dy) {
   const h = stage.clientHeight || 1;
   const k = 2 * cam.dist * Math.tan(camera.fov * Math.PI / 360) / h;
   const e = camera.matrixWorld.elements;
-  cam.tx = clamp(cam.tx - (e[0] * dx - e[4] * dy) * k, -3, 3);
-  cam.ty = clamp(cam.ty - (e[1] * dx - e[5] * dy) * k, -1.2, 2.5);
-  cam.tz = clamp(cam.tz - (e[2] * dx - e[6] * dy) * k, -5, 4);
+  cam.tx = clamp(cam.tx - (e[0] * dx - e[4] * dy) * k, -6, 6);
+  cam.ty = clamp(cam.ty - (e[1] * dx - e[5] * dy) * k, -1.2, 3);
+  cam.tz = clamp(cam.tz - (e[2] * dx - e[6] * dy) * k, -8, 7);
   invalidate();
 }
 
@@ -4109,7 +4422,7 @@ function endPointer(e) {
     else if (downInfo && !downInfo.moved) {
       if (!downInfo.hit) selectItem(null);
       else if (downInfo.hit.door && typeof toggleDoors === 'function') toggleDoors();
-      else if (downInfo.hit.itemId !== undefined) { const it = getItem(downInfo.hit.itemId); if (it && ITEMS[it.key].kind === 'awning') toggleAwning(it); }
+      else if (downInfo.hit.itemId !== undefined) { const it = getItem(downInfo.hit.itemId); if (it && isOpenable(ITEMS[it.key])) toggleAwning(it); }
     }
     mode = null; drag = null; pinch = null; downInfo = null;
   } else if (pts.size === 1) {
@@ -4144,11 +4457,11 @@ function initInput() {
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     if (downInfo && !downInfo.moved && Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y) > 4) downInfo.moved = true;
-    if (mode === 'orbit') { cam.az -= dx * 0.0065; cam.el = clamp(cam.el + dy * 0.0055, 0.03, 1.55); invalidate(); }
+    if (mode === 'orbit') { cam.az -= dx * 0.0042; cam.el = clamp(cam.el + dy * 0.0036, 0.02, 1.55); invalidate(); }
     else if (mode === 'pan') panBy(dx, dy);
     else if (mode === 'pinch' && pts.size === 2) {
       const s = pinchState();
-      if (s.d > 0 && pinch.d > 0) cam.dist = clamp(cam.dist * pinch.d / s.d, 1.0, 12);
+      if (s.d > 0 && pinch.d > 0) cam.dist = clamp(cam.dist * pinch.d / s.d, 0.45, 14);
       panBy(s.mx - pinch.mx, s.my - pinch.my);
       pinch = s;
     } else if (mode === 'item' && downInfo && downInfo.moved) moveDrag(e);
@@ -4158,13 +4471,13 @@ function initInput() {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', e => {
     e.preventDefault(); cam.goal = null;
-    cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.0012), 1.0, 12); invalidate();
+    cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.0007), 0.45, 14); invalidate();
   }, { passive: false });
 }
 
 /* ---------- Resize and render loop ---------- */
 function resize() {
-  if (!renderer) return;
+  if (!renderer || rendering) return;
   const r = stage.getBoundingClientRect();
   const w = Math.max(1, Math.floor(r.width)), h = Math.max(1, Math.floor(r.height));
   renderer.setSize(w, h, false);
@@ -4175,10 +4488,11 @@ let lastT = 0;
 function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016); lastT = t;
+  if (walkStep(dt)) needRender = true;
   if (rebuildFlag) { rebuildFlag = false; doRebuild(); }
   if (cam.goal) {
     const g = cam.goal; let far = 0;
-    ['az', 'el', 'dist', 'tx', 'ty', 'tz'].forEach(k => { const dv = g[k] - cam[k]; cam[k] += dv * Math.min(1, dt * 7); far = Math.max(far, Math.abs(dv)); });
+    ['az', 'el', 'dist', 'tx', 'ty', 'tz'].forEach(k => { const dv = g[k] - cam[k]; cam[k] += dv * Math.min(1, dt * 4.2); far = Math.max(far, Math.abs(dv)); });
     if (far < 0.002) { Object.assign(cam, g); cam.goal = null; }
     needRender = true;
   }
@@ -4197,7 +4511,7 @@ function frame(t) {
     go.userData.openK = tg ? Math.min(1, k) : Math.max(0, k);
     a.apply(go.userData.openK, go.userData.drop || 1); needRender = true;
   });
-  if (needRender) { needRender = false; if (!bp.on) { applyCam(); renderer.render(scene, camera); } }
+  if (needRender) { needRender = false; if (!bp.on && !rendering) { applyCam(); renderer.render(scene, camera); } }
 }
 /* ---------- Wiring in 3D: twin-core cables stuck to the canopy walls, floor and roof, terminals on the gear, draggable bend points ---------- */
 const wireUI = { tool: null, draft: null, sel: null, hp: -1, surf: 'in' };
@@ -4541,7 +4855,8 @@ function panelTray() {
     field('Wheel guards', picker('tray.guards', Object.keys(GUARDS).map(k => [k, GUARDS[k].name, GUARDS[k].sub, '']))) +
     (!FEATURES.vehicles && (T.boxes !== 'none' || T.guards !== 'none') ? '<p class="note">Boxes and guards are cut round the wheel arch. Set where your rear wheel sits and how big the arch is.</p>' + rng('tray.archAt', 'Wheel centre from the front', 200, Math.max(300, T.len - 200), 5) + rng('tray.archR', 'Arch radius', 330, 560, 5) : '') + '</div>' +
     '<div class="sec"><h3>Spare wheels</h3>' +
-    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', deck: 'Two standing on the deck', carrier: 'Swing-away carrier behind the tray', under: 'Hung under the tray' })[k], '']))) +
+    field('Under the tray', picker('tray.spare', ['none', 'under'].map(k => [k, SPARE[k].name, ({ none: 'No spare under the tray', under: 'Hung under the tray, behind the wheels' })[k], '']))) +
+    '<p class="note">Spares on the canopy door, the deck, the roof or a rack are placed exactly where you want them in the Fit-out step, under Spare wheels.</p>' +
     (spareNote ? '<p class="note">' + spareNote + '</p>' : '') +
     (!FEATURES.vehicles && T.spare !== 'none' ? field('Tyre', picker('tray.tyre', Object.keys(TYRES).map(k => [k, TYRES[k].name, TYRES[k].sub, '']))) + field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) + '<p class="note">' + tyreSpec(T).label + ' tyre, ' + tyreSpec(T).R * 2 + ' mm tall.</p>' : '') + '</div>' +
     nextRow(null, 1);
@@ -4604,7 +4919,7 @@ function panelCanopy() {
     field('Rear', seg('canopy.rear', [['solid', 'Solid'], ['hatch', 'Hatch'], ['barn', 'Barn'], ['drop', 'Drop-down']])) +
     tog('canopy.windows', 'Glass in the doors') + '</div>' +
     '<div class="sec"><h3>Floor</h3>' + floorPanel() + '</div>' +
-    '<div class="sec"><h3>Extras</h3>' + tog('canopy.jack', 'Jack-off brackets on the sides, so it can stand on legs off the ute') + '<p class="note">Awnings are in the Fit-out gear library.</p></div>' +
+    '<div class="sec"><h3>Extras</h3>' + tog('canopy.jack', 'Jack-off brackets on the sides, so it can stand on legs off the ute') + (state.canopy.jack ? field('Lift from', seg('canopy.jackHole', [['lower', 'Lower hole'], ['upper', 'Upper hole 200 mm higher']])) : '') + '<p class="note">Awnings are in the Fit-out gear library.</p></div>' +
     '<div class="sec"><h3>Roof rack</h3>' + rackPicker() + '</div>' +
     nextRow(0, 2);
   return h;
@@ -4614,6 +4929,28 @@ function needCanopy(title, why) {
   const noTray = state.tray.design === 'none';
   return '<h2 class="ttl">' + title + '</h2><p class="lead">' + why + '</p><div class="sec"><div class="empty">' + (noTray ? 'No tray or canopy fitted yet.' : 'No canopy fitted yet.') + '</div>' +
     '<div class="btn-row"><button class="btn pri" data-act="step" data-i="' + (noTray ? 0 : 1) + '">' + (noTray ? 'Choose a tray' : 'Choose a canopy') + '</button></div></div>' + nextRow(state.step === 2 ? 1 : 2, state.step === 2 ? 3 : 4);
+}
+/* colour choice for the selected item: its factory colour, the other factory colourways, and (while free colour is on) any colour for each part */
+/* a spec sheet for the selected part, like the card a part gets in a PC building game */
+function specCard() {
+  const it = getItem(state.sel);
+  if (!it) return '';
+  const d = ITEMS[it.key], L = layout().get(it.id), kv = (a, b) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>', w = avgW(d), ah = batteryAh(d), pw = panelW(d);
+  const mount = d.mount === 'roof' ? 'Roof' : d.mount === 'rear' ? 'Back of the canopy' : 'Inside the canopy or on the deck';
+  return '<div class="sec"><h3>' + esc(itemName(d)) + '</h3><table class="tbl">' + kv('Part number', skuOf(d)) + kv('Size', d.L + ' × ' + d.W + ' × ' + d.H + ' mm') + kv('Weight', d.kg + ' kg') + kv('Goes', mount) +
+    (ah ? kv('Capacity', ah + ' Ah') : '') + (pw ? kv('Output', pw + ' W') : '') + (d.amps ? kv('Charge rate', d.amps + ' A') : '') + (d.watts ? kv('Inverter', d.watts + ' W') : '') + (w ? kv('Average draw', w + ' W') : '') +
+    kv('Price', money(priceOf(d)) + (d.est ? ' est.' : '')) + (isOpenable(d) ? kv('Opens', 'tap it in 3D, or Open on the bar') : '') + '</table>' +
+    (L.issues.length ? '<p class="note" style="color:var(--bad)">Does not fit as placed: ' + esc(L.issues[0]) + '.</p>' : '<p class="note" style="color:var(--ok)">Fits where it is.</p>') + '</div>';
+}
+function colourCard() {
+  const it = getItem(state.sel);
+  if (!it) return '';
+  const d = ITEMS[it.key], sl = itemSlots(d), pal = itemPalette(d);
+  if (!sl.length) return '';
+  const cur = it.cw || 0, dot = (c, on, attr, title) => '<button type="button" class="sw' + (on ? ' on' : '') + '" style="background:' + c + '" ' + attr + ' title="' + esc(title) + '" aria-label="' + esc(title) + '"></button>';
+  const factory = [dot(d.col, cur === 0, 'data-icol="0"', 'Factory colour')].concat(pal.map((p, i) => dot(p[1][sl[0][0]] || p[1].col, cur === i + 1, 'data-icol="' + (i + 1) + '"', p[0]))).join('');
+  const custom = FEATURES.freeColour ? sl.map(([k, nm], i) => '<div class="ctl"><div class="lab">' + nm + ' (any colour)</div><label class="sw cust" title="Pick any colour for the ' + nm.toLowerCase() + '"><input type="color" data-icolc="' + (i + 1) + '" value="' + ((i ? it.c2 : it.c1) || (itemColourOverride(it) && itemColourOverride(it)[k]) || d[k] || d.col) + '"></label></div>').join('') : '';
+  return '<div class="sec"><h3>Colour: ' + esc(itemName(d)) + '</h3><div class="sws">' + factory + '</div><p class="note">' + (cur === 0 ? 'Factory colour' : pal[cur - 1][0]) + (FEATURES.freeColour ? '. Custom colours are on for now; with the real brands only factory colours will be offered.' : '. Factory colours only.') + '</p>' + custom + '</div>';
 }
 function panelFit() {
   if (geo().none) return needCanopy('Fit-out', 'Gear goes inside the canopy, so fit one first.');
@@ -4635,7 +4972,7 @@ function panelFit() {
     '<div class="sec"><h3>Gear library</h3><div class="cats">' + cats + '</div><div class="list">' + cat_ + '</div>' +
     '<p class="note">Sizes are the real product dimensions. Items marked est. are close estimates still to be checked against a spec sheet.</p></div>' +
     (tentsOnRoof().length ? '<div class="sec"><h3>' + (rackHost() ? 'Roof rack on the tent' : 'Roof rack under the tent') + '</h3>' + rackPicker() + '</div>' : '') +
-    '<div class="sec"><h3>In your rig (' + state.items.length + ')</h3><div class="list">' + (rig || '<div class="empty">Nothing added yet. Tap + on a piece of gear.</div>') + '</div></div>' +
+    '<div class="sec"><h3>In your rig (' + state.items.length + ')</h3><div class="list">' + (rig || '<div class="empty">Nothing added yet. Tap + on a piece of gear.</div>') + '</div></div>' + specCard() + colourCard() +
     nextRow(1, 3);
 }
 function panelWiring() {
@@ -4665,6 +5002,24 @@ function panelWiring() {
   h += '<p class="note">Cable sizes allow for about 3% volt drop and the fuse rating. Lengths include 10% slack, and the vehicle feed includes the run back to the start battery. This is a guide only, so have an auto electrician check the install.</p>';
   return h + nextRow(2, 4);
 }
+const money = v => '$' + Math.round(v).toLocaleString('en-AU');
+function costSection() {
+  const c = buildCost();
+  if (!c.rows.length) return '';
+  return '<div class="sec"><h3>Estimated cost</h3><table class="tbl">' + c.rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + money(r[1]) + '</td></tr>').join('') + '<tr class="tot"><td>About</td><td>' + money(c.total) + '</td></tr></table><p class="note">Retail estimates in AUD, not quotes. Real prices come with the real brands.</p></div>';
+}
+function powerSection() {
+  const p = powerBudget();
+  if (!p.ah && !p.load && !p.solarW) return '';
+  const fmt = v => v === Infinity ? 'indefinitely' : (v >= 2 ? v.toFixed(1) + ' days' : Math.max(1, Math.round(v * 24)) + ' hours');
+  return '<div class="sec"><h3>Power</h3><table class="tbl"><tr><td>Battery</td><td>' + p.ah + ' Ah · ' + p.wh + ' Wh usable</td></tr><tr><td>Fridges, lights and standby</td><td>' + p.load + ' W · ' + p.dayWh + ' Wh a day</td></tr>' +
+    '<tr><td>Solar on a good day</td><td>' + p.solarW + ' W · ' + p.solarWh + ' Wh</td></tr><tr><td>Driving an hour</td><td>about ' + p.driveAh + ' Ah back in</td></tr></table>' +
+    '<p class="note">' + (!p.ah ? 'Add a battery to see how long it runs.' : p.net >= 0 ? 'The sun covers the daily use, so it runs ' + fmt(p.days) + '.' : 'Without driving, the battery runs about ' + fmt(p.days) + ', then needs charge.') + ' Estimates for a mild day.</p></div>';
+}
+function guideSection() {
+  const g = buildGuide();
+  return g.length > 2 ? '<div class="sec"><h3>Build order</h3><ol class="guide">' + g.map(t => '<li>' + esc(t) + '</li>').join('') + '</ol></div>' : '';
+}
 function panelLoad() {
   const L = loadCheck(), lay = layout(), w = weights(), T = state.tray, V = VEHICLES[T.veh];
   const issues = L.issues.slice();
@@ -4688,6 +5043,7 @@ function panelLoad() {
     '<p class="note">Centre of the added load: ' + Math.abs(L.cx) + ' mm ' + (L.cx >= 0 ? 'right' : 'left') + ' of centre, about ' + L.cy + ' mm above the deck. Roof load ' + L.roof + ' kg. Axle limits are estimates; check yours.</p></div>' : '<div class="sec"><h3>Balance</h3><p class="note">Centre of the added load: ' + Math.abs(L.cx) + ' mm ' + (L.cx >= 0 ? 'right' : 'left') + ' of centre, about ' + L.cy + ' mm above the deck. Roof load ' + L.roof + ' kg.</p></div>') +
     '<div class="sec"><h3>Checks</h3>' + (issues.length ? '<div class="list">' + issues.map(([k, m]) => '<div class="row ' + k + '" style="grid-template-columns:minmax(0,1fr)"><div class="nm">' + esc(m) + '</div></div>').join('') + '</div>' : '<p class="note" style="color:var(--ok);font-weight:600">Everything fits and the axles are happy.</p>') +
     '<p class="note">Highest point: ' + roofTop() + ' mm above the tray deck.</p></div>' +
+    costSection() + powerSection() + guideSection() +
     '<div class="sec"><h3>Parts list</h3>' + parts.map(S => '<div class="plh">' + esc(S.h) + '</div><table class="tbl parts">' + S.rows.map(r => '<tr><td>' + (r[2] > 1 ? '<b>' + r[2] + ' ×</b> ' : '') + esc(r[0]) + (r[1] ? '<div class="dm">' + esc(r[1]) + '</div>' : '') + '</td><td>' + (r[3] !== '' ? r[3] + ' kg' : '') + '</td></tr>').join('') + '</table>').join('') +
     '<div class="btn-row"><button class="btn pri" data-act="copyparts">Copy list</button></div><div class="msg" id="partsmsg"></div></div>' +
     '<div class="sec"><h3>Save and share</h3><p class="note">Your build saves in this browser. Copy the code to keep it or send it to a mate, and paste a code here to load one.</p>' +
@@ -5167,7 +5523,7 @@ function bpVals(it) {
 function bpExtraBtns(it) {
   if (!it) return '';
   const d = ITEMS[it.key];
-  if (d.kind === 'awning') return '<button type="button" class="mini' + (it.open ? ' on' : '') + '" data-act="awn" aria-pressed="' + !!it.open + '">' + (it.open ? 'Close' : 'Open') + '</button>';
+  if (isOpenable(d)) return '<button type="button" class="mini' + (it.open ? ' on' : '') + '" data-act="awn" aria-pressed="' + !!it.open + '">' + (it.open ? 'Close' : 'Open') + '</button>';
   if (d.mount === 'roof') return '';
   return '<button type="button" class="mini" data-act="tip" data-ax="x">Tip</button><button type="button" class="mini" data-act="tip" data-ax="z">Roll</button>';
 }
@@ -5389,7 +5745,7 @@ function updateSelbar() {
   if (selbarEl.dataset.sid !== it.id + ':' + it.key) {
     selbarEl.dataset.sid = it.id + ':' + it.key;
     selbarEl.innerHTML = '<div><div class="nm"></div><div class="dm"></div></div>' +
-      '<div class="acts"><button class="mini" data-act="rot" aria-label="Spin 90 degrees" title="Spin (turn flat on the floor)">⟳<span class="t"> Spin</span></button>' + (ITEMS[it.key].mount === 'roof' ? '' : '<button class="mini" data-act="tip" data-ax="x" aria-label="Tip 90 degrees front to back" title="Tip forward onto its face or back">⤵<span class="t"> Tip</span></button><button class="mini" data-act="tip" data-ax="z" aria-label="Roll 90 degrees onto its side" title="Roll onto its side, e.g. to mount it on a wall">⤸<span class="t"> Roll</span></button>') + (ITEMS[it.key].kind === 'awning' ? '<button class="mini aw" data-act="awn" aria-label="Open or close the awning">☂<span class="t"> Open</span></button>' : '') +
+      '<div class="acts"><button class="mini" data-act="rot" aria-label="Spin 90 degrees" title="Spin (turn flat on the floor)">⟳<span class="t"> Spin</span></button>' + (ITEMS[it.key].mount === 'roof' ? '' : '<button class="mini" data-act="tip" data-ax="x" aria-label="Tip 90 degrees front to back" title="Tip forward onto its face or back">⤵<span class="t"> Tip</span></button><button class="mini" data-act="tip" data-ax="z" aria-label="Roll 90 degrees onto its side" title="Roll onto its side, e.g. to mount it on a wall">⤸<span class="t"> Roll</span></button>') + (isOpenable(ITEMS[it.key]) ? '<button class="mini aw" data-act="awn" aria-label="Open or close it">' + (ITEMS[it.key].kind === 'tent' ? '⛺' : '☂') + '<span class="t"> Open</span></button>' : '') +
         '<button class="mini" data-act="dup" aria-label="Copy">⧉<span class="t"> Copy</span></button><button class="mini danger" data-act="del" aria-label="Remove">✕<span class="t"> Remove</span></button></div>' +
       '<div class="grpl"><span>Move</span><div class="nudge"><button class="mini" data-act="nudge" data-dx="-10" data-dz="0" aria-label="Nudge left">◀</button><button class="mini" data-act="nudge" data-dx="0" data-dz="-10" aria-label="Nudge forward">▲</button>' +
       '<button class="mini" data-act="nudge" data-dx="0" data-dz="10" aria-label="Nudge back">▼</button><button class="mini" data-act="nudge" data-dx="10" data-dz="0" aria-label="Nudge right">▶</button></div></div>' +
@@ -5536,7 +5892,8 @@ function dupSel() {
   addGear(it.key);
   const n = getItem(state.sel);
   /* the copy keeps the original's orientation when it still finds a clear spot that way */
-  if (n && n !== it && !isUpright(it)) { n.rot = it.rot; n.rx = it.rx; n.rz = it.rz; clampToArea(n); afterItemEdit(); }
+  if (n && n !== it) { n.cw = it.cw || 0; n.c1 = it.c1 || ''; n.c2 = it.c2 || ''; }
+  if (n && n !== it && !isUpright(it)) { n.rot = it.rot; n.rx = it.rx; n.rz = it.rz; clampToArea(n); afterItemEdit(); } else if (n && n !== it) afterItemEdit();
 }
 function carBtnSync() { const b = $('#carBtn'); if (b) { b.disabled = state.canopy.shape === 'none'; b.title = b.disabled ? 'Fit a canopy first: it needs to stand on its own' : ''; b.textContent = FEATURES.vehicles ? (state.carOff ? 'Show ute' : 'Hide ute') : (state.carOff ? 'Back on the tray' : 'Stand canopy alone'); b.setAttribute('aria-pressed', state.carOff ? 'true' : 'false'); b.classList.toggle('on', state.carOff); } }
 function goStep(i) {
@@ -5567,6 +5924,10 @@ function seedSample() {
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
+  const rq = e.target.closest('[data-rq]');
+  if (rq) { renderQ = rq.dataset.rq; document.querySelectorAll('[data-rq]').forEach(b => b.classList.toggle('on', b.dataset.rq === renderQ)); return; }
+  const ic = e.target.closest('[data-icol]');
+  if (ic) { const it = getItem(state.sel); if (it) { it.cw = +ic.dataset.icol; it.c1 = ''; it.c2 = ''; syncItems(); scheduleSave(); renderPanel(); } return; }
   const el = e.target.closest('[data-act],[data-set],[data-tog],[data-add],[data-sel],[data-rm],[data-cat]');
   if (!el) return;
   const ds = el.dataset;
@@ -5598,7 +5959,7 @@ document.addEventListener('click', e => {
     case 'lift': if (e.detail === 0) liftSel(+ds.dy); break; /* pointer presses are handled on pointerdown so they can repeat */
     case 'rot': rotateSel(); break;
     case 'tip': tipSel(ds.ax); break;
-    case 'awn': { const it = getItem(state.sel); if (it && ITEMS[it.key].kind === 'awning') { toggleAwning(it); bpDirty(); if (typeof bpInspBuild === 'function') bpInspBuild(); } break; }
+    case 'awn': { const it = getItem(state.sel); if (it && isOpenable(ITEMS[it.key])) { toggleAwning(it); bpDirty(); if (typeof bpInspBuild === 'function') bpInspBuild(); } break; }
     case 'rack': {
       if (ds.k !== 'none' && !RACKS[ds.k]) break;
       if (rackBlock(ds.k)) break;
@@ -5627,6 +5988,11 @@ document.addEventListener('click', e => {
       break;
     }
     case 'trayPreset': applyTrayPreset(ds.k); break;
+    case 'render': case 'ropen': openRender(); break;
+    case 'rstart': startRender(); break;
+    case 'rclose': closeRender(); break;
+    case 'rsave': saveRender(); break;
+    case 'rshare': shareRender(); break;
     case 'photo': setPhoto(ds.off ? false : !state.photo); break;
     case 'savephoto': savePhoto(); break;
     case 'sharephoto': sharePhoto(); break;
@@ -5649,7 +6015,7 @@ document.addEventListener('click', e => {
       break;
   }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.photo) setPhoto(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#renderOv').hidden) closeRender(); else if (state.photo) setPhoto(false); } });
 document.addEventListener('pointerdown', e => {
   /* on a phone the view menu folds away as soon as the 3D view or plan is touched */
   const tb = $('#tbar');
@@ -5662,6 +6028,7 @@ window.addEventListener('blur', stopLift);
 document.addEventListener('input', e => {
   const el = e.target;
   if (el.dataset && el.dataset.col && /^#[0-9a-fA-F]{6}$/.test(el.value)) { applyChange(el.dataset.col, el.value.toLowerCase()); return; } /* live while the colour picker is open */
+  if (el.dataset && el.dataset.icolc && /^#[0-9a-fA-F]{6}$/.test(el.value)) { const it = getItem(state.sel); if (it) { if (el.dataset.icolc === '1') it.c1 = el.value.toLowerCase(); else it.c2 = el.value.toLowerCase(); syncItems(); scheduleSave(); } return; }
   const path = el.dataset && el.dataset.rng;
   if (!path) return;
   applyChange(path, Number(el.value));
@@ -5685,6 +6052,22 @@ document.addEventListener('change', e => {
     clampState(); updateHud(); scheduleSave(); renderPanel();
   }
 });
+/* move about the build: W A S D slide along the ground, Q and E go down and up, hold Shift to hurry. The pointer still orbits, pans and zooms. */
+const walkKeys = new Set(); let walkShift = false;
+window.addEventListener('keydown', e => { walkShift = e.shiftKey; const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if ('wasdqe'.indexOf(k) >= 0 && k.length === 1) { walkKeys.add(k); cam.goal = null; } });
+window.addEventListener('keyup', e => { walkShift = e.shiftKey; walkKeys.delete(e.key.toLowerCase()); });
+window.addEventListener('blur', () => walkKeys.clear());
+function walkStep(dt) {
+  if (!walkKeys.size) return false;
+  const sp = (walkShift ? 3 : 1) * 1.3 * dt * Math.max(0.5, Math.min(1.6, cam.dist / 2.5));
+  const fx = -Math.sin(cam.az), fz = -Math.cos(cam.az), rx = Math.cos(cam.az), rz = -Math.sin(cam.az);
+  let mx = 0, mz = 0, my = 0;
+  if (walkKeys.has('w')) { mx += fx; mz += fz; } if (walkKeys.has('s')) { mx -= fx; mz -= fz; }
+  if (walkKeys.has('d')) { mx += rx; mz += rz; } if (walkKeys.has('a')) { mx -= rx; mz -= rz; }
+  if (walkKeys.has('e')) my += 1; if (walkKeys.has('q')) my -= 1;
+  cam.tx = clamp(cam.tx + mx * sp, -6, 6); cam.tz = clamp(cam.tz + mz * sp, -8, 7); cam.ty = clamp(cam.ty + my * sp * 0.7, -1.2, 3);
+  return true;
+}
 window.addEventListener('keydown', e => {
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
