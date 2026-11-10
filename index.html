@@ -567,14 +567,14 @@ const DY_MAX = 1200;
 const TRAYS = {
   none:     { name: 'No tray', sub: 'Bare chassis, as it leaves the factory' },
   tub:      { name: 'Factory tub', sub: 'The original pressed-steel tub for this ute, with its own arches, tailgate and tail lamps', mat: 'steel', finish: 'smooth', colour: 'black', side: 480 },
-  factory:  { name: 'Factory alloy', sub: 'Alloy tray with fixed sides and a drop tailgate', mat: 'alu', finish: 'smooth', colour: 'raw', side: 240 },
+  factory:  { name: 'Factory alloy', sub: 'Extruded alloy planks, drop sides and tailgate, black corner caps and latches, tube headboard', mat: 'alu', finish: 'smooth', colour: 'raw', side: 270 },
   dropside: { name: 'Drop-side', sub: 'Steel tray with hinged drop sides on three sides', mat: 'steel', finish: 'smooth', colour: 'black', side: 380 },
   rail:     { name: 'Rail-side', sub: 'Open tube rails around the deck', mat: 'alu', finish: 'smooth', colour: 'raw', side: 330 },
   flat:     { name: 'Flat deck', sub: 'Plain deck with no sides', mat: 'steel', finish: 'smooth', colour: 'black', side: 0 }
 };
 /* Tail light shapes. The lens colour (red, smoked, clear) is a separate choice. */
 const LIGHT_STYLES = {
-  factory: { name: 'Factory cluster', sub: 'Stacked three-lens pod, as it came' },
+  factory: { name: 'Factory lamp unit', sub: 'Red lamp with amber reflector, in a bracket under the corner' },
   round3:  { name: '3 round LEDs', sub: 'Three 95 mm round lamps in a row, the classic tray light' },
   round2:  { name: '2 round LEDs', sub: 'Two 95 mm round lamps side by side' },
   oval:    { name: 'Oval LED', sub: 'Oval stop, tail and indicator, black housing' },
@@ -1921,18 +1921,31 @@ function buildTray() {
       g.add(rbox(2 * tw, 0.026, 0.05, 0.01, edge, 0, hh - 0.005, z));
       g.add(rbox(Math.min(0.9, tw * 1.2), Math.max(0.02, Math.min(0.06, hh * 0.18)), 0.008, 0.004, edge, 0, hh * 0.45, z + 0.022));
     } else {
-      const hw = W / 2 - 0.03, tw = ins > 0 ? hw - ins : hw, th = 0.05;
-      const path = ins > 0 ? [[hw, 0.03], [hw, bnd], [tw, hh - 0.025]] : [[hw, 0.03], [hw, hh - 0.025]];
-      [-1, 1].forEach(s => { for (let i = 0; i + 1 < path.length; i++) g.add(barXY(s * path[i][0], path[i][1], s * path[i + 1][0], path[i + 1][1], th, 0.05, edge, z)); });
-      g.add(rbox(2 * tw, th, 0.05, 0.012, edge, 0, hh - 0.025, z));
+      /* a tube-frame headboard like the factory alloy trays: one continuous round tube up both sides and across the top, a wire mesh panel inset in its own frame,
+         a flat divider post, two rods standing up from the top, and a low alloy front wall behind it when the tray is bare */
+      const hw = W / 2 - 0.03, tw = ins > 0 ? hw - ins : hw, tr = 0.026, white = T.colour === 'raw' ? std('#e9eaea', 0.4, 0.25) : edge;
+      const Pn = ins > 0 ? [[hw, 0.02], [hw, bnd], [tw, hh - tr]] : [[hw, 0.02], [hw, hh - tr]];
+      const full = Pn.map(([x, y]) => [-x, y]).concat(Pn.slice().reverse());
+      g.add(tube(filletPath(full.map(([x, y]) => [x * 1000, y * 1000, 0]), 90).map(p => [p[0] * MM, p[1] * MM, z]), tr, white, LOD.hq ? 14 : 8));
+      [-1, 1].forEach(sd => g.add(cyl(tr * 1.1, 0.03, white, sd * hw, 0.015, z, 'y', 12)));
       const wAt = y => y <= bnd || ins <= 0 ? hw : Math.max(tw, hw - ins * (y - bnd) / Math.max(0.01, hh - bnd));
-      const nR = Math.max(2, Math.round(hh / 0.25));
-      for (let i = 0; i < nR; i++) { const y = 0.03 + i * (hh - 0.055) / nR; g.add(rbox(2 * wAt(y), th, 0.05, 0.012, edge, 0, y, z)); }
-      const nV = Math.max(2, Math.round((W - 0.1) / 0.24));
-      for (let i = 1; i < nV; i++) {
-        const x = -W / 2 + 0.03 + i * (W - 0.06) / nV, ax = Math.abs(x);
-        const top = ax <= tw ? hh - 0.05 : Math.max(0.1, bnd + (hw - ax) * (hh - bnd) / Math.max(0.01, ins));
-        g.add(rbox(0.03, top - 0.055, 0.03, 0.008, edge, x, 0.055 + (top - 0.055) / 2, z));
+      const y0 = Math.min(0.3, hh * 0.38), y1 = hh - 0.09, inX = y => wAt(y) - 0.085;
+      if (y1 - y0 > 0.12) {
+        const fr = [[-inX(y0), y0], [inX(y0), y0], [inX(y1), y1], [-inX(y1), y1]];
+        g.add(tube(filletPath(fr.map(([x, y]) => [x * 1000, y * 1000, 0]).concat([[fr[0][0] * 1000, fr[0][1] * 1000, 0]]), 40).map(p => [p[0] * MM, p[1] * MM, z]), 0.011, white, 8));
+        const Wm = new Merge(), nR = Math.max(3, Math.round((y1 - y0) / 0.07)), nC = Math.max(6, Math.round(2 * inX(y0) / 0.12));
+        for (let i = 1; i < nR; i++) { const y = y0 + (y1 - y0) * i / nR; Wm.box(0, y, z, 2 * inX(y), 0.006, 0.006, 0); }
+        for (let i = 1; i < nC; i++) { const f = i / nC, xb = -inX(y0) + 2 * inX(y0) * f, xt = -inX(y1) + 2 * inX(y1) * f; Wm.box((xb + xt) / 2, (y0 + y1) / 2, z, 0.006, y1 - y0, 0.006, 0); }
+        g.add(Wm.mesh(std('#b9bdc1', 0.4, 0.6)));
+      }
+      g.add(rbox(0.06, hh - 0.09, 0.026, 0.012, white, tw * 0.42, 0.045 + (hh - 0.09) / 2, z));
+      [-1, 1].forEach(sd => g.add(cyl(0.011, 0.3, white, sd * tw * 0.8, hh + 0.12, z, 'y', 10)));
+      if (G.none) {
+        const shF = des.side * MM || 0.27, zf = -L / 2 + 0.075, zinc2 = std('#9aa0a6', 0.4, 0.6);
+        g.add(rbox(W - 0.06, shF, 0.035, 0.01, edge, 0, shF / 2, zf));
+        g.add(rbox(W - 0.06, 0.046, 0.05, 0.02, edge, 0, shF - 0.004, zf));
+        const Rf = new Merge(); for (let k = 0; k < 5; k++) Rf.box(0, 0.03 + k * (shF - 0.08) / 4, zf + 0.019, W - 0.2, 0.011, 0.005, 0);
+        g.add(Rf.mesh(edge));
       }
     }
   }
@@ -1942,20 +1955,37 @@ function buildTray() {
   if (zl > 0.12 && sh > 0) {
     const nRibs = Math.max(1, Math.round(zl / 0.45));
     if (T.design === 'factory') {
-      /* fixed alloy sides with a rolled top rail, pressed ribs, tie-down loops, and a drop-down tailgate with latches and hinges */
-      const R = new Merge();
+      /* the factory alloy tray: drop-down sides and tailgate made from extruded alloy planks (parallel ribs along the length), a rolled top rail, black cast corner caps,
+         black latch and hinge plates, a round tube rail under each side on brackets, and big black mud flaps */
+      const blk = std('#16181a', 0.55, 0.3), Rb = new Merge(), Hk = new Merge();
+      const ribsAlong = (xc, sgn, len, zc) => { const n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Rb.box(xc + sgn * 0.0012, 0.035 + k * (sh - 0.085) / n, zc, 0.006, 0.01, len, 0); };
       [-1, 1].forEach(s => {
-        g.add(rbox(0.028, sh, zl, 0.008, edge, s * (W / 2 - 0.014), sh / 2, zm));
-        g.add(rbox(0.055, 0.042, zl, 0.017, edge, s * (W / 2 - 0.0275), sh - 0.004, zm));
-        for (let i = 0; i < nRibs; i++) R.box(s * (W / 2 + 0.002), sh * 0.5, zA + (i + 0.5) * zl / nRibs, 0.008, sh * 0.6, 0.07);
-        [0.22, 0.78].forEach(f => g.add(rbox(0.012, 0.03, 0.06, 0.005, zinc, s * (W / 2 - 0.036), sh - 0.052, zA + zl * f)));
-        g.add(rbox(0.055, 0.075, 0.04, 0.012, steelDk, s * (W / 2 - 0.03), sh - 0.03, zB - 0.02));
-        g.add(cyl(0.012, 0.07, zinc, s * (W / 2 - 0.1), 0.012, zB + 0.002, 'x', 10));
+        const xo = s * (W / 2 - 0.016);
+        g.add(rbox(0.032, sh - 0.04, zl - 0.07, 0.01, edge, xo, (sh - 0.04) / 2, zm));
+        g.add(rbox(0.064, 0.05, zl - 0.02, 0.024, edge, s * (W / 2 - 0.032), sh - 0.012, zm));                       /* rolled top rail */
+        ribsAlong(s * (W / 2), s, zl - 0.14, zm); ribsAlong(s * (W / 2 - 0.032), -s, zl - 0.14, zm);
+        [0.27, 0.73].forEach(f => { const z = zA + zl * f;                                                            /* drop-side latch: black plate, pivot, lever */
+          g.add(rbox(0.016, 0.1, 0.075, 0.012, blk, s * (W / 2 + 0.006), sh * 0.42, z)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 + 0.018), sh * 0.42 + 0.025, z, 'x', 10));
+          g.add(rbox(0.012, 0.06, 0.022, 0.008, blk, s * (W / 2 + 0.022), sh * 0.42 - 0.02, z)); });
+        [zA + 0.03, zB - 0.03].forEach((z, i) => {                                                                    /* black cast corner caps, wrapped round the corner */
+          g.add(rbox(0.07, sh + 0.045, 0.058, 0.014, blk, s * (W / 2 - 0.028), (sh + 0.045) / 2 - 0.01, z)); g.add(rbox(0.032, sh + 0.045, 0.085, 0.012, blk, s * (W / 2 - 0.006), (sh + 0.045) / 2 - 0.01, z + (i ? -0.014 : 0.014)));
+          Hk.box(s * (W / 2 + 0.01), sh - 0.1, z + (i ? 0.03 : -0.03), 0.01, 0.07, 0.012, 0); });
+        /* tube rail under the side on two brackets */
+        const rz0 = zA + Math.min(0.35, zl * 0.2), rz1 = zB - Math.min(0.35, zl * 0.2);
+        if (rz1 > rz0 + 0.2) { g.add(cyl(0.014, rz1 - rz0, zinc, s * (W / 2 + 0.05), -0.12, (rz0 + rz1) / 2, 'z', 12));
+          [rz0 + 0.08, rz1 - 0.08].forEach(z => { g.add(rbox(0.1, 0.034, 0.045, 0.01, blk, s * (W / 2 + 0.01), -0.12, z)); g.add(rbox(0.05, 0.034, 0.045, 0.01, steelDk, s * (W / 2 - 0.045), -0.095, z)); }); }
+        /* mud flap hanging off the side, tilted out a little */
+        if (!FEATURES.vehicles) { const zf = zA + zl * 0.38, fl = new THREE.Group();
+          fl.add(rbox(0.012, 0.52, 0.26, 0.005, blk, 0, -0.27, 0)); fl.add(rbox(0.016, 0.05, 0.28, 0.006, steelDk, 0, 0.0, 0)); [-0.08, 0.08].forEach(dz => fl.add(cyl(0.006, 0.02, zinc, 0.01, -0.03, dz, 'x', 6)));
+          fl.position.set(s * (W / 2 + 0.06), -0.05, zf); fl.rotation.z = -s * 0.1; g.add(fl); }
       });
-      g.add(R.mesh(edge));
-      g.add(rbox(W - 0.062, sh - 0.018, 0.034, 0.01, edge, 0, sh / 2 + 0.005, zB - 0.017));
-      g.add(rbox(W * 0.62, sh * 0.5, 0.008, 0.005, edge, 0, sh * 0.5, zB + 0.002));
-      g.add(rbox(0.2, 0.042, 0.012, 0.01, steelDk, 0, sh - 0.045, zB + 0.004));
+      g.add(Rb.mesh(edge)); g.add(Hk.mesh(blk));
+      /* tailgate: planks between the corner caps, latches at both ends, a handle recess */
+      g.add(rbox(W - 0.18, sh - 0.025, 0.034, 0.01, edge, 0, sh / 2 - 0.005, zB - 0.017));
+      { const Tg = new Merge(), n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Tg.box(0, 0.035 + k * (sh - 0.085) / n, zB + 0.0012, W - 0.22, 0.01, 0.006, 0); g.add(Tg.mesh(edge)); }
+      g.add(rbox(W - 0.16, 0.05, 0.05, 0.02, edge, 0, sh - 0.012, zB - 0.022));
+      [-1, 1].forEach(s => { g.add(rbox(0.075, 0.1, 0.016, 0.012, blk, s * (W / 2 - 0.12), sh * 0.45, zB + 0.008)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 - 0.12), sh * 0.45 + 0.03, zB + 0.02, 'z', 10)); });
+      g.add(rbox(0.2, 0.042, 0.012, 0.01, steelDk, 0, sh - 0.05, zB + 0.004));
     } else if (T.design === 'dropside') {
       /* three hinged steel drop sides with pressed bodylines, top lip, corner posts, latches and hinge pins */
       const Rb = new Merge();
@@ -2066,7 +2096,14 @@ function buildTray() {
     const dots = (x, y, zz, nx, ny, pt, sz) => { for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) D.box(x + (i - (nx - 1) / 2) * pt, y + (j - (ny - 1) / 2) * pt, zz, sz, sz, 0.004, 0); };
     const rnd = (x, y, rr, mt) => { g.add(cyl(rr + 0.008, 0.012, ring, x, y, z + 0.016, 'z', 28)); g.add(cyl(rr, 0.018, mt, x, y, z + 0.02, 'z', 28)); dots(x, y, z + 0.03, 3, 3, rr * 0.55, 0.011); g.add(cyl(rr * 0.3, 0.006, dark, x, y, z + 0.031, 'z', 12)); };
     const styles = {
-      factory: s => { const x = s * (W / 2 - 0.09), y = -0.18; g.add(rbox(0.1, 0.26, 0.045, 0.015, dark, x, y, z)); [[0.085, cb], [0, ca], [-0.085, cr]].forEach(([dy, mt]) => g.add(rbox(0.075, 0.07, 0.03, 0.012, mt, x, y + dy, z + 0.018))); },
+      factory: s => {                                   /* a lamp unit in a silver bracket under the rear corner: red lens with slots, amber reflector, red side marker */
+        const x = s * (W / 2 - 0.1), y = -0.14, br = std('#aeb3b8', 0.35, 0.7);
+        g.add(rbox(0.2, 0.13, 0.04, 0.012, br, x, y, z - 0.004)); g.add(rbox(0.185, 0.095, 0.03, 0.01, dark, x, y - 0.005, z + 0.01));
+        g.add(rbox(0.085, 0.078, 0.026, 0.01, cb, x - s * 0.04, y - 0.005, z + 0.02));
+        [-0.022, 0, 0.022].forEach(dy => g.add(rbox(0.07, 0.007, 0.01, 0.002, dots2, x - s * 0.04, y - 0.005 + dy, z + 0.035)));
+        g.add(rbox(0.06, 0.078, 0.022, 0.008, ca, x + s * 0.052, y - 0.005, z + 0.018));
+        g.add(rbox(0.045, 0.022, 0.026, 0.008, cb, s * (W / 2 - 0.035), -0.052, z + 0.004));
+      },
       /* three 95 mm round LEDs in a row: indicator on the outside, stop/tail in the middle, reverse nearest the plate */
       round3: s => { const y = -0.13, x0 = s * (W / 2 - 0.1); g.add(rbox(0.34, 0.1, 0.034, 0.016, dark, x0 - s * 0.1, y, z - 0.004));
         [[0, ca], [-0.1, cb], [-0.2, cr]].forEach(([dx, mt]) => rnd(x0 + s * dx, y, 0.038, mt)); },
