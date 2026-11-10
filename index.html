@@ -522,7 +522,7 @@ const VEHICLES = {
   colorado: {
     name: 'Colorodo RC', sub: '2008–2012 mid-size, the old Aussie-built-feel diesel', real: 'Holden RC Colorado (2008–2012)', look: 'colorado', wheels: 'spoke6', tyreLabel: '255/65R17',
     cabs: ['single', 'extra', 'dual'], wb: 3096, track: 1570, bodyW: 1882, deckH: 985, tyreR: 382, tyreW: 255, faOff: 320,
-    cabL: { single: 1520, extra: 1900, dual: 2260 }, bonnetL: 1050, bumpL: 100,
+    cabL: { single: 1520, extra: 1900, dual: 2260 }, bonnetL: 1120, bumpL: 100,
     presets: [['Dual cab', 'dual', 1740, 1800], ['Dual cab (alloy)', 'dual', 1800, 1790], ['Extra cab', 'extra', 2120, 1800], ['Single cab', 'single', 2480, 1800]]
   }
 };
@@ -1778,11 +1778,17 @@ function buildTub(g, T) {
   if (K.lamp === 'hilux') { g.add(rbox(0.26, 0.055, 0.014, 0.012, blk, 0, gy1 - 0.075, zr + 0.003)); g.add(rbox(0.2, 0.014, 0.018, 0.006, chrome, 0, gy1 - 0.062, zr + 0.01)); }
   else if (K.lamp === 'ranger') { g.add(rbox(0.34, 0.05, 0.016, 0.014, blk, 0, gy1 - 0.065, zr + 0.003)); g.add(rbox(0.3, 0.026, 0.02, 0.012, chrome, 0, gy1 - 0.065, zr + 0.01)); }
   else if (K.lamp === 'lc79') [-1, 1].forEach(s => { g.add(rbox(0.07, 0.13, 0.016, 0.01, blk, s * (gw / 2 - 0.1), gy1 - 0.1, zr + 0.003)); g.add(rbox(0.04, 0.09, 0.022, 0.01, zinc, s * (gw / 2 - 0.1), gy1 - 0.1, zr + 0.012)); });
-  else { g.add(rbox(0.22, 0.06, 0.016, 0.014, blk, 0, gy1 - 0.07, zr + 0.003)); g.add(rbox(0.17, 0.034, 0.022, 0.014, chrome, 0, gy1 - 0.07, zr + 0.01)); g.add(cyl(0.012, 0.016, zinc, 0.14, gy1 - 0.07, zr + 0.012, 'z', 10)); }
+  else {
+    g.add(rbox(0.21, 0.085, 0.018, 0.02, chrome, 0.0, gy1 - 0.085, zr + 0.004)); g.add(rbox(0.18, 0.058, 0.024, 0.016, blk, 0, gy1 - 0.085, zr + 0.006)); g.add(rbox(0.15, 0.022, 0.03, 0.01, chrome, 0, gy1 - 0.075, zr + 0.012));
+    g.add(cyl(0.011, 0.016, zinc, 0.075, gy1 - 0.1, zr + 0.016, 'z', 10));
+    g.add(rbox(gw * 0.93, 0.02, 0.012, 0.006, paint, 0, gy0 + gh * 0.17, zr + 0.003));                                   /* pressed line along the lower tailgate */
+  }
   [-1, 1].forEach(s => { g.add(rbox(0.05, 0.07, 0.07, 0.012, blk, s * (gw / 2), gy0 + 0.05, zr - 0.012)); g.add(rbox(0.014, gh * 0.55, 0.014, 0.005, blk, s * (gw / 2 + 0.01), gm + gh * 0.1, zr - 0.052)); });
   /* step bumper and plate */
   const by = yFl - 0.22;
-  g.add(rbox(W - 0.36, 0.17, 0.12, 0.04, K.lamp === 'rc' ? chrome : K.lamp === 'ranger' || K.lamp === 'lc79' ? blk : paint, 0, by, zr + 0.04));
+  g.add(rbox(W - 0.36, 0.17, 0.12, 0.04, K.lamp === 'rc' || K.lamp === 'ranger' || K.lamp === 'lc79' ? blk : paint, 0, by, zr + 0.04));
+  if (K.lamp === 'rc') [-1, 1].forEach(sd => { g.add(rbox(0.3, 0.14, 0.15, 0.05, chrome, sd * (W / 2 - 0.3), by + 0.005, zr + 0.055)); g.add(rbox(0.08, 0.1, 0.02, 0.01, blk, sd * 0.36, by, zr + 0.103)); });
+  if (K.lamp === 'rc') [-1, 1].forEach(sd => g.add(rbox(0.27, 0.33, 0.012, 0.004, std('#0d0e10', 0.92, 0), sd * V.track * MM / 2, yBot - 0.07, zA + Ra - 0.01)));   /* big black mud flaps behind the rear wheels */
   g.add(rbox(W - 0.5, 0.014, 0.12, 0.005, blk, 0, by + 0.088, zr + 0.04));
   if (hq) { const Pd = new Merge(); for (let x = -(W - 0.56) / 2; x < (W - 0.56) / 2; x += 0.03) Pd.box(x, by + 0.097, zr + 0.04, 0.012, 0.004, 0.1, 0); g.add(Pd.mesh(dkM)); }
   const plate = (y, z) => { g.add(rbox(0.38, 0.14, 0.015, 0.006, std('#f1efe6', 0.6, 0), 0, y, z)); g.add(rbox(0.38, 0.03, 0.017, 0.006, std('#2a4d8c', 0.6, 0), 0, y + 0.055, z)); };
@@ -1809,10 +1815,12 @@ function buildTub(g, T) {
         g.add(rbox(0.125, 0.36, 0.04, 0.016, hs, x, yy, zl));
         [[0.115, ca, 0.09], [0.005, cb, 0.13], [-0.1, cr, 0.09]].forEach(([dy, mt, h]) => { g.add(rbox(0.105, h + 0.014, 0.034, 0.01, chrome, x, yy + dy, zl + 0.014)); g.add(rbox(0.092, h, 0.03, 0.01, mt, x, yy + dy, zl + 0.022)); });
         led(x, yy + 0.005, 0.07, 0.1, 3);
-      } else {                              /* rc: tall cluster, chrome bar through the red, amber and reverse under */
-        g.add(rbox(0.135, 0.4, 0.042, 0.02, hs, x, y0, zl));
-        g.add(rbox(0.11, 0.2, 0.03, 0.014, cb, x, y0 + 0.08, zl + 0.018)); g.add(rbox(0.112, 0.016, 0.034, 0.005, chrome, x, y0 + 0.08, zl + 0.03)); led(x, y0 + 0.14, 0.08, 0.07, 3); led(x, y0 + 0.02, 0.08, 0.07, 3);
-        g.add(rbox(0.11, 0.08, 0.03, 0.014, ca, x, y0 - 0.06, zl + 0.018)); g.add(rbox(0.11, 0.07, 0.03, 0.014, cr, x, y0 - 0.14, zl + 0.018));
+      } else {                              /* rc: dark red housing, a round red lens above, a ribbed clear reverse lens, a round amber lens below */
+        const hr = std('#4a0f15', 0.45, 0.2);
+        g.add(rbox(0.115, 0.37, 0.04, 0.026, hr, x, y0 - 0.01, zl));
+        g.add(cyl(0.047, 0.026, cb, x, y0 + 0.095, zl + 0.022, 'z', 24)); g.add(cyl(0.054, 0.012, chrome, x, y0 + 0.095, zl + 0.012, 'z', 24)); led(x, y0 + 0.095, 0.05, 0.06, 4);
+        g.add(rbox(0.088, 0.045, 0.028, 0.008, cr, x, y0 + 0.015, zl + 0.02)); led(x, y0 + 0.015, 0.075, 0.034, 4);
+        g.add(cyl(0.043, 0.026, ca, x, y0 - 0.075, zl + 0.022, 'z', 24)); g.add(cyl(0.05, 0.012, chrome, x, y0 - 0.075, zl + 0.012, 'z', 24));
         g.add(rbox(0.016, 0.3, 0.07, 0.008, cb, s * (W / 2 + 0.003), y0 + 0.04, zr - 0.05));
       }
     });
@@ -2537,14 +2545,15 @@ const VSPEC = {
 
 /* Colorodo RC: the 2008-2012 mid-size. Tall nose with a slim two-bar grille, big wedge headlamps, a wide lower intake with round fog lamps, grey flares. */
 VSPEC.colorado = Object.assign({}, VSPEC.hilux, {
-  sill: 405, chin: 430, hw: 912, archGap: 58, archN: 2.8, flareCol: 'grey',
-  flare: [[-15, -8], [26, 0], [40, 24], [36, 66], [-15, 82]],
-  front: VSPEC.hilux.front.map(r => r.map((v, i) => i === 1 ? v + 12 : v)),
-  face: { cx: 450, back: 0.19, bumpTop: 780, bumpFwd: 0.07, roundY: 990, roundK: 1.15 },
-  cab: { ym: 880, beltF: 1190, beltR: 1225 },
-  gh: { k: 0.28, r: 76, wsTopU: 1030, roofF: 1745, peak: 1782, roofR: 1770, backTop: 1730, header: 46, ap: 85, crown: 12 },
-  handle: 'chrome', hstyle: 'rc', step: [105, 'dark'], crease: { hF: 1030, hR: 1085, inB: 12, inA: 8 },
-  mirror: { u: 150, w: 0.1, h: 0.16, d: 0.25, out: 0.17, up: 0.1, ind: true, cap: true },
+  /* measured off photographs of the 2008-2012 RC: tall flat-faced nose, big swollen flares, high louvred bonnet plateau, steeply raked screen */
+  sill: 400, chin: 400, hw: 880, archGap: 60, archN: 2.7, flareCol: 'paint',
+  flare: [[-15, -10], [30, 0], [58, 22], [60, 72], [-15, 94]],
+  front: [[-800, 842, 760, 960, 820, 790, 745, 975, 1000], [-500, 866, 800, 1000, 850, 820, 775, 1010, 1040], [0, 876, 840, 1040, 868, 840, 795, 1050, 1085], [320, 876, 850, 1055, 868, 840, 795, 1065, 1100]],
+  face: { cx: 440, back: 0.2, bumpTop: 800, bumpFwd: 0.05, roundY: 975, roundK: 0.8 },
+  cab: { ym: 860, beltF: 1185, beltR: 1215 },
+  gh: { k: 0.27, r: 80, wsTopU: 1060, roofF: 1760, peak: 1790, roofR: 1780, backTop: 1745, header: 50, ap: 88, crown: 12 },
+  handle: 'black', hstyle: 'rc', step: [100, 'dark'], crease: { hF: 1020, hR: 1080, inB: 16, inA: 8 },
+  mirror: { u: 150, w: 0.11, h: 0.17, d: 0.2, out: 0.18, up: 0.1, ind: true, cap: true, capChrome: true },
   faceFn: 'colorado'
 });
 
@@ -2698,12 +2707,23 @@ function buildVehicle() {
     } else if (HS === 'lc79') {      /* chunky chrome flap handle on a base plate with a square lock */
       add(0.012, 0.07, 0.22, 0.008, chromeM, 0.0, 0); add(0.034, 0.044, 0.175, 0.01, chromeM, 0.016, 0.004); add(0.036, 0.02, 0.12, 0.004, M.mesh, 0.018, -0.006);
       add(0.024, 0.046, 0.04, 0.006, M.black, 0.01, 0, -0.095);
-    } else {                         /* rc: wide chrome paddle in a big scooped pocket, finger groove below, lock barrel on the front doors */
-      add(0.02, 0.1, 0.27, 0.014, M.mesh, -0.006, 0); add(0.032, 0.056, 0.21, 0.02, chromeM, 0.012, 0.01); add(0.034, 0.012, 0.19, 0.005, M.black, 0.013, -0.02);
-      add(0.012, 0.008, 0.27, 0.004, chromeM, 0.004, -0.05);
-      if (hi === 0 && sd === -1) { const k = g.add(cyl(0.011, 0.014, M.black, X + sd * 0.018, y + 0.006, z - 0.1, 'x', 12)); }
+    } else {                         /* rc: black D-shaped pull in a dark pocket, a finger recess underneath; the driver's front door has a small lock */
+      add(0.02, 0.078, 0.25, 0.014, M.mesh, -0.005, 0); add(0.032, 0.042, 0.2, 0.021, M.black, 0.011, 0.006); add(0.012, 0.03, 0.03, 0.01, M.black, 0.011, 0.006, 0.105); add(0.012, 0.03, 0.03, 0.01, M.black, 0.011, 0.006, -0.105);
+      add(0.03, 0.01, 0.18, 0.004, M.trim, 0.012, -0.026);
+      if (hi === 0 && sd === -1) g.add(cyl(0.009, 0.012, M.chrome, X + sd * 0.018, y + 0.008, z - 0.12, 'x', 12));
     }
   }); });
+
+  /* roof rails and two cross bars (colorado, as on the photographed RC) */
+  if (V.look === 'colorado') {
+    const rail = std('#16181a', 0.5, 0.35), u0 = G.wsTopU + 90, u1 = ub - 110;
+    [-1, 1].forEach(sd => {
+      const P = []; for (let u = u0; u <= u1; u += 70) P.push([sd * (cxAt(u) - 18) * MM, Y(ghTop(u) + 24), Z(u)]);
+      g.add(tube(P, 0.013, rail, hq ? 8 : 5));
+      [u0, (u0 + u1) / 2, u1].forEach(u => g.add(rbox(0.03, 0.03, 0.07, 0.008, rail, sd * (cxAt(u) - 18) * MM, Y(ghTop(u) + 12), Z(u))));
+    });
+    [u0 + 280, u1 - 260].forEach(u => { const x = (cxAt(u) - 18) * MM, y = Y(ghTop(u) + 62); g.add(tube([[-x, y, Z(u)], [x, y, Z(u)]], 0.016, rail, hq ? 8 : 5)); [-1, 1].forEach(sd => g.add(rbox(0.04, 0.045, 0.05, 0.01, rail, sd * x, y - 0.025, Z(u)))); });
+  }
 
   /* ---- wheel arches: liner inside, flare outside, both swept round the arch ---- */
   const xsArch = stAt(fa)[0] * MM - 0.012, yc = Y(R);
@@ -2765,7 +2785,7 @@ function buildVehicle() {
     const sec = (cx, cy, z0, w, h, k) => Array.from({ length: hq ? 20 : 10 }, (_, i) => { const a = i / (hq ? 20 : 10) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); return [cx + w / 2 * k * Math.sign(c) * Math.pow(Math.abs(c), 0.35), cy + h / 2 * k * Math.sign(sn) * Math.pow(Math.abs(sn), 0.35), z0]; });
     [-1, 1].forEach(s => {
       const xh = s * (xb + m.out), cy = yb + m.up, z0 = z + 0.02 - m.d / 2;
-      g.add(loft([0, 0.25, 0.6, 0.85, 1].map((f, i) => sec(xh, cy, z0 + f * m.d, m.w, m.h, [0.55, 0.9, 1, 1, 0.97][i])), m.cap && m.capCol !== 'black' ? M.paint : M.black));
+      g.add(loft([0, 0.25, 0.6, 0.85, 1].map((f, i) => sec(xh, cy, z0 + f * m.d, m.w, m.h, [0.55, 0.9, 1, 1, 0.97][i])), m.capChrome ? M.chrome : m.cap && m.capCol !== 'black' ? M.paint : M.black));
       if (m.cap) { g.add(rbox(m.w * 0.9, 0.012, m.d * 0.7, 0.006, M.black, xh, cy - m.h * 0.46, z0 + m.d * 0.55)); }
       g.add(flat([sec(xh, cy, z0 + m.d + 0.002, m.w * 0.8, m.h * 0.85, 1), sec(xh, cy, z0 + m.d - 0.01, m.w * 0.8, m.h * 0.85, 1)], M.glass));
       if (m.ind) g.add(rbox(0.014, 0.022, m.d * 0.55, 0.008, M.amber, xh + s * m.w * 0.47, cy - m.h * 0.18, z - 0.01));
@@ -3025,36 +3045,51 @@ function faceRanger(C) {
   C.bonnet = () => { bonnetRib(C, 330, 0.17, 0.03, C.zN + 0.5, C.zCab - 0.05, C.M.paint, 0.35, true); bonnetRib(C, 0, 0.28, 0.012, C.zN + 0.2, C.zN + 0.6, C.M.paint, 0.9, false); };
 }
 
-/* Colorodo RC (Colorado 2008-12): split face, slim upper grille with a chrome bar, big swept twin-eye headlamps, wide intake with chrome edging and round fogs, a raised centre bonnet. */
+/* Colorodo RC (Colorado 2008-12), copied from photographs: a chrome-framed grille wide at the top and tapering to a shallow V, a thick chrome bar through it, black mesh above and below;
+   two round lamps in a smoked housing (big outboard, small inboard) with a tall amber indicator on the outer edge; a wide square-mesh lower grille carrying the plate; round fogs in black pods;
+   grey lower wings; a raised louvred plateau on the bonnet. */
 function faceColorado(C) {
-  const { fp, frame, grid, circle, M } = C, lens = clearLens(), led = ledMat();
-  const gr = [[-440, 1016], [440, 1016], [492, 984], [492, 934], [-492, 934], [-492, 984]];
-  fp(gr, M.black, 0.01);
-  slatsIn(C, C.scaleP(gr, 0.96), [1000, 982, 964, 946], 9, M.meshHi, 0.022, 14);
-  frame(gr, 18, M.chrome, 0.03);
-  fp(rectP(-500, 500, 905, 936), M.chrome, 0.034);                                            /* the broad chrome cross bar between the lamps */
-  fp(rectP(-500, 500, 912, 918), M.silver, 0.037);
-  fp([[-440, 1020], [440, 1020], [440, 1028], [-440, 1028]], M.chrome, 0.028);
-  /* headlamp: tall swept boomerang with two big round eyes */
-  const hl = [[505, 1062], [868, 1072], [925, 1022], [918, 952], [872, 902], [640, 898], [505, 934]];
-  fp(hl, M.black, 0.02, true);
-  fp(C.scaleP(hl, 0.93), M.silver, 0.024, true);
-  roundLamp(C, 628, 985, 46, { bezel: M.chrome, lens: M.lamp, core: M.black, refl: M.chrome }, 0.026, true);
-  roundLamp(C, 770, 995, 46, { bezel: M.chrome, lens: M.lamp, core: M.black, refl: M.chrome }, 0.026, true);
-  fp([[820, 938], [908, 958], [904, 926], [818, 912]], M.amber, 0.03, true);                  /* indicator on the lower outer corner */
-  fp([[520, 1050], [860, 1062], [866, 1054], [524, 1042]], M.chrome, 0.034, true);            /* brow */
-  fp(hl, lens, 0.042, true);
-  /* bumper: wide chrome-edged intake, round fogs, silver skid */
-  const intake = [[-600, 760], [600, 760], [650, 612], [-650, 612]];
-  fp(intake, M.black, 0.012);
-  grid(C.scaleP(intake, 0.92), 28, 28, 18, 24, 0.02, M.meshHi, false);                        /* vertical fins */
-  frame(intake, 18, M.chrome, 0.026);
-  fp(rectP(-480, 480, 786, 802), M.chrome, 0.026);
-  [-1, 1].forEach(sd => { fp(circle(sd * 748, 668, 56), M.black, 0.016); roundLamp(C, sd * 748, 668, 40, { bezel: M.chrome, lens: M.lamp, core: M.black }, 0.022); });
-  fp([[-520, 568], [520, 568], [470, 498], [-470, 498]], M.silver, 0.028);
-  [-1, 1].forEach(sd => fp(rectP(sd * 330 - 16, sd * 330 + 16, 470, 540), redTow(), 0.03));
-  fp([[-185, 740], [185, 740], [185, 652], [-185, 652]], M.plate, 0.03);
-  C.bonnet = () => { bonnetRib(C, 0, 0.5, 0.03, C.zN + 0.35, C.zCab - 0.15, C.M.paint, 0.7, false); bonnetRib(C, 260, 0.05, 0.012, C.zN + 0.3, C.zCab - 0.1, C.M.paint, 0.4, true); };
+  const { fp, frame, grid, circle, M } = C, lens = clearLens(), hq = LOD.hq;
+  const smoke = std('#2a2c30', 0.35, 0.3), smoke2 = std('#41454b', 0.3, 0.55), wing = std('#8d9298', 0.5, 0.35);
+  const gr = [[-462, 952], [462, 952], [470, 930], [452, 880], [392, 826], [0, 804], [-392, 826], [-452, 880], [-470, 930]];
+  fp(gr, M.black, 0.012);
+  slatsIn(C, C.scaleP(gr, 0.93), [930, 913, 896], 8, M.meshHi, 0.026, 14);
+  slatsIn(C, C.scaleP(gr, 0.93), [836, 824, 812], 7, M.meshHi, 0.026, 18);
+  if (hq) for (let x = -380; x <= 380; x += 52) { fp(rectP(x - 2.5, x + 2.5, 906, 934), M.meshHi, 0.027); fp(rectP(x - 2.5, x + 2.5, 808, 842), M.meshHi, 0.027); }
+  frame(gr, 27, M.chrome, 0.034);
+  fp([[-452, 884], [452, 884], [448, 848], [-448, 848]], M.chrome, 0.04);                    /* the thick chrome bar */
+  fp(rectP(-440, 440, 870, 876), M.silver, 0.043);
+  fp(rectP(-470, 470, 952, 962), M.chrome, 0.03);
+  /* headlamps */
+  const hl = [[515, 955], [700, 962], [845, 960], [862, 930], [852, 800], [700, 792], [518, 790]];
+  fp(hl, smoke, 0.02, true);
+  fp(C.scaleP(hl, 0.95), smoke2, 0.024, true);
+  roundLamp(C, 708, 880, 80, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
+  roundLamp(C, 590, 858, 50, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
+  fp([[806, 952], [862, 946], [862, 822], [812, 816]], M.amber, 0.034, true);               /* tall amber indicator on the outer edge */
+  fp(hl, lens, 0.044, true);
+  /* lower grille with the plate, grey wings, round fogs in black pods */
+  const lg = [[-463, 676], [463, 676], [463, 584], [-463, 584]];
+  fp(lg, M.black, 0.014);
+  grid(C.scaleP(lg, 0.95), 40, 18, 34, 8, 0.02, M.meshHi, false);
+  frame(lg, 12, M.grey, 0.024);
+  [-1, 1].forEach(sd => {
+    fp([[sd * 545, 612], [sd * 817, 616], [sd * 800, 515], [sd * 545, 508]], wing, 0.02);
+    fp(circle(sd * 729, 612, 92, 24), M.black, 0.026);
+    roundLamp(C, sd * 729, 612, 56, { bezel: M.chrome, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.03);
+    fp(rectP(sd * 330 - 16, sd * 330 + 16, 440, 520), std('#c8321f', 0.5, 0.2), 0.03);
+  });
+  fp([[-540, 506], [540, 506], [500, 430], [-500, 430]], M.black, 0.018);
+  fp([[-440, 470], [440, 470], [400, 420], [-400, 420]], M.silver, 0.03);
+  fp([[-185, 668], [185, 668], [185, 582], [-185, 582]], M.plate, 0.036);
+  /* bonnet: a raised plateau with a louvred intake across its front edge, and a crease down each side */
+  C.bonnet = () => {
+    const { g, Y } = C, z0 = C.zN + 0.5, z1 = C.zN + 1.0, h0 = bonnetH(C, z0, 0);
+    bonnetRib(C, 0, 0.74, 0.042, z0, z1, M.paint, 0.0, false);
+    g.add(rbox(0.62, 0.034, 0.03, 0.008, M.black, 0, Y(h0) + 0.026, z0 - 0.004));
+    [-0.009, 0.0, 0.009].forEach(dy => g.add(rbox(0.6, 0.004, 0.034, 0.002, M.meshHi, 0, Y(h0) + 0.028 + dy, z0 - 0.006)));
+    bonnetRib(C, 410, 0.034, 0.012, C.zN + 0.12, C.zN + 0.55, M.paint, 0.2, true);
+  };
 }
 
 /* Cruiser 79: flat upright front, big rectangular lamps with round projectors, three bold silver bars, steel bumper with fogs, bonnet scoop, snorkel. */
