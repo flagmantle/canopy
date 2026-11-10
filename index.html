@@ -1731,6 +1731,14 @@ function panelPoly(pts, depth, mat, z) {
 /* ---------- Factory tub: the pressed-steel body that comes on the ute, modelled per vehicle. Full-height outer side panels run from the sill to the rim with the
    wheel arch cut into the bottom edge and a flare round it, wheel boxes stand up inside, a drop-down tailgate sits between two rear pillars that carry the
    factory tail lamps, and there is a step bumper with the plate. The fuel door is on the left, just behind the cab. ---------- */
+/* an extruded side profile with a rounded edge all the way round (bv = bevel in metres) */
+function prismR(pts, width, mat, bv) {
+  const sh = new THREE.Shape();
+  pts.forEach((p, i) => { if (i) sh.lineTo(p[0], p[1]); else sh.moveTo(p[0], p[1]); });
+  const gm = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.004, width - 2 * bv), bevelEnabled: true, bevelThickness: bv, bevelSize: bv, bevelSegments: LOD.hq ? 4 : 2, curveSegments: 1, steps: 1 });
+  gm.translate(0, 0, -(width - 2 * bv) / 2); gm.rotateY(-Math.PI / 2);
+  return shadowed(new THREE.Mesh(gm, mat));
+}
 function buildTub(g, T) {
   const VG = vehGeo(), V = VG.V, S = VSPEC[V.look] || VSPEC.hilux, K = V.tub, hq = LOD.hq;
   const W = T.wid * MM, L = T.len * MM, zf = -L / 2, zr = L / 2;
@@ -1750,9 +1758,15 @@ function buildTub(g, T) {
   pts.push([zr, yBot], [zr, yTop], [zf, yTop]);
   [-1, 1].forEach(s => {
     const sx = s * (W / 2 - 0.015);
-    const pn = prism(pts, 0.03, paint); pn.position.x = sx; g.add(pn);
-    if (up.length > 1) g.add(tube(up.map(p => [s * (W / 2 + 0.002), p[1], p[0]]), 0.021, flareM, hq ? 10 : 6));       /* flare round the arch */
-    g.add(rbox(0.07, 0.05, L - 0.02, 0.02, paint, s * (W / 2 - 0.032), yTop, 0));                                        /* rolled rim */
+    const rp = roundPoly(pts.map(p => [p[0] * 1000, p[1] * 1000]), 80, 22).map(p => [p[0] / 1000, p[1] / 1000]);
+    const pn = prismR(rp, 0.034, paint, 0.011); pn.position.x = sx; g.add(pn);                                           /* soft top and bottom corners, rounded edges */
+    if (up.length > 1) {                       /* a swollen flare swept round the arch, the same way the cab's flares are built */
+      const prof = K.lamp === 'hilux' ? [[-12, -8], [22, 0], [36, 26], [32, 66], [-12, 74]] : K.lamp === 'lc79' ? [[-12, -8], [32, 0], [46, 28], [46, 84], [-12, 100]] : [[-15, -10], [30, 0], [58, 24], [60, 76], [-15, 98]];
+      const nrm = up.map((p, i) => { const a0 = up[Math.max(0, i - 1)], b0 = up[Math.min(up.length - 1, i + 1)]; let nz = b0[1] - a0[1], ny = -(b0[0] - a0[0]); const l = Math.hypot(nz, ny) || 1; nz /= l; ny /= l; if (nz * (p[0] - zA) + ny * (p[1] - yA) < 0) { nz = -nz; ny = -ny; } return [nz, ny]; });
+      g.add(loft(up.map((p, i) => prof.map(([a1, b1]) => [s * (W / 2 - 0.004 + a1 * MM), p[1] + nrm[i][1] * b1 * MM, p[0] + nrm[i][0] * b1 * MM])), flareM, true));
+    }
+    g.add(rbox(0.07, 0.054, L - 0.02, 0.027, paint, s * (W / 2 - 0.034), yTop, 0));                                       /* fully rounded rim */
+
     g.add(rbox(0.014, yTop - yFl, L - 0.1, 0.004, paint, s * (W / 2 - 0.042), (yTop + yFl) / 2, 0));                      /* inner wall */
     /* pressed character lines down the outside */
     ({ hilux: [[0.13, 0.026, 0.009], [0.34, 0.02, 0.006]], ranger: [[0.1, 0.034, 0.013], [0.27, 0.026, 0.009]], lc79: [[0.12, 0.04, 0.006], [0.23, 0.04, 0.006], [0.34, 0.04, 0.006]], rc: [[0.12, 0.036, 0.013], [0.3, 0.03, 0.01]] })[K.lamp].forEach(([dy, h, o]) =>
@@ -1762,18 +1776,19 @@ function buildTub(g, T) {
     if (z1 > z0) { g.add(rbox(0.27, hh, z1 - z0, 0.08, paint, s * (W / 2 - 0.042 - 0.135), yFl + hh / 2, (z0 + z1) / 2)); if (hq) g.add(rbox(0.2, 0.012, z1 - z0 - 0.14, 0.005, liner, s * (W / 2 - 0.042 - 0.135), yFl + hh - 0.002, (z0 + z1) / 2)); }
     if (hq) [zf + 0.2, zr - 0.3].forEach(z => { g.add(tube([[s * (W / 2 - 0.06), yTop - 0.09, z - 0.03], [s * (W / 2 - 0.075), yTop - 0.115, z], [s * (W / 2 - 0.06), yTop - 0.14, z + 0.03]], 0.0075, zinc, 6)); }); /* tie-down loops */
     /* rear pillar carrying the lamp */
-    g.add(rbox(0.15, yTop - yBot, 0.09, 0.025, paint, s * (W / 2 - 0.08), hMid, zr - 0.045));
+    g.add(rbox(0.15, yTop - yBot, 0.09, 0.044, paint, s * (W / 2 - 0.08), hMid, zr - 0.045));
+    g.add(rbox(0.11, yTop - yBot, 0.07, 0.034, paint, s * (W / 2 - 0.06), hMid, zf + 0.035));                              /* front corner post */
   });
   /* floor with lengthwise ribs, front wall with a rolled top */
   g.add(rbox(W - 0.1, 0.025, L - 0.08, 0.006, liner, 0, yFl - 0.0125, 0));
   if (hq) { const R = new Merge(); for (let x = -W / 2 + 0.2; x < W / 2 - 0.19; x += 0.085) R.box(x, yFl + 0.004, 0, 0.032, 0.008, L - 0.3, 0); g.add(R.mesh(liner)); }
-  g.add(rbox(W - 0.09, yTop - yFl, 0.05, 0.014, paint, 0, hMid + (yFl - yBot) / 2 * 0, zf + 0.03));
-  g.add(rbox(W - 0.09, 0.045, 0.075, 0.016, paint, 0, yTop, zf + 0.03));
+  g.add(rbox(W - 0.09, yTop - yFl, 0.05, 0.024, paint, 0, (yTop + yFl) / 2, zf + 0.03));
+  g.add(rbox(W - 0.09, 0.05, 0.075, 0.025, paint, 0, yTop, zf + 0.03));
   if (hq) for (let i = -2; i <= 2; i++) g.add(rbox(0.07, (yTop - yFl) * 0.6, 0.01, 0.004, paint, i * 0.28, yFl + (yTop - yFl) * 0.38, zf + 0.06));
   g.add(rbox(W - 0.1, yFl - yBot, 0.04, 0.01, paint, 0, (yFl + yBot) / 2, zf + 0.025));                                   /* skirt under the floor at the front */
   /* tailgate between the pillars, with its handle and lock in the right style for the ute */
   const gw = W - 0.34, gy0 = yFl - 0.06, gy1 = yTop - 0.012, gh = gy1 - gy0, gm = (gy0 + gy1) / 2;
-  g.add(rbox(gw, gh, 0.045, 0.014, paint, 0, gm, zr - 0.024));
+  g.add(rbox(gw, gh, 0.045, 0.022, paint, 0, gm, zr - 0.024));
   if (hq || true) { g.add(rbox(gw * 0.86, 0.02, 0.01, 0.005, paint, 0, gy0 + gh * 0.3, zr + 0.002)); g.add(rbox(gw * 0.86, 0.02, 0.01, 0.005, paint, 0, gy0 + gh * 0.62, zr + 0.002)); }
   if (K.lamp === 'hilux') { g.add(rbox(0.26, 0.055, 0.014, 0.012, blk, 0, gy1 - 0.075, zr + 0.003)); g.add(rbox(0.2, 0.014, 0.018, 0.006, chrome, 0, gy1 - 0.062, zr + 0.01)); }
   else if (K.lamp === 'ranger') { g.add(rbox(0.34, 0.05, 0.016, 0.014, blk, 0, gy1 - 0.065, zr + 0.003)); g.add(rbox(0.3, 0.026, 0.02, 0.012, chrome, 0, gy1 - 0.065, zr + 0.01)); }
@@ -1786,7 +1801,7 @@ function buildTub(g, T) {
   [-1, 1].forEach(s => { g.add(rbox(0.05, 0.07, 0.07, 0.012, blk, s * (gw / 2), gy0 + 0.05, zr - 0.012)); g.add(rbox(0.014, gh * 0.55, 0.014, 0.005, blk, s * (gw / 2 + 0.01), gm + gh * 0.1, zr - 0.052)); });
   /* step bumper and plate */
   const by = yFl - 0.22;
-  g.add(rbox(W - 0.36, 0.17, 0.12, 0.04, K.lamp === 'rc' || K.lamp === 'ranger' || K.lamp === 'lc79' ? blk : paint, 0, by, zr + 0.04));
+  g.add(rbox(W - 0.36, 0.17, 0.12, 0.058, K.lamp === 'rc' || K.lamp === 'ranger' || K.lamp === 'lc79' ? blk : paint, 0, by, zr + 0.04));
   if (K.lamp === 'rc') [-1, 1].forEach(sd => { g.add(rbox(0.3, 0.14, 0.15, 0.05, chrome, sd * (W / 2 - 0.3), by + 0.005, zr + 0.055)); g.add(rbox(0.08, 0.1, 0.02, 0.01, blk, sd * 0.36, by, zr + 0.103)); });
   if (K.lamp === 'rc') [-1, 1].forEach(sd => g.add(rbox(0.27, 0.33, 0.012, 0.004, std('#0d0e10', 0.92, 0), sd * V.track * MM / 2, yBot - 0.07, zA + Ra - 0.01)));   /* big black mud flaps behind the rear wheels */
   g.add(rbox(W - 0.5, 0.014, 0.12, 0.005, blk, 0, by + 0.088, zr + 0.04));
@@ -2548,11 +2563,11 @@ VSPEC.colorado = Object.assign({}, VSPEC.hilux, {
   /* measured off photographs of the 2008-2012 RC: tall flat-faced nose, big swollen flares, high louvred bonnet plateau, steeply raked screen */
   sill: 400, chin: 400, hw: 880, archGap: 60, archN: 2.7, flareCol: 'paint',
   flare: [[-15, -10], [30, 0], [58, 22], [60, 72], [-15, 94]],
-  front: [[-800, 842, 760, 960, 820, 790, 745, 975, 1000], [-500, 866, 800, 1000, 850, 820, 775, 1010, 1040], [0, 876, 840, 1040, 868, 840, 795, 1050, 1085], [320, 876, 850, 1055, 868, 840, 795, 1065, 1100]],
-  face: { cx: 440, back: 0.2, bumpTop: 800, bumpFwd: 0.05, roundY: 975, roundK: 0.8 },
+  front: [[-800, 842, 790, 1050, 820, 790, 745, 1068, 1092], [-500, 866, 820, 1085, 850, 820, 775, 1098, 1122], [0, 876, 850, 1115, 868, 840, 795, 1125, 1152], [320, 876, 855, 1125, 868, 840, 795, 1135, 1168]],
+  face: { cx: 440, back: 0.2, bumpTop: 880, bumpFwd: 0.05, roundY: 1065, roundK: 0.8 },
   cab: { ym: 860, beltF: 1185, beltR: 1215 },
   gh: { k: 0.27, r: 80, wsTopU: 1060, roofF: 1760, peak: 1790, roofR: 1780, backTop: 1745, header: 50, ap: 88, crown: 12 },
-  handle: 'black', hstyle: 'rc', step: [100, 'dark'], crease: { hF: 1020, hR: 1080, inB: 16, inA: 8 },
+  handle: 'black', hstyle: 'rc', step: [100, 'dark'], crease: { hF: 1090, hR: 1110, inB: 16, inA: 8 },
   mirror: { u: 150, w: 0.11, h: 0.17, d: 0.2, out: 0.18, up: 0.1, ind: true, cap: true, capChrome: true },
   faceFn: 'colorado'
 });
@@ -3049,14 +3064,17 @@ function faceRanger(C) {
    two round lamps in a smoked housing (big outboard, small inboard) with a tall amber indicator on the outer edge; a wide square-mesh lower grille carrying the plate; round fogs in black pods;
    grey lower wings; a raised louvred plateau on the bonnet. */
 function faceColorado(C) {
-  const { fp, frame, grid, circle, M } = C, lens = clearLens(), hq = LOD.hq;
+  const { frame, grid, M } = C, lens = clearLens(), hq = LOD.hq, UP = 92, Q = p => p.map(([x, h]) => [x, h + UP]);
+  /* everything below is drawn at the heights read off the photographs, then lifted onto the raised nose */
+  const fp = (poly, mat, out, sym, back) => C.fp(Q(poly), mat, out, sym, back), circle = (cx, cy, r, n) => C.circle(cx, cy + UP, r, n);
+  const RL = { fp, circle, M };
   const smoke = std('#2a2c30', 0.35, 0.3), smoke2 = std('#41454b', 0.3, 0.55), wing = std('#8d9298', 0.5, 0.35);
   const gr = [[-462, 952], [462, 952], [470, 930], [452, 880], [392, 826], [0, 804], [-392, 826], [-452, 880], [-470, 930]];
   fp(gr, M.black, 0.012);
-  slatsIn(C, C.scaleP(gr, 0.93), [930, 913, 896], 8, M.meshHi, 0.026, 14);
-  slatsIn(C, C.scaleP(gr, 0.93), [836, 824, 812], 7, M.meshHi, 0.026, 18);
+  slatsIn({ fp }, C.scaleP(gr, 0.93), [930, 913, 896], 8, M.meshHi, 0.026, 14);
+  slatsIn({ fp }, C.scaleP(gr, 0.93), [836, 824, 812], 7, M.meshHi, 0.026, 18);
   if (hq) for (let x = -380; x <= 380; x += 52) { fp(rectP(x - 2.5, x + 2.5, 906, 934), M.meshHi, 0.027); fp(rectP(x - 2.5, x + 2.5, 808, 842), M.meshHi, 0.027); }
-  frame(gr, 27, M.chrome, 0.034);
+  frame(Q(gr), 27, M.chrome, 0.034);
   fp([[-452, 884], [452, 884], [448, 848], [-448, 848]], M.chrome, 0.04);                    /* the thick chrome bar */
   fp(rectP(-440, 440, 870, 876), M.silver, 0.043);
   fp(rectP(-470, 470, 952, 962), M.chrome, 0.03);
@@ -3064,19 +3082,19 @@ function faceColorado(C) {
   const hl = [[515, 955], [700, 962], [845, 960], [862, 930], [852, 800], [700, 792], [518, 790]];
   fp(hl, smoke, 0.02, true);
   fp(C.scaleP(hl, 0.95), smoke2, 0.024, true);
-  roundLamp(C, 708, 880, 80, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
-  roundLamp(C, 590, 858, 50, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
+  roundLamp(RL, 708, 880, 80, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
+  roundLamp(RL, 590, 858, 50, { bezel: smoke2, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.026, true);
   fp([[806, 952], [862, 946], [862, 822], [812, 816]], M.amber, 0.034, true);               /* tall amber indicator on the outer edge */
   fp(hl, lens, 0.044, true);
   /* lower grille with the plate, grey wings, round fogs in black pods */
   const lg = [[-463, 676], [463, 676], [463, 584], [-463, 584]];
   fp(lg, M.black, 0.014);
-  grid(C.scaleP(lg, 0.95), 40, 18, 34, 8, 0.02, M.meshHi, false);
-  frame(lg, 12, M.grey, 0.024);
+  grid(Q(C.scaleP(lg, 0.95)), 40, 18, 34, 8, 0.02, M.meshHi, false);
+  frame(Q(lg), 12, M.grey, 0.024);
   [-1, 1].forEach(sd => {
     fp([[sd * 545, 612], [sd * 817, 616], [sd * 800, 515], [sd * 545, 508]], wing, 0.02);
     fp(circle(sd * 729, 612, 92, 24), M.black, 0.026);
-    roundLamp(C, sd * 729, 612, 56, { bezel: M.chrome, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.03);
+    roundLamp(RL, sd * 729, 612, 56, { bezel: M.chrome, lens: M.lamp, core: M.silver, refl: M.chrome }, 0.03);
     fp(rectP(sd * 330 - 16, sd * 330 + 16, 440, 520), std('#c8321f', 0.5, 0.2), 0.03);
   });
   fp([[-540, 506], [540, 506], [500, 430], [-500, 430]], M.black, 0.018);
