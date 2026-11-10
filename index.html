@@ -561,7 +561,7 @@ function stockTray(veh, cab) {
   const p = (VEHICLES[veh] || VEHICLES[VEH_DEFAULT]).presets.find(r => r[1] === cab);
   return p ? { len: p[2], wid: p[3] } : null;
 }
-const SPARE = { none: { name: 'None', kg: 0 }, door: { name: 'Rear door', kg: 34 }, door2: { name: 'Two on the rear', kg: 68 }, carrier: { name: 'Carrier', kg: 58 }, under: { name: 'Under tray', kg: 30 } };
+const SPARE = { none: { name: 'None', kg: 0 }, door: { name: 'Rear door', kg: 34 }, door2: { name: 'Two on the rear', kg: 68 }, deck: { name: 'On the deck', kg: 72 }, carrier: { name: 'Carrier', kg: 58 }, under: { name: 'Under tray', kg: 30 } };
 const DY_MAX = 1200;
 /* Tray designs: what goes on the back of the bare chassis. mat / finish / colour are the starting look for each design, side is the height of its sides in mm. */
 const TRAYS = {
@@ -581,7 +581,9 @@ const LIGHT_STYLES = {
   slim:    { name: 'Slim stack', sub: 'Three slim horizontal LED bars, 125 series' },
   pod:     { name: 'Box pod', sub: 'Rectangular pod: stop, indicator and reverse' },
   strip:   { name: 'Full-width strip', sub: 'Long LED bar either side of the plate' },
-  bar:     { name: 'Short LED bar', sub: '360 mm bar each side with an amber end' }
+  bar:     { name: 'Short LED bar', sub: '360 mm bar each side with an amber end' },
+  ledbar:  { name: 'LED bar in a recess', sub: 'Long white LED row with a red end cap, set into the rear box' },
+  combo:   { name: 'Combination LED', sub: 'One rectangular lamp, red above, white LEDs below, amber end' }
 };
 /* old share codes used other names: map them to the nearest of the new ones */
 const LIGHT_LEGACY = { round: 'round3', halo: 'round2', square: 'pod', hbar: 'slim', vbar: 'bar', corner: 'pod' };
@@ -624,13 +626,31 @@ const BOX_STYLES = {
   swing:  { name: 'Side-opening', sub: 'Slim box with a lift-up lid', h: 300, w: 320, kg: 13 },
   deep:   { name: 'Deep full-length', sub: 'Tall box with a drop door and gas struts', h: 400, w: 380, kg: 22 },
   drawer: { name: 'Drawer pack', sub: 'Two pull-out drawers', h: 340, w: 360, kg: 26 },
-  tank:   { name: 'Water / fuel tank', sub: 'Poly tank with a fill cap', h: 320, w: 340, kg: 18 }
+  tank:   { name: 'Water / fuel tank', sub: 'Poly tank with a fill cap', h: 320, w: 340, kg: 18 },
+  arch:   { name: 'Arch-following', sub: 'The front edge curves round the wheel arch', h: 340, w: 340, kg: 20, arch: 'curve' },
+  wedge:  { name: 'Wedge', sub: 'A straight angled front edge that clears the arch', h: 340, w: 340, kg: 18, arch: 'straight' },
+  angular:{ name: 'Faceted', sub: 'Cut in flat facets round the arch, rear corner chamfered', h: 360, w: 340, kg: 21, arch: 'facet' }
 };
 const GUARDS = {
   none:   { name: 'None', sub: 'Bare tray edge' },
   rubber: { name: 'Rubber flaps', sub: 'Mud flaps behind the rear wheels', kg: 3 },
-  flares: { name: 'Alloy flares', sub: 'Checkerplate guards over the rear wheels', kg: 16 },
-  full:   { name: 'Full guards + flaps', sub: 'Flares, rock sliders and flaps', kg: 24 }
+  flares: { name: 'Alloy flares', sub: 'Smooth curved guards over the rear wheels', kg: 16 },
+  angular:{ name: 'Angular guards', sub: 'Faceted fabricated guards, folded plate', kg: 18 },
+  full:   { name: 'Angular guards + flaps', sub: 'Faceted guards with big mud flaps', kg: 21 }
+};
+/* more tray customisation */
+const HB_STYLES = { tube: 'Tube with mesh', frame: 'Square frame', panel: 'Panel and frame', hex: 'Hex mesh and bars', bars: 'Three bars' };
+const HB_COLOURS = { match: 'Match tray', black: 'Black', white: 'White', alu: 'Raw alloy' };
+const SIDE_STYLES = { ribbed: 'Extruded ribs', pressed: 'Pressed channels', plain: 'Plain', checker: 'Checkerplate' };
+const LATCHES = { black: 'Black plates', chrome: 'Chrome over-centre', none: 'Flush' };
+const REAR_STYLES = { flat: 'Flat', step: 'Rear step box', chamfer: 'Chamfered box' };
+const BOX_LOCKS = { round: 'Round lock', paddle: 'Paddle handle' };
+/* whole-tray looks: one tap sets the lot, then change anything you like */
+const TRAY_PRESETS = {
+  factory: { name: 'Factory alloy', sub: 'Ribbed alloy planks, tube headboard, flaps', set: { design: 'factory', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'match', hbStyle: 'tube', hbColour: 'match', sideStyle: 'ribbed', sideH: 270, latch: 'black', stays: false, rail: true, rearStyle: 'flat', skirt: 75, boxes: 'none', guards: 'rubber', lightStyle: 'factory', spare: 'none' } },
+  blackdeck: { name: 'Black fabricated deck', sub: 'Checkerplate, panel headboard, faceted guards, arch-following boxes, LED bar lamps', set: { design: 'flat', mat: 'steel', finish: 'checker', colour: 'black', sides: 'none', head: 'full', headShape: 'match', hbStyle: 'panel', hbColour: 'black', sideStyle: 'plain', latch: 'none', stays: false, rail: false, rearStyle: 'step', rearH: 170, skirt: 150, boxes: 'both', boxStyle: 'arch', boxLock: 'round', guards: 'angular', lightStyle: 'ledbar', spare: 'none' } },
+  pressed: { name: 'Pressed drop-side', sub: 'Steel, pressed channels, chrome latches, stays, chamfered rear box, hex headboard', set: { design: 'dropside', mat: 'steel', finish: 'smooth', colour: 'black', head: 'full', headShape: 'match', hbStyle: 'hex', hbColour: 'black', sideStyle: 'pressed', sideH: 300, latch: 'chrome', stays: true, rail: true, rearStyle: 'chamfer', rearH: 220, skirt: 75, boxes: 'both', boxStyle: 'wedge', boxLock: 'round', guards: 'angular', lightStyle: 'combo', spare: 'none' } },
+  tradie: { name: 'Silver tradie deck', sub: 'Alloy deck, rear step box, round lamps, two spares on the deck', set: { design: 'flat', mat: 'alu', finish: 'smooth', colour: 'raw', sides: 'none', head: 'full', headShape: 'match', hbStyle: 'frame', hbColour: 'alu', sideStyle: 'plain', latch: 'none', stays: false, rail: false, rearStyle: 'step', rearH: 200, skirt: 110, boxes: 'both', boxStyle: 'angular', boxLock: 'round', guards: 'flares', lightStyle: 'round3', spare: 'deck' } }
 };
 /* False floor: cross beams in the canopy's own metal, 12 mm ply on top, optional marine carpet over that. Heights in mm, weights are estimates. */
 const BEAM_HTS = [25, 40, 50], BEAM_PITCH = 350, BEAM_W = 40, PLY_KG_M3 = 650, ALU_KG_M3 = 2700;
@@ -661,9 +681,10 @@ const OPT = {
   veh: Object.keys(VEHICLES), cab: Object.keys(CABS), spare: Object.keys(SPARE),
   mat: ['steel', 'alu'], finish: ['checker', 'smooth'], head: ['none', 'half', 'full'], sides: ['none', 'drop'],
   boxes: ['none', 'left', 'right', 'both'], lights: Object.keys(LIGHTS), colour: Object.keys(COLOURS),
-  design: Object.keys(TRAYS), headShape: ['angled', 'square', 'custom'], lightStyle: Object.keys(LIGHT_STYLES), shape: ['none', 'aframe', 'square', 'custom'],
+  design: Object.keys(TRAYS), headShape: ['match', 'angled', 'square', 'custom'], lightStyle: Object.keys(LIGHT_STYLES), shape: ['none', 'aframe', 'square', 'custom'],
   style: ['gull', 'barn'], rear: ['solid', 'hatch', 'barn', 'drop'], rack: ['none'].concat(Object.keys(RACKS)), carpet: Object.keys(CARPETS), beam: BEAM_HTS, paint: Object.keys(PAINTS),
   tyre: Object.keys(TYRES), tyreSize: Object.keys(TYRE_SIZES), boxStyle: Object.keys(BOX_STYLES), guards: Object.keys(GUARDS), bodyLift: [0, 25, 50],
+  hbStyle: Object.keys(HB_STYLES), hbColour: Object.keys(HB_COLOURS), sideStyle: Object.keys(SIDE_STYLES), latch: Object.keys(LATCHES), rearStyle: Object.keys(REAR_STYLES), boxLock: Object.keys(BOX_LOCKS),
   floorMat: Object.keys(FLOOR_MATS), plyT: PLY_TS, aluT: ALU_TS, floorFin: ['checker', 'smooth']
 };
 
@@ -671,7 +692,7 @@ const OPT = {
 function defaultState() {
   return {
     step: 0, paint: 'silver',
-    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: FEATURES.vehicles ? 'none' : 'factory', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'none', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
+    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: FEATURES.vehicles ? 'none' : 'factory', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'match', hbStyle: 'tube', hbColour: 'match', sideStyle: 'ribbed', sideH: 270, latch: 'black', stays: false, rail: true, rearStyle: 'flat', rearH: 200, skirt: 75, boxH: 0, boxLock: 'round', archAt: 700, archR: 480, hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'rubber', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
     canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
     photo: false, items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
   };
@@ -686,8 +707,13 @@ function clampState() {
   if (V.cabs.indexOf(T.cab) < 0) T.cab = V.cabs.indexOf('dual') >= 0 ? 'dual' : V.cabs[0];
   if (!SPARE[T.spare]) T.spare = 'none';
   if (OPT.design.indexOf(T.design) < 0) T.design = 'none';
-  if (!FEATURES.vehicles) { T.veh = VEH_DEFAULT; T.lift = 0; T.bodyLift = 0; T.guards = 'none'; state.people = 0; if (T.design === 'tub') T.design = 'factory'; }
-  if (OPT.headShape.indexOf(T.headShape) < 0) T.headShape = 'angled';
+  if (!FEATURES.vehicles) { T.veh = VEH_DEFAULT; T.lift = 0; T.bodyLift = 0; state.people = 0; if (T.design === 'tub') T.design = 'factory'; }
+  if (OPT.headShape.indexOf(T.headShape) < 0) T.headShape = 'match';
+  [['hbStyle', 'tube'], ['hbColour', 'match'], ['sideStyle', 'ribbed'], ['latch', 'black'], ['rearStyle', 'flat'], ['boxLock', 'round']].forEach(([f, d]) => { if (OPT[f].indexOf(T[f]) < 0) T[f] = d; });
+  T.sideH = T.sideH > 0 ? Math.round(clamp(+T.sideH, 120, 600)) : 0;
+  T.rearH = Math.round(clamp(+T.rearH || 200, 100, 320)); T.skirt = Math.round(clamp(+T.skirt || 75, 75, 220)); T.boxH = T.boxH > 0 ? Math.round(clamp(+T.boxH, 150, 450)) : 0;
+  T.archR = Math.round(clamp(+T.archR || 480, 330, 560)); T.archAt = Math.round(clamp(+T.archAt || 700, 200, Math.max(300, (+T.len || 1826) - 200)));
+  T.stays = !!T.stays; T.rail = !!T.rail;
   if (OPT.lightStyle.indexOf(T.lightStyle) < 0) T.lightStyle = LIGHT_LEGACY[T.lightStyle] || 'factory';
   if (!TYRES[T.tyre]) T.tyre = 'at';
   if (!TYRE_SIZES[T.tyreSize]) T.tyreSize = 'std';
@@ -756,14 +782,29 @@ function canopyProf(C) {
 function headProfile(T) {
   T = T || state.tray;
   if (T.head === 'none') return null;
-  const base = T.head === 'full' ? 780 : 380;
-  let bend, up, inset;
-  if (T.headShape === 'custom') { bend = T.hbBend; up = T.hbTop; inset = T.hbIn; }
+  const base = T.head === 'full' ? 780 : 380, C = state.canopy;
+  let bend, up, inset, bi = 0;
+  if (T.headShape === 'match' && C && C.shape !== 'none' && T.design !== 'none') {
+    /* follow the canopy's own cross-section: straight up to its bend, then angled in at its slope, and as wide as the canopy where it is narrower than the tray */
+    const P = canopyProf(C);
+    bi = Math.max(0, Math.round((T.wid - C.wid) / 2));
+    bend = Math.min(base, P.bend); up = base - bend;
+    inset = bi + (up > 0 ? Math.round(P.inset * up / Math.max(1, P.rise)) : 0);
+  } else if (T.headShape === 'custom') { bend = T.hbBend; up = T.hbTop; inset = T.hbIn; }
   else if (T.headShape === 'square') { bend = base; up = 0; inset = 0; }
   else { bend = Math.round(base * 0.55); up = base - bend; inset = Math.round(base * 0.3); }
-  inset = Math.min(inset, Math.max(0, T.wid / 2 - 250));
-  if (up < 20) { bend += up; up = 0; inset = 0; } /* nothing above the bend to angle: it is a square board */
-  return { h: bend + up, bend, up, inset, rack: T.head === 'full' };
+  inset = Math.min(inset, Math.max(0, T.wid / 2 - 250)); bi = Math.min(bi, inset);
+  if (up < 20) { bend += up; up = 0; inset = bi; } /* nothing above the bend to angle: it is a square board */
+  return { h: bend + up, bend, up, inset, bi, rack: T.head === 'full' };
+}
+/* how tall the tray's sides are: the slider if it has been set, otherwise the design's own height */
+const hasSides = T => ['factory', 'dropside', 'rail'].indexOf((T || state.tray).design) >= 0;
+const sideHeight = T => { T = T || state.tray; const d = TRAYS[T.design]; return d && hasSides(T) ? (T.sideH > 0 ? T.sideH : d.side || 0) : 0; };
+/* where the rear wheel arch is, in metres from the deck centre: the real wheel when a ute is fitted, otherwise the position and size set on the tray */
+function archGeo(T) {
+  T = T || state.tray;
+  if (FEATURES.vehicles) { const VG = vehGeo(), TS = tyreSpec(T), V = VG.V; return { z: VG.rearAxle * MM, R: (TS.R + 70) * MM, y: (V.tyreR - V.deckH - T.lift) * MM, W: TS.W * MM, x: V.track * MM / 2 }; }
+  const R = T.archR * MM; return { z: (-T.len / 2 + T.archAt) * MM, R, y: -0.13 - R, W: 0.285, x: T.wid * MM / 2 - 0.2 };
 }
 function geo() {
   const T = state.tray, C = state.canopy, none = C.shape === 'none';
@@ -966,7 +1007,8 @@ function weights() {
     tray = (T.len * T.wid / 1e6) * (alu(T.mat) ? 27 : 45);
     tray += T.head === 'full' ? 14 : T.head === 'half' ? 6 : 0;
     /* a design with its own sides carries their weight; the flat deck only has them if you add drop sides behind the canopy */
-    tray += (T.design === 'flat' ? T.sides === 'drop' : TRAYS[T.design].side > 0) ? (alu(T.mat) ? 18 : 30) : 0;
+    tray += (T.design === 'flat' ? T.sides === 'drop' : sideHeight(T) > 0) ? (alu(T.mat) ? 18 : 30) * (sideHeight(T) / 300 || 1) : 0;
+    tray += (T.skirt - 75) / 1000 * T.wid / 1000 * 2 * (alu(T.mat) ? 27 : 45) + (T.rearStyle !== 'flat' ? (alu(T.mat) ? 12 : 22) : 0);
     tray += (T.boxes === 'both' ? 2 : T.boxes === 'none' ? 0 : 1) * (BOX_STYLES[T.boxStyle] || BOX_STYLES.drop).kg + (GUARDS[T.guards] ? GUARDS[T.guards].kg || 0 : 0);
   }
   const spare = hasT && SPARE[T.spare] ? SPARE[T.spare].kg : 0;
@@ -1233,8 +1275,11 @@ function partsList() {
   if (hasT) {
     const tr = [[TRAYS[T.design].name + ' tray, ' + mat(T.mat) + ' ' + fin(T.finish) + ', ' + COLOURS[T.colour].name.toLowerCase(), T.len + ' × ' + T.wid + ' mm', 1, w.tray]];
     const hp = headProfile(T);
-    if (hp) tr.push([(T.head === 'full' ? 'Full headboard with rack' : 'Half headboard') + ', ' + (T.headShape === 'square' ? 'square' : T.headShape === 'custom' ? 'custom angled' : 'angled to match the cab'), T.headShape === 'square' ? hp.h + ' mm tall' : hp.bend + ' mm to the bend, ' + hp.up + ' mm above it, ' + hp.inset + ' mm in', 1, '']);
+    if (hp) tr.push([(T.head === 'full' ? 'Full headboard with rack' : 'Half headboard') + ', ' + (hp.rack ? HB_STYLES[T.hbStyle].toLowerCase() + ', ' + HB_COLOURS[T.hbColour].toLowerCase() + ', ' : '') + (T.headShape === 'square' ? 'square' : T.headShape === 'custom' ? 'custom angled' : T.headShape === 'match' && C.shape !== 'none' ? 'matched to the canopy profile' : 'angled to match the cab'), T.headShape === 'square' ? hp.h + ' mm tall' : hp.bend + ' mm to the bend, ' + hp.up + ' mm above it, ' + hp.inset + ' mm in', 1, '']);
     if (T.design === 'flat' && T.sides === 'drop') tr.push(['Drop sides', '', 1, '']);
+    if (hasSides(T)) tr.push(['Sides, ' + sideHeight(T) + ' mm: ' + SIDE_STYLES[T.sideStyle].toLowerCase() + ', ' + LATCHES[T.latch].toLowerCase() + ' latches' + (T.stays ? ', stay straps' : '') + (T.rail ? ', tube rail' : ''), '', 1, '']);
+    if (T.rearStyle !== 'flat') tr.push(['Rear: ' + REAR_STYLES[T.rearStyle].toLowerCase() + ', ' + T.rearH + ' mm deep, round locks, recessed lamp pockets', '', 1, '']);
+    if (T.skirt > 75) tr.push(['Deck edge, ' + T.skirt + ' mm deep', '', 1, '']);
     if (T.boxes !== 'none') tr.push(['Under-tray ' + BOX_STYLES[T.boxStyle].name.toLowerCase(), BOX_STYLES[T.boxStyle].sub, T.boxes === 'both' ? 2 : 1, '']);
     if (T.guards !== 'none') tr.push(['Mud guards: ' + GUARDS[T.guards].name.toLowerCase(), GUARDS[T.guards].sub, 1, GUARDS[T.guards].kg]);
     tr.push(['Tail lights: ' + LIGHT_STYLES[T.lightStyle].name + ', ' + LIGHTS[T.lights].name.toLowerCase(), '', 2, '']);
@@ -1885,6 +1930,238 @@ function buildTub(g, T) {
     g.add(cyl(0.012, 0.12, dk, 0, yc - spW() / 2 - 0.05, zc, 'y', 8));
   }
 }
+/* ---------- Custom tray parts: headboards that follow the canopy, sides, arch-following toolboxes, guards, rear boxes ---------- */
+const polyArea = P => P.reduce((a, p, i) => { const q = P[(i + 1) % P.length]; return a + (p[0] * q[1] - q[0] * p[1]); }, 0) / 2;
+/* offset a polygon inward by d with mitred corners (any winding) */
+function insetPoly(P, d) {
+  const Q = polyArea(P) < 0 ? P.slice().reverse() : P.slice(), n = Q.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const a = Q[(i + n - 1) % n], b = Q[i], c = Q[(i + 1) % n];
+    let e1 = [b[0] - a[0], b[1] - a[1]], e2 = [c[0] - b[0], c[1] - b[1]];
+    const l1 = Math.hypot(e1[0], e1[1]) || 1, l2 = Math.hypot(e2[0], e2[1]) || 1; e1 = [e1[0] / l1, e1[1] / l1]; e2 = [e2[0] / l2, e2[1] / l2];
+    const n1 = [-e1[1], e1[0]], n2 = [-e2[1], e2[0]]; let bx = n1[0] + n2[0], by = n1[1] + n2[1]; const bl = Math.hypot(bx, by) || 1; bx /= bl; by /= bl;
+    const k = d / Math.max(0.4, bx * n1[0] + by * n1[1]);
+    out.push([b[0] + bx * k, b[1] + by * k]);
+  }
+  return out;
+}
+const roundPolyM = (P, r, step) => roundPoly(P.map(p => [p[0] * 1000, p[1] * 1000]), r, step).map(p => [p[0] / 1000, p[1] / 1000]);
+function hbMat(T, edge) {
+  if (T.hbColour === 'black') return std('#1c1e21', 0.5, 0.3);
+  if (T.hbColour === 'white') return std('#e9eaea', 0.4, 0.25);
+  if (T.hbColour === 'alu') return shellMat('alu', 'smooth', 'raw');
+  return T.colour === 'raw' ? std('#e9eaea', 0.4, 0.25) : edge;
+}
+/* The headboard. It follows the canopy's profile when one is fitted (see headProfile), and comes in several styles. */
+function buildHeadboard(g, T, G, M) {
+  const hp = headProfile(T);
+  if (!hp) return;
+  const { edge } = M, W = T.wid * MM, L = T.len * MM, z = -L / 2 + 0.02, hh = hp.h * MM, bnd = hp.bend * MM, ins = hp.inset * MM, bi = hp.bi * MM, hq = LOD.hq;
+  const mat = hbMat(T, edge), deckSkin = T.finish === 'checker' ? shellMat(T.mat, 'checker', T.colour) : edge;
+  /* half width of the outline at height y: straight up to the bend, then angled in */
+  const hwT = W / 2 - 0.03 - bi, twT = W / 2 - 0.03 - ins;
+  const xo = y => y <= bnd ? hwT : Math.max(twT, hwT - (hwT - twT) * (y - bnd) / Math.max(0.01, hh - bnd));
+  if (!hp.rack) {
+    const r = ins > 0 || bi > 0 ? [[W / 2 - bi, 0], [W / 2 - bi, bnd], [W / 2 - ins, hh]] : [[W / 2, 0], [W / 2, hh]];
+    g.add(panelPoly(r.concat(r.slice().reverse().map(([x, y]) => [-x, y])), 0.04, edge, z));
+    const tw = W / 2 - ins - 0.01;
+    g.add(rbox(2 * tw, 0.026, 0.05, 0.01, edge, 0, hh - 0.005, z));
+    g.add(rbox(Math.min(0.9, tw * 1.2), Math.max(0.02, Math.min(0.06, hh * 0.18)), 0.008, 0.004, edge, 0, hh * 0.45, z + 0.022));
+    return;
+  }
+  const style = T.hbStyle, tr = 0.026, sq = 0.04, rods = hh * 0.9;
+  const Pn = (ins > 0 || bi > 0) ? [[hwT, 0.02], [hwT, bnd], [twT, hh - tr]] : [[hwT, 0.02], [hwT, hh - tr]];
+  const full = Pn.map(([x, y]) => [-x, y]).concat(Pn.slice().reverse());
+  /* the frame */
+  if (style === 'tube') {
+    g.add(tube(filletPath(full.map(([x, y]) => [x * 1000, y * 1000, 0]), 90).map(p => [p[0] * MM, p[1] * MM, z]), tr, mat, hq ? 16 : 8));
+    [-1, 1].forEach(sd => g.add(cyl(tr * 1.1, 0.03, mat, sd * hwT, 0.015, z, 'y', 14)));
+  } else {
+    /* square tube frame: mitred bars along the outline */
+    [-1, 1].forEach(sd => { for (let i = 0; i + 1 < Pn.length; i++) g.add(barXY(sd * Pn[i][0], Pn[i][1], sd * Pn[i + 1][0], Pn[i + 1][1], sq, sq, mat, z)); });
+    g.add(rbox(2 * twT, sq, sq, 0.012, mat, 0, hh - sq / 2, z));
+    [-1, 1].forEach(sd => g.add(rbox(0.08, 0.012, 0.08, 0.004, std('#16181a', 0.6, 0.3), sd * hwT, 0.006, z)));
+  }
+  const y0 = Math.min(0.3, hh * 0.38), y1 = hh - 0.09, inX = y => xo(y) - 0.085;
+  if (style === 'tube' && y1 - y0 > 0.12) {
+    const fr = [[-inX(y0), y0], [inX(y0), y0], [inX(y1), y1], [-inX(y1), y1]];
+    g.add(tube(filletPath(fr.map(([x, y]) => [x * 1000, y * 1000, 0]).concat([[fr[0][0] * 1000, fr[0][1] * 1000, 0]]), 40).map(p => [p[0] * MM, p[1] * MM, z]), 0.011, mat, 10));
+    const Wm = new Merge(), nR = Math.max(3, Math.round((y1 - y0) / 0.07)), nC = Math.max(6, Math.round(2 * inX(y0) / 0.12));
+    for (let i = 1; i < nR; i++) { const y = y0 + (y1 - y0) * i / nR; Wm.box(0, y, z, 2 * inX(y), 0.006, 0.006, 0); }
+    for (let i = 1; i < nC; i++) { const f = i / nC, xb = -inX(y0) + 2 * inX(y0) * f, xt = -inX(y1) + 2 * inX(y1) * f; Wm.box((xb + xt) / 2, (y0 + y1) / 2, z, 0.006, y1 - y0, 0.006, 0); }
+    g.add(Wm.mesh(std('#b9bdc1', 0.4, 0.6)));
+    g.add(rbox(0.06, hh - 0.09, 0.026, 0.012, mat, twT * 0.42, 0.045 + (hh - 0.09) / 2, z));
+  }
+  if (style === 'panel' || style === 'hex') {
+    /* a solid lower panel across the full width, with a rail along its top */
+    const ph = Math.min(hh * (style === 'hex' ? 0.46 : 0.5), 0.46), pw = xo(ph) - 0.005;
+    g.add(rbox(2 * pw, ph, 0.03, 0.01, deckSkin, 0, ph / 2 + 0.02, z));
+    g.add(rbox(2 * pw + 0.02, 0.045, 0.045, 0.015, mat, 0, ph + 0.02, z));
+    if (style === 'panel' && hq) { const Rb = new Merge(); for (let k = 1; k < 3; k++) Rb.box(0, 0.02 + ph * k / 3, z + 0.016, 2 * pw - 0.1, 0.012, 0.004, 0); g.add(Rb.mesh(mat)); }
+    if (style === 'hex') {
+      const topY = ph + 0.07, botY = hh - sq - 0.03, midW = Math.min(0.32, xo(topY) - 0.18), insH = botY - topY;
+      if (insH > 0.1 && midW > 0.1) {
+        /* the perforated insert: a plate with a honeycomb of hex holes, in its own frame */
+        const shp = new THREE.Shape(); shp.moveTo(-midW, -insH / 2); shp.lineTo(midW, -insH / 2); shp.lineTo(midW, insH / 2); shp.lineTo(-midW, insH / 2); shp.lineTo(-midW, -insH / 2);
+        const hr = 0.022, dx = hr * 1.75, dy = hr * 1.52;
+        for (let r = 0, yy = -insH / 2 + 0.05; yy < insH / 2 - 0.04; yy += dy, r++) for (let xx = -midW + 0.05 + (r % 2 ? dx / 2 : 0); xx < midW - 0.04; xx += dx) {
+          const hole = new THREE.Path(); for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6, px = xx + Math.cos(a) * hr * 0.88, py = yy + Math.sin(a) * hr * 0.88; if (k) hole.lineTo(px, py); else hole.moveTo(px, py); }
+          shp.holes.push(hole);
+        }
+        const gm = new THREE.ExtrudeGeometry(shp, { depth: 0.006, bevelEnabled: false, curveSegments: 1 }); gm.translate(0, (topY + botY) / 2, z - 0.003);
+        g.add(shadowed(new THREE.Mesh(gm, mat)));
+        [-1, 1].forEach(sd => g.add(rbox(0.035, insH + 0.03, 0.04, 0.012, mat, sd * (midW + 0.0175), (topY + botY) / 2, z)));
+        /* two round bars either side of the insert */
+        [-1, 1].forEach(sd => [0.3, 0.7].forEach(f => { const y = topY + insH * f, x0 = midW + 0.035, x1 = xo(y) - 0.005; if (x1 > x0 + 0.02) g.add(cyl(0.012, x1 - x0, mat, sd * (x0 + x1) / 2, y, z, 'x', 12)); }));
+      }
+    }
+  }
+  if (style === 'bars') [0.35, 0.58, 0.8].forEach(f => { const y = hh * f; g.add(cyl(0.013, 2 * xo(y), mat, 0, y, z, 'x', 12)); });
+  if (style === 'frame' || style === 'panel') { /* nothing across the open part of the frame, as on the fabricated trays */ }
+  /* two rods standing up from the top (aerial and light mounts) */
+  [-1, 1].forEach(sd => g.add(cyl(0.01, 0.3, std('#1b1d20', 0.5, 0.4), sd * twT * 0.8, hh + 0.12, z, 'y', 10)));
+  if (G.none && hasSides(T)) {                           /* a low front wall behind the rack when the tray is bare */
+    const shF = sideHeight(T) * MM, zf = -L / 2 + 0.075;
+    g.add(rbox(W - 0.06, shF, 0.035, 0.01, edge, 0, shF / 2, zf)); g.add(rbox(W - 0.06, 0.046, 0.05, 0.02, edge, 0, shF - 0.004, zf));
+    const Rf = new Merge(); for (let k = 0; k < 5; k++) Rf.box(0, 0.03 + k * (shF - 0.08) / 4, zf + 0.019, W - 0.2, 0.011, 0.005, 0); g.add(Rf.mesh(edge));
+  }
+}
+
+/* Drop sides and tailgate for the factory alloy and pressed steel trays: surface treatment, latches, stays, corner caps, tube rail. */
+function buildSides(g, T, B, M) {
+  const { zA, zB, zl, zm, sh, W } = B, { edge, steelDk, zinc } = M, blk = std('#16181a', 0.55, 0.3), chromeL = std('#dfe3e6', 0.18, 0.92), Rb = new Merge(), Hk = new Merge();
+  const style = T.sideStyle, skin = style === 'checker' ? shellMat(T.mat, 'checker', T.colour) : edge;
+  const surface = (xc, sgn, len, zc, wide) => {
+    if (style === 'ribbed') { const n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Rb.box(xc + sgn * 0.0012, 0.035 + k * (sh - 0.085) / n, zc, 0.006, 0.01, len, 0); }
+    else if (style === 'pressed') [0.3, 0.64].forEach(f => { g.add(rbox(0.012, Math.min(0.07, sh * 0.2), len, 0.005, edge, xc + sgn * 0.005, sh * f, zc)); g.add(rbox(0.004, 0.012, len - 0.04, 0.002, steelDk, xc + sgn * 0.011, sh * f - Math.min(0.07, sh * 0.2) / 2 + 0.004, zc)); });
+    else if (style === 'checker') g.add(rbox(0.006, sh - 0.09, len, 0.002, skin, xc + sgn * 0.003, sh * 0.5 - 0.012, zc));
+  };
+  [-1, 1].forEach(s => {
+    const xo = s * (W / 2 - 0.016);
+    g.add(rbox(0.032, sh - 0.04, zl - 0.07, 0.012, edge, xo, (sh - 0.04) / 2, zm));
+    g.add(rbox(0.064, 0.05, zl - 0.02, 0.024, edge, s * (W / 2 - 0.032), sh - 0.012, zm));                                      /* rolled top rail */
+    surface(s * (W / 2), s, zl - 0.16, zm); if (style === 'ribbed') surface(s * (W / 2 - 0.032), -s, zl - 0.16, zm);
+    /* latches */
+    [0.14, 0.5, 0.86].forEach((f, k) => { if (k === 1 && zl < 1.1) return; const z = zA + zl * f;
+      if (T.latch === 'black') { if (k === 1) return; g.add(rbox(0.016, 0.1, 0.075, 0.012, blk, s * (W / 2 + 0.006), sh * 0.42, z)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 + 0.018), sh * 0.42 + 0.025, z, 'x', 10)); g.add(rbox(0.012, 0.06, 0.022, 0.008, blk, s * (W / 2 + 0.022), sh * 0.42 - 0.02, z)); }
+      else if (T.latch === 'chrome') {                                                                                          /* over-centre latch: base plate, lever, hook */
+        const y = sh - 0.068; g.add(rbox(0.012, 0.036, 0.1, 0.008, chromeL, s * (W / 2 + 0.008), y, z)); g.add(rbox(0.012, 0.022, 0.13, 0.008, chromeL, s * (W / 2 + 0.019), y + 0.004, z + 0.012));
+        g.add(cyl(0.007, 0.03, chromeL, s * (W / 2 + 0.022), y, z - 0.06, 'x', 8)); g.add(rbox(0.012, 0.03, 0.02, 0.006, chromeL, s * (W / 2 + 0.014), y - 0.03, z - 0.05)); }
+    });
+    /* black cast corner caps wrapped round each corner */
+    if (T.latch === 'black') [zA + 0.03, zB - 0.03].forEach((z, i) => { g.add(rbox(0.07, sh + 0.045, 0.058, 0.014, blk, s * (W / 2 - 0.028), (sh + 0.045) / 2 - 0.01, z)); g.add(rbox(0.032, sh + 0.045, 0.085, 0.012, blk, s * (W / 2 - 0.006), (sh + 0.045) / 2 - 0.01, z + (i ? -0.014 : 0.014))); Hk.box(s * (W / 2 + 0.01), sh - 0.1, z + (i ? 0.03 : -0.03), 0.01, 0.07, 0.012, 0); });
+    /* vertical stay straps */
+    if (T.stays) [0.2, 0.5, 0.8].forEach(f => { const z = zA + zl * f; g.add(rbox(0.01, sh * 0.96, 0.022, 0.004, blk, s * (W / 2 + 0.024), sh * 0.48, z)); g.add(rbox(0.026, 0.05, 0.04, 0.01, blk, s * (W / 2 + 0.02), 0.0, z)); g.add(cyl(0.01, 0.014, zinc, s * (W / 2 + 0.034), 0.02, z, 'x', 10)); g.add(rbox(0.016, 0.03, 0.024, 0.006, blk, s * (W / 2 + 0.02), sh - 0.02, z)); });
+    /* tube rail under the side on two brackets */
+    if (T.rail) { const rz0 = zA + Math.min(0.35, zl * 0.2), rz1 = zB - Math.min(0.35, zl * 0.2);
+      if (rz1 > rz0 + 0.2) { g.add(cyl(0.014, rz1 - rz0, zinc, s * (W / 2 + 0.05), -0.12, (rz0 + rz1) / 2, 'z', 12)); [rz0 + 0.08, rz1 - 0.08].forEach(z => { g.add(rbox(0.1, 0.034, 0.045, 0.01, blk, s * (W / 2 + 0.01), -0.12, z)); g.add(rbox(0.05, 0.034, 0.045, 0.01, steelDk, s * (W / 2 - 0.045), -0.095, z)); }); } }
+  });
+  g.add(Rb.mesh(edge)); g.add(Hk.mesh(blk));
+  /* tailgate between the sides */
+  g.add(rbox(W - 0.18, sh - 0.025, 0.034, 0.012, edge, 0, sh / 2 - 0.005, zB - 0.017));
+  if (style === 'ribbed') { const Tg = new Merge(), n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Tg.box(0, 0.035 + k * (sh - 0.085) / n, zB + 0.0012, W - 0.22, 0.01, 0.006, 0); g.add(Tg.mesh(edge)); }
+  else if (style === 'pressed') [0.3, 0.64].forEach(f => g.add(rbox(W - 0.24, Math.min(0.07, sh * 0.2), 0.012, 0.005, edge, 0, sh * f, zB + 0.004)));
+  else if (style === 'checker') g.add(rbox(W - 0.22, sh - 0.09, 0.006, 0.002, skin, 0, sh * 0.5 - 0.012, zB + 0.003));
+  g.add(rbox(W - 0.16, 0.05, 0.05, 0.02, edge, 0, sh - 0.012, zB - 0.022));
+  [-1, 1].forEach(s => { if (T.latch === 'black') { g.add(rbox(0.075, 0.1, 0.016, 0.012, blk, s * (W / 2 - 0.12), sh * 0.45, zB + 0.008)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 - 0.12), sh * 0.45 + 0.03, zB + 0.02, 'z', 10)); }
+    else if (T.latch === 'chrome') { g.add(rbox(0.1, 0.036, 0.012, 0.008, chromeL, s * (W / 2 - 0.12), sh - 0.068, zB + 0.008)); g.add(rbox(0.13, 0.022, 0.012, 0.008, chromeL, s * (W / 2 - 0.12), sh - 0.064, zB + 0.019)); } });
+  g.add(rbox(0.2, 0.042, 0.012, 0.01, steelDk, 0, sh - 0.05, zB + 0.004));
+}
+
+/* Under-tray toolboxes whose outline follows the tray: the top is flush under the deck, the front edge follows the wheel arch (curved, straight or in facets), the rear
+   can be chamfered, and the door is a separate plate with its own seal, hinge and lock. */
+function underBoxes(g, T, M) {
+  if (T.boxes === 'none') return;
+  const { edge, dark, steelDk, zinc } = M, W = T.wid * MM, L = T.len * MM, BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop, A = archGeo(T), hq = LOD.hq, sk = T.skirt * MM;
+  const H = (T.boxH > 0 ? T.boxH : BS.h) * MM, bw = BS.w * MM, yt = -sk + 0.005, yb = yt - H, rearGap = T.rearStyle === 'flat' ? 0.1 : 0.27, zEnd = L / 2 - rearGap;
+  const Rg = A.R + 0.05, zAt = y => { const dy = y - A.y; return A.z + (Math.abs(dy) < Rg ? Math.sqrt(Rg * Rg - dy * dy) : 0); };
+  const lock = std('#c9ced3', 0.3, 0.8), blk = std('#101113', 0.55, 0.3), seal = std('#0c0d0f', 0.9, 0.05);
+  const zMin = -L / 2 + 0.06, front = [], kind = BS.arch;
+  if (kind === 'curve') { const N = hq ? 24 : 12; for (let i = 0; i <= N; i++) { const y = yt - H * i / N; front.push([Math.max(zMin, zAt(y)), y]); } }
+  else if (kind === 'straight') front.push([Math.max(zMin, zAt(yt)), yt], [Math.max(zMin, zAt(yb)), yb]);
+  else if (kind === 'facet') for (let i = 0; i <= 3; i++) { const y = yt - H * i / 3; front.push([Math.max(zMin, zAt(y)), y]); }
+  else { const zF = Math.max(zMin, zAt(yb)) + 0.02; front.push([zF, yt], [zF, yb]); }
+  const taper = kind === 'facet' ? 0.1 : kind === 'straight' ? 0.06 : 0;
+  const zTopF = front[0][0], zBotF = front[front.length - 1][0];
+  if (zEnd - Math.max(zTopF, zBotF) < 0.3) return;
+  const outline = [[zTopF, yt], [zEnd, yt], [zEnd - taper, yb]].concat(front.slice().reverse().map(p => p.slice()));
+  const rp = roundPolyM(outline, 26, 22), seal2 = insetPoly(rp, 0.02), door = insetPoly(rp, 0.034);
+  const sides = T.boxes === 'both' ? [-1, 1] : [T.boxes === 'left' ? -1 : 1];
+  const zs = rp.map(p => p[0]), ys = rp.map(p => p[1]), zc = (Math.min(...zs) + Math.max(...zs)) / 2, yc = (Math.min(...ys) + Math.max(...ys)) / 2;
+  sides.forEach(s => {
+    const xs = s * W / 2;
+    if (T.boxStyle === 'tank') {
+      const r = Math.min(H, bw) / 2, tk = std('#cfd2c9', 0.55, 0.05), len = zEnd - zBotF - 0.1, zt = (zBotF + 0.05 + zEnd - 0.05) / 2;
+      g.add(cyl(r, len, tk, s * (W / 2 - bw / 2), yt - H / 2, zt, 'z', 32));
+      [0.15, 0.5, 0.85].forEach(f => g.add(rbox(bw + 0.01, 0.026, 0.05, 0.006, steelDk, s * (W / 2 - bw / 2), yt - H / 2, zBotF + 0.05 + len * f)));
+      g.add(cyl(0.045, 0.03, dark, s * (W / 2 - bw / 2) + s * r * 0.35, yt - H / 2 + r * 0.96, zt, 'y', 16)); g.add(cyl(0.032, 0.02, std('#2a6fb4', 0.5, 0.1), s * (W / 2 - bw / 2) + s * r * 0.35, yt - H / 2 + r * 0.96 + 0.02, zt, 'y', 16));
+      return;
+    }
+    const body = prismR(rp, bw, edge, 0.012); body.position.x = s * (W / 2 - bw / 2); g.add(body);
+    const sl = prismR(seal2, 0.01, seal, 0.003); sl.position.x = xs + s * 0.004; g.add(sl);
+    const dr = prismR(door, 0.016, edge, 0.006); dr.position.x = xs + s * 0.012; g.add(dr);
+    if (T.boxStyle === 'drawer') { g.add(rbox(0.006, 0.01, Math.max(0.2, zEnd - zBotF - 0.16), 0.003, seal, xs + s * 0.021, yc + 0.01, zc)); [yc + H * 0.22, yc - H * 0.22].forEach(y => g.add(rbox(0.016, 0.014, 0.2, 0.006, lock, xs + s * 0.026, y, zc))); }
+    else {
+      /* lock: a round barrel lock with a chrome ring and key slot, or a paddle handle, towards the rear and upper part of the door */
+      const lz = zEnd - 0.17, ly = yt - H * 0.4;
+      if (T.boxLock === 'paddle') { g.add(rbox(0.012, 0.05, 0.14, 0.01, blk, xs + s * 0.023, ly, lz)); g.add(rbox(0.018, 0.026, 0.1, 0.01, lock, xs + s * 0.03, ly, lz)); }
+      else { g.add(cyl(0.034, 0.012, blk, xs + s * 0.022, ly, lz, 'x', 28)); g.add(cyl(0.027, 0.006, lock, xs + s * 0.029, ly, lz, 'x', 24)); g.add(rbox(0.008, 0.026, 0.006, 0.002, blk, xs + s * 0.034, ly, lz)); }
+      g.add(rbox(0.01, 0.014, Math.max(0.2, (zEnd - zBotF) * 0.7), 0.004, zinc, xs + s * 0.02, yb + 0.036, (zBotF + zEnd) / 2 + 0.03));           /* hinge along the bottom */
+      if (T.boxStyle === 'deep') [0.18, 0.82].forEach(f => g.add(cyl(0.008, 0.16, zinc, xs + s * 0.022, yb + H * 0.4, zBotF + (zEnd - zBotF) * f, 'y', 8)));
+    }
+  });
+}
+
+/* Guards over the wheel arch: flaps, smooth curved guards, or faceted fabricated guards, all placed from the arch position. */
+function underGuards(g, T, M) {
+  if (T.guards === 'none') return;
+  const { edge, zinc } = M, W = T.wid * MM, A = archGeo(T), hq = LOD.hq, rub = std('#0d0e10', 0.92, 0), blk = std('#16181a', 0.55, 0.3), Wd = A.W, floorY = -rideH(T) * MM;
+  const guardMat = T.guards === 'angular' || T.guards === 'full' ? (T.colour === 'raw' ? edge : edge) : edge;
+  [-1, 1].forEach(sd => {
+    const x = sd * A.x;
+    if (T.guards === 'rubber' || T.guards === 'full') {
+      const fh = Math.max(0.2, -0.08 - floorY - 0.1), zf = A.z + A.R + 0.06;
+      g.add(rbox(Wd + 0.07, fh, 0.012, 0.005, rub, x, -0.1 - fh / 2, zf));
+      g.add(rbox(Wd + 0.07, 0.03, 0.03, 0.006, blk, x, -0.095, zf - 0.01));
+      g.add(rbox(Wd * 0.55, fh * 0.22, 0.004, 0.002, std('#d8dadc', 0.8, 0), x, -0.1 - fh * 0.78, zf + 0.008));
+    }
+    if (T.guards === 'flares') {
+      const Rf = A.R + 0.03, Mg = new Merge(), n = hq ? 32 : 14, a0 = 0.1 * Math.PI, a1 = 0.9 * Math.PI;
+      for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * (i + 0.5) / n, ln = (a1 - a0) / n * Rf * 1.25; Mg.box(x, A.y + Math.sin(a) * Rf, A.z + Math.cos(a) * Rf, Wd + 0.07, 0.012, ln, Math.PI / 2 - a); }
+      g.add(Mg.mesh(edge));
+      const Rl = new Merge(); for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; [-1, 1].forEach(e => Rl.box(x + e * (Wd + 0.07) / 2, A.y + Math.sin(a) * Rf, A.z + Math.cos(a) * Rf, 0.02, 0.02, 0.03, Math.PI / 2 - a)); }
+      g.add(Rl.mesh(edge));
+    }
+    if (T.guards === 'angular' || T.guards === 'full') {
+      /* a folded-plate guard: the outline is a few flat facets round the arch, extruded across the wheel, plus a flat outer cheek plate that carries on down the tray side */
+      const Ro = A.R + 0.045, pts = [];
+      for (let k = 0; k <= 6; k++) { const a = Math.PI * (0.08 + 0.84 * k / 6); pts.push([A.z + Math.cos(a) * Ro, A.y + Math.sin(a) * Ro]); }
+      for (let k = 6; k >= 0; k--) { const a = Math.PI * (0.08 + 0.84 * k / 6); pts.push([A.z + Math.cos(a) * (A.R + 0.005), A.y + Math.sin(a) * (A.R + 0.005)]); }
+      const sh = prismR(roundPolyM(pts, 8, 30), Wd + 0.07, guardMat, 0.008); sh.position.x = x; g.add(sh);
+      const cheek = [[A.z - Ro * 1.02, -0.012], [A.z + Ro * 1.02, -0.012], [A.z + Ro * 0.82, A.y + Ro * 0.52], [A.z + Ro * 0.3, A.y + Ro * 0.94], [A.z - Ro * 0.3, A.y + Ro * 0.94], [A.z - Ro * 0.82, A.y + Ro * 0.52]];
+      const ck = prismR(roundPolyM(cheek, 10, 30), 0.03, guardMat, 0.009); ck.position.x = sd * (W / 2 + 0.012); g.add(ck);
+    }
+  });
+}
+
+/* A rear box under the tray's back edge: a plain step box, or a chamfered one with round locks, recessed lamp pockets and mounting feet. Returns where the lamps and plate go. */
+function rearBox(g, T, M) {
+  const W = T.wid * MM, L = T.len * MM, sk = T.skirt * MM, zr = L / 2;
+  if (T.rearStyle === 'flat') return { yMid: -0.14, zf: zr + 0.025 };
+  const { edge, dark, zinc } = M, h = T.rearH * MM, d = 0.26, yt = -sk, yb = yt - h, blk = std('#101113', 0.55, 0.3), zf = zr + 0.03;
+  const ch = T.rearStyle === 'chamfer' ? Math.min(0.16, h * 0.8) : 0;
+  const pts = T.rearStyle === 'chamfer'
+    ? [[-W / 2, yt], [W / 2, yt], [W / 2, yt - h * 0.35], [W / 2 - ch * 1.3, yb], [-W / 2 + ch * 1.3, yb], [-W / 2, yt - h * 0.35]]
+    : [[-W / 2, yt], [W / 2, yt], [W / 2, yb], [-W / 2, yb]];
+  g.add(panelPoly(roundPolyM(pts.map(p => [p[0], p[1]]), 18, 24), d, edge, zr - d / 2 + 0.03));
+  const yMid = yt - h * 0.5;
+  [-1, 1].forEach(s => {
+    g.add(rbox(0.3, h - 0.05, 0.014, 0.012, dark, s * (W / 2 - 0.2), yMid, zf + 0.004));                         /* recessed pocket for the lamp */
+    g.add(rbox(0.1, 0.07, 0.22, 0.014, blk, s * (W / 2 - 0.3), yb - 0.02, zr - 0.12));                           /* mounting foot */
+    g.add(cyl(0.05, 0.016, blk, s * 0.36, yMid, zf + 0.006, 'z', 28)); g.add(cyl(0.036, 0.008, std('#26282c', 0.5, 0.4), s * 0.36, yMid, zf + 0.012, 'z', 24)); g.add(rbox(0.05, 0.012, 0.01, 0.004, zinc, s * 0.36, yMid, zf + 0.018));
+  });
+  return { yMid, zf };
+}
 function buildTray() {
   const g = new THREE.Group(), T = state.tray, G = geo();
   if (T.design === 'none') return g;
@@ -1893,12 +2170,13 @@ function buildTray() {
   const m = shellMat(T.mat, T.finish, T.colour);
   const edge = shellMat(T.mat, 'smooth', T.colour);
   const dark = std('#24272b', 0.7, 0.1), steelDk = std('#1a1c1f', 0.6, 0.35), zinc = std('#9aa0a6', 0.4, 0.6);
+  const M = { m, edge, dark, steelDk, zinc }, sk = T.skirt * MM;
 
   /* ---- deck and underbody: thin floor, turned-down edge, longitudinal bearers on the chassis rails, crossmembers, floor ribs, mounting plates ---- */
   g.add(rbox(W, 0.018, L, 0.006, m, 0, -0.009, 0));
-  [-1, 1].forEach(s => g.add(rbox(0.03, 0.075, L, 0.008, edge, s * (W / 2 - 0.015), -0.0375, 0)));
-  g.add(rbox(W, 0.075, 0.03, 0.008, edge, 0, -0.0375, L / 2 - 0.015));
-  g.add(rbox(W, 0.075, 0.03, 0.008, edge, 0, -0.0375, -L / 2 + 0.015));
+  [-1, 1].forEach(s => g.add(rbox(0.03, sk, L, 0.008, edge, s * (W / 2 - 0.015), -sk / 2, 0)));
+  g.add(rbox(W, sk, 0.03, 0.008, edge, 0, -sk / 2, L / 2 - 0.015));
+  g.add(rbox(W, sk, 0.03, 0.008, edge, 0, -sk / 2, -L / 2 + 0.015));
   { const U = new Merge(), nX = Math.max(3, Math.floor(L / 0.36));
     for (let i = 0; i < nX; i++) U.box(0, -0.048, -L / 2 + 0.2 + i * (L - 0.4) / (nX - 1), W - 0.1, 0.04, 0.05);
     [-1, 1].forEach(s => {
@@ -1909,100 +2187,14 @@ function buildTray() {
     [-L / 2 + 0.35, -L * 0.1, L * 0.16, L / 2 - 0.34].forEach(z => [-1, 1].forEach(s => { U.box(s * 0.42, -0.13, z, 0.12, 0.012, 0.1); U.box(s * 0.46, -0.138, z - 0.03, 0.014, 0.014, 0.014); U.box(s * 0.38, -0.138, z + 0.03, 0.014, 0.014, 0.014); }));
     g.add(U.mesh(steelDk)); }
 
-  /* ---- headboard: square, angled to match the cab, or custom. Half is a pressed panel, full is a tube rack. ---- */
-  const hp = headProfile(T);
-  if (hp) {
-    const z = -L / 2 + 0.02, hh = hp.h * MM, bnd = hp.bend * MM, ins = hp.inset * MM;
-    if (!hp.rack) {
-      const r = ins > 0 ? [[W / 2, 0], [W / 2, bnd], [W / 2 - ins, hh]] : [[W / 2, 0], [W / 2, hh]];
-      g.add(panelPoly(r.concat(r.slice().reverse().map(([x, y]) => [-x, y])), 0.04, edge, z));
-      /* a rolled top edge and a pressed centre rib */
-      const tw = W / 2 - ins - 0.01;
-      g.add(rbox(2 * tw, 0.026, 0.05, 0.01, edge, 0, hh - 0.005, z));
-      g.add(rbox(Math.min(0.9, tw * 1.2), Math.max(0.02, Math.min(0.06, hh * 0.18)), 0.008, 0.004, edge, 0, hh * 0.45, z + 0.022));
-    } else {
-      /* a tube-frame headboard like the factory alloy trays: one continuous round tube up both sides and across the top, a wire mesh panel inset in its own frame,
-         a flat divider post, two rods standing up from the top, and a low alloy front wall behind it when the tray is bare */
-      const hw = W / 2 - 0.03, tw = ins > 0 ? hw - ins : hw, tr = 0.026, white = T.colour === 'raw' ? std('#e9eaea', 0.4, 0.25) : edge;
-      const Pn = ins > 0 ? [[hw, 0.02], [hw, bnd], [tw, hh - tr]] : [[hw, 0.02], [hw, hh - tr]];
-      const full = Pn.map(([x, y]) => [-x, y]).concat(Pn.slice().reverse());
-      g.add(tube(filletPath(full.map(([x, y]) => [x * 1000, y * 1000, 0]), 90).map(p => [p[0] * MM, p[1] * MM, z]), tr, white, LOD.hq ? 14 : 8));
-      [-1, 1].forEach(sd => g.add(cyl(tr * 1.1, 0.03, white, sd * hw, 0.015, z, 'y', 12)));
-      const wAt = y => y <= bnd || ins <= 0 ? hw : Math.max(tw, hw - ins * (y - bnd) / Math.max(0.01, hh - bnd));
-      const y0 = Math.min(0.3, hh * 0.38), y1 = hh - 0.09, inX = y => wAt(y) - 0.085;
-      if (y1 - y0 > 0.12) {
-        const fr = [[-inX(y0), y0], [inX(y0), y0], [inX(y1), y1], [-inX(y1), y1]];
-        g.add(tube(filletPath(fr.map(([x, y]) => [x * 1000, y * 1000, 0]).concat([[fr[0][0] * 1000, fr[0][1] * 1000, 0]]), 40).map(p => [p[0] * MM, p[1] * MM, z]), 0.011, white, 8));
-        const Wm = new Merge(), nR = Math.max(3, Math.round((y1 - y0) / 0.07)), nC = Math.max(6, Math.round(2 * inX(y0) / 0.12));
-        for (let i = 1; i < nR; i++) { const y = y0 + (y1 - y0) * i / nR; Wm.box(0, y, z, 2 * inX(y), 0.006, 0.006, 0); }
-        for (let i = 1; i < nC; i++) { const f = i / nC, xb = -inX(y0) + 2 * inX(y0) * f, xt = -inX(y1) + 2 * inX(y1) * f; Wm.box((xb + xt) / 2, (y0 + y1) / 2, z, 0.006, y1 - y0, 0.006, 0); }
-        g.add(Wm.mesh(std('#b9bdc1', 0.4, 0.6)));
-      }
-      g.add(rbox(0.06, hh - 0.09, 0.026, 0.012, white, tw * 0.42, 0.045 + (hh - 0.09) / 2, z));
-      [-1, 1].forEach(sd => g.add(cyl(0.011, 0.3, white, sd * tw * 0.8, hh + 0.12, z, 'y', 10)));
-      if (G.none) {
-        const shF = des.side * MM || 0.27, zf = -L / 2 + 0.075, zinc2 = std('#9aa0a6', 0.4, 0.6);
-        g.add(rbox(W - 0.06, shF, 0.035, 0.01, edge, 0, shF / 2, zf));
-        g.add(rbox(W - 0.06, 0.046, 0.05, 0.02, edge, 0, shF - 0.004, zf));
-        const Rf = new Merge(); for (let k = 0; k < 5; k++) Rf.box(0, 0.03 + k * (shF - 0.08) / 4, zf + 0.019, W - 0.2, 0.011, 0.005, 0);
-        g.add(Rf.mesh(edge));
-      }
-    }
-  }
+  /* ---- headboard: follows the canopy's profile when one is fitted ---- */
+  buildHeadboard(g, T, G, M);
 
   /* ---- sides. They only run where there is no canopy: from the headboard when the tray is bare, or behind the canopy. ---- */
-  const zA = G.outer.z1 * MM, zB = L / 2, zl = zB - zA, zm = (zA + zB) / 2, sh = des.side * MM;
+  const zA = G.outer.z1 * MM, zB = L / 2, zl = zB - zA, zm = (zA + zB) / 2, sh = sideHeight(T) * MM;
   if (zl > 0.12 && sh > 0) {
-    const nRibs = Math.max(1, Math.round(zl / 0.45));
-    if (T.design === 'factory') {
-      /* the factory alloy tray: drop-down sides and tailgate made from extruded alloy planks (parallel ribs along the length), a rolled top rail, black cast corner caps,
-         black latch and hinge plates, a round tube rail under each side on brackets, and big black mud flaps */
-      const blk = std('#16181a', 0.55, 0.3), Rb = new Merge(), Hk = new Merge();
-      const ribsAlong = (xc, sgn, len, zc) => { const n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Rb.box(xc + sgn * 0.0012, 0.035 + k * (sh - 0.085) / n, zc, 0.006, 0.01, len, 0); };
-      [-1, 1].forEach(s => {
-        const xo = s * (W / 2 - 0.016);
-        g.add(rbox(0.032, sh - 0.04, zl - 0.07, 0.01, edge, xo, (sh - 0.04) / 2, zm));
-        g.add(rbox(0.064, 0.05, zl - 0.02, 0.024, edge, s * (W / 2 - 0.032), sh - 0.012, zm));                       /* rolled top rail */
-        ribsAlong(s * (W / 2), s, zl - 0.14, zm); ribsAlong(s * (W / 2 - 0.032), -s, zl - 0.14, zm);
-        [0.27, 0.73].forEach(f => { const z = zA + zl * f;                                                            /* drop-side latch: black plate, pivot, lever */
-          g.add(rbox(0.016, 0.1, 0.075, 0.012, blk, s * (W / 2 + 0.006), sh * 0.42, z)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 + 0.018), sh * 0.42 + 0.025, z, 'x', 10));
-          g.add(rbox(0.012, 0.06, 0.022, 0.008, blk, s * (W / 2 + 0.022), sh * 0.42 - 0.02, z)); });
-        [zA + 0.03, zB - 0.03].forEach((z, i) => {                                                                    /* black cast corner caps, wrapped round the corner */
-          g.add(rbox(0.07, sh + 0.045, 0.058, 0.014, blk, s * (W / 2 - 0.028), (sh + 0.045) / 2 - 0.01, z)); g.add(rbox(0.032, sh + 0.045, 0.085, 0.012, blk, s * (W / 2 - 0.006), (sh + 0.045) / 2 - 0.01, z + (i ? -0.014 : 0.014)));
-          Hk.box(s * (W / 2 + 0.01), sh - 0.1, z + (i ? 0.03 : -0.03), 0.01, 0.07, 0.012, 0); });
-        /* tube rail under the side on two brackets */
-        const rz0 = zA + Math.min(0.35, zl * 0.2), rz1 = zB - Math.min(0.35, zl * 0.2);
-        if (rz1 > rz0 + 0.2) { g.add(cyl(0.014, rz1 - rz0, zinc, s * (W / 2 + 0.05), -0.12, (rz0 + rz1) / 2, 'z', 12));
-          [rz0 + 0.08, rz1 - 0.08].forEach(z => { g.add(rbox(0.1, 0.034, 0.045, 0.01, blk, s * (W / 2 + 0.01), -0.12, z)); g.add(rbox(0.05, 0.034, 0.045, 0.01, steelDk, s * (W / 2 - 0.045), -0.095, z)); }); }
-        /* mud flap hanging off the side, tilted out a little */
-        if (!FEATURES.vehicles) { const zf = zA + zl * 0.38, fl = new THREE.Group();
-          fl.add(rbox(0.012, 0.52, 0.26, 0.005, blk, 0, -0.27, 0)); fl.add(rbox(0.016, 0.05, 0.28, 0.006, steelDk, 0, 0.0, 0)); [-0.08, 0.08].forEach(dz => fl.add(cyl(0.006, 0.02, zinc, 0.01, -0.03, dz, 'x', 6)));
-          fl.position.set(s * (W / 2 + 0.06), -0.05, zf); fl.rotation.z = -s * 0.1; g.add(fl); }
-      });
-      g.add(Rb.mesh(edge)); g.add(Hk.mesh(blk));
-      /* tailgate: planks between the corner caps, latches at both ends, a handle recess */
-      g.add(rbox(W - 0.18, sh - 0.025, 0.034, 0.01, edge, 0, sh / 2 - 0.005, zB - 0.017));
-      { const Tg = new Merge(), n = Math.max(4, Math.round((sh - 0.08) / 0.045)); for (let k = 0; k <= n; k++) Tg.box(0, 0.035 + k * (sh - 0.085) / n, zB + 0.0012, W - 0.22, 0.01, 0.006, 0); g.add(Tg.mesh(edge)); }
-      g.add(rbox(W - 0.16, 0.05, 0.05, 0.02, edge, 0, sh - 0.012, zB - 0.022));
-      [-1, 1].forEach(s => { g.add(rbox(0.075, 0.1, 0.016, 0.012, blk, s * (W / 2 - 0.12), sh * 0.45, zB + 0.008)); g.add(cyl(0.011, 0.03, zinc, s * (W / 2 - 0.12), sh * 0.45 + 0.03, zB + 0.02, 'z', 10)); });
-      g.add(rbox(0.2, 0.042, 0.012, 0.01, steelDk, 0, sh - 0.05, zB + 0.004));
-    } else if (T.design === 'dropside') {
-      /* three hinged steel drop sides with pressed bodylines, top lip, corner posts, latches and hinge pins */
-      const Rb = new Merge();
-      [-1, 1].forEach(s => {
-        g.add(rbox(0.032, sh - 0.02, zl - 0.06, 0.008, edge, s * (W / 2 - 0.016), sh / 2 + 0.01, zm));
-        g.add(rbox(0.045, 0.03, zl - 0.06, 0.012, edge, s * (W / 2 - 0.022), sh + 0.002, zm));
-        [0.34, 0.66].forEach(f => Rb.box(s * (W / 2 + 0.002), sh * f, zm, 0.01, 0.028, zl - 0.14));
-        [zA + 0.025, zB - 0.025].forEach(z => g.add(rbox(0.05, sh + 0.03, 0.05, 0.01, edge, s * (W / 2 - 0.025), (sh + 0.03) / 2, z)));
-        [zA + 0.12, zB - 0.12].forEach(z => g.add(rbox(0.016, 0.05, 0.03, 0.006, steelDk, s * (W / 2 + 0.003), sh - 0.1, z)));
-        [zA + 0.15, zB - 0.15].forEach(z => g.add(cyl(0.01, 0.1, zinc, s * (W / 2 + 0.004), 0.016, z, 'z', 8)));
-      });
-      g.add(rbox(W - 0.1 - 0.006, sh - 0.02, 0.032, 0.008, edge, 0, sh / 2 + 0.01, zB - 0.016));
-      [0.34, 0.66].forEach(f => Rb.box(0, sh * f, zB + 0.002, W - 0.3, 0.028, 0.01));
-      g.add(rbox(W - 0.1, 0.03, 0.045, 0.012, edge, 0, sh + 0.002, zB - 0.022));
-      g.add(Rb.mesh(edge));
-      g.add(rbox(0.03, 0.05, 0.016, 0.006, steelDk, -W * 0.3, sh - 0.1, zB + 0.003));
-      g.add(rbox(0.03, 0.05, 0.016, 0.006, steelDk, W * 0.3, sh - 0.1, zB + 0.003));
+    if (T.design === 'factory' || T.design === 'dropside') {
+      buildSides(g, T, { zA, zB, zl, zm, sh, W }, M);
     } else if (T.design === 'rail') {
       /* open tube rails: posts every half metre or so, a top and a mid rail, and a rear frame */
       const nP = Math.max(1, Math.round(zl / 0.5));
@@ -2021,76 +2213,16 @@ function buildTray() {
     [-1, 1].forEach(s => g.add(rbox(0.035, 0.2, zl, 0.01, edge, s * (W / 2 - 0.0175), 0.1, zm)));
     g.add(rbox(W, 0.2, 0.035, 0.01, edge, 0, 0.1, zB - 0.0175));
   }
-  if (T.boxes !== 'none') {
-    /* start the boxes just behind the rear wheels; the rear axle sits further back along the tray on shorter cabs */
-    const rearAxle = vehGeo().rearAxle * MM, TSb = tyreSpec(T), BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop;
-    const z0 = FEATURES.vehicles ? rearAxle + TSb.R * MM + 0.04 : -L / 2 + 0.3, z1 = L / 2 - 0.15, len = z1 - z0;
-    if (len > 0.3) {
-      const sides = T.boxes === 'both' ? [-1, 1] : [T.boxes === 'left' ? -1 : 1];
-      const bw = BS.w * MM, bh = BS.h * MM, yc = -0.06 - bh / 2, zc = (z0 + z1) / 2, lock = std('#c9ced3', 0.3, 0.8), seal = std('#101113', 0.85, 0.05);
-      sides.forEach(s => {
-        const xc = s * (W / 2 - 0.02 - bw / 2), xo = xc + s * bw / 2;   /* xo = the outside face */
-        if (T.boxStyle === 'tank') {
-          const r = Math.min(bh, bw) / 2, tk = std('#cfd2c9', 0.55, 0.05);
-          g.add(cyl(r, len, tk, xc, yc, zc, 'z', 28));
-          [0.15, 0.5, 0.85].forEach(f => g.add(rbox(bw + 0.01, 0.026, 0.05, 0.006, steelDk, xc, yc, z0 + len * f)));
-          g.add(cyl(0.045, 0.03, dark, xc + s * r * 0.35, yc + r * 0.96, z0 + len * 0.7, 'y', 14));
-          g.add(cyl(0.032, 0.02, std('#2a6fb4', 0.5, 0.1), xc + s * r * 0.35, yc + r * 0.96 + 0.02, z0 + len * 0.7, 'y', 14));
-          g.add(rbox(0.034, 0.05, 0.034, 0.006, zinc, xc, yc - r - 0.014, z1 - 0.05));
-          return;
-        }
-        g.add(rbox(bw, bh, len, 0.03, edge, xc, yc, zc));
-        g.add(rbox(0.026, bh - 0.05, len - 0.07, 0.008, seal, xo + s * 0.004, yc, zc));        /* door seal channel */
-        g.add(rbox(0.012, bh - 0.04, len - 0.06, 0.006, edge, xo + s * 0.01, yc, zc));       /* door skin */
-        g.add(rbox(0.04, 0.05, 0.14, 0.012, dark, xo + s * 0.016, yc, z1 - 0.1));            /* latch */
-        g.add(cyl(0.008, 0.02, lock, xo + s * 0.04, yc, z1 - 0.1, 'x', 10));
-        if (T.boxStyle === 'drop') {
-          [0.1, 0.9].forEach(f => g.add(cyl(0.01, 0.05, zinc, xc, yc - bh / 2 + 0.012, z0 + len * f, 'z', 8)));
-          g.add(rbox(bw * 0.8, 0.012, 0.012, 0.004, zinc, xc, yc - bh / 2 + 0.01, zc));
-        } else if (T.boxStyle === 'swing') {
-          [0.12, 0.88].forEach(f => g.add(rbox(0.014, 0.07, 0.05, 0.006, zinc, xo + s * 0.012, yc + bh / 2 - 0.02, z0 + len * f)));
-          g.add(rbox(0.02, 0.012, len - 0.12, 0.004, edge, xo + s * 0.016, yc + bh / 2 - 0.02, zc));
-        } else if (T.boxStyle === 'deep') {
-          [0.15, 0.85].forEach(f => { g.add(rbox(0.016, 0.07, 0.05, 0.006, zinc, xo + s * 0.012, yc - bh / 2 + 0.02, z0 + len * f)); g.add(cyl(0.012, 0.16, zinc, xo + s * 0.02, yc - bh * 0.2, z0 + len * f, 'y', 8)); });
-          g.add(rbox(0.012, 0.016, len * 0.8, 0.005, steelDk, xo + s * 0.016, yc + bh * 0.2, zc));
-        } else if (T.boxStyle === 'drawer') {
-          const nd = len > 0.9 ? 2 : 1, dl = (len - 0.06) / nd;
-          for (let i = 0; i < nd; i++) { const zd = z0 + 0.03 + dl * (i + 0.5); [yc + bh * 0.2, yc - bh * 0.2].forEach(yy => { g.add(rbox(0.014, bh * 0.36, dl - 0.02, 0.006, steelDk, xo + s * 0.01, yy, zd)); g.add(rbox(0.02, 0.014, dl * 0.5, 0.006, lock, xo + s * 0.026, yy, zd)); }); }
-        }
-      });
-    }
-  }
-  /* ---- mud guards: flaps behind the rear wheels, alloy flares over them, or the full set with a stone guard on the front of each ---- */
-  if (T.guards !== 'none') {
-    const TSg = tyreSpec(T), VGg = vehGeo(), V = VGg.V, ra = VGg.rearAxle * MM, hT = V.track * MM / 2, Rg = TSg.R * MM, Wg = TSg.W * MM, ycg = (V.tyreR - V.deckH - T.lift) * MM;
-    const rub = std('#0d0e10', 0.92, 0), ground = ycg - Rg;
-    [-1, 1].forEach(sd => {
-      const x = sd * hT;
-      if (T.guards !== 'flares') {
-        /* mud flap: rubber sheet on a steel bracket hanging off the tray edge behind the tyre */
-        const fh = Math.max(0.18, -0.08 - ground - 0.1);
-        g.add(rbox(Wg + 0.07, fh, 0.012, 0.004, rub, x, -0.1 - fh / 2, ra + Rg + 0.045));
-        g.add(rbox(Wg + 0.07, 0.03, 0.03, 0.006, steelDk, x, -0.095, ra + Rg + 0.035));
-        g.add(rbox(Wg * 0.55, fh * 0.22, 0.004, 0.002, std('#d8dadc', 0.8, 0), x, -0.1 - fh * 0.78, ra + Rg + 0.052));
-      }
-      if (T.guards !== 'rubber') {
-        /* alloy guard: half a drum round the top of the tyre, built from short checkerplate strips, with a rolled edge each side */
-        const Rf = Rg + 0.04, Mg = new Merge(), n = 30, a0 = 0.12 * Math.PI, a1 = 0.88 * Math.PI;
-        for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * (i + 0.5) / n, ln = (a1 - a0) / n * Rf * 1.25; Mg.box(x, ycg + Math.sin(a) * Rf, ra + Math.cos(a) * Rf, Wg + 0.07, 0.012, ln, Math.PI / 2 - a); }
-        g.add(Mg.mesh(m));
-        const Rl = new Merge();
-        for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; [-1, 1].forEach(e => Rl.box(x + e * (Wg + 0.07) / 2, ycg + Math.sin(a) * Rf, ra + Math.cos(a) * Rf, 0.02, 0.02, 0.03, Math.PI / 2 - a)); }
-        g.add(Rl.mesh(edge));
-        if (T.guards === 'full') g.add(rbox(Wg + 0.04, Rg * 0.9, 0.014, 0.006, m, x, ycg - Rg * 0.02, ra - Rg - 0.05));
-      }
-    });
-  }
+  underBoxes(g, T, M);
+  underGuards(g, T, M);
+  const RB = rearBox(g, T, M);
 
   /* ---- tail lights: eight different designs, each in the chosen colour set (brake, indicator, reverse) ---- */
-  { const L3 = LIGHTS[T.lights] || LIGHTS.red, glow = L3.glow;
+  const lampG = new THREE.Group(); lampG.position.y = RB.yMid + 0.14;
+  { const g = lampG, L3 = LIGHTS[T.lights] || LIGHTS.red, glow = L3.glow;
     const em = c => std(c, 0.3, 0.05, { emissive: new THREE.Color(c), emissiveIntensity: glow });
     const cb = em(L3.c[0]), ca = em(L3.c[1]), cr = em(L3.c[2]), ring = std('#2f3439', 0.4, 0.5), dots2 = std('#2c0a0d', 0.5, 0, {});
-    const z = L / 2 + 0.025, st = LIGHT_STYLES[T.lightStyle] ? T.lightStyle : 'factory';
+    const z = RB.zf + (T.rearStyle === 'flat' ? 0 : 0.008), st = LIGHT_STYLES[T.lightStyle] ? T.lightStyle : 'factory';
     const torus = (R, r, mt, x, y, zz) => { const t = new THREE.Mesh(new THREE.TorusGeometry(R, r, 8, 30), mt); t.position.set(x, y, zz); return t; };
     const D = new Merge();
     const dots = (x, y, zz, nx, ny, pt, sz) => { for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) D.box(x + (i - (nx - 1) / 2) * pt, y + (j - (ny - 1) / 2) * pt, zz, sz, sz, 0.004, 0); };
@@ -2121,6 +2253,14 @@ function buildTray() {
       pod: s => { const y = -0.15, x0 = s * (W / 2 - 0.095); g.add(rbox(0.25, 0.095, 0.036, 0.014, dark, x0 - s * 0.07, y, z - 0.003));
         [ca, cb, cr].forEach((mt, i) => { const xs = x0 - s * 0.078 * i;
           g.add(rbox(0.07, 0.07, 0.016, 0.01, ring, xs, y, z + 0.018)); g.add(rbox(0.06, 0.06, 0.02, 0.01, mt, xs, y, z + 0.02)); dots(xs, y, z + 0.031, 3, 3, 0.016, 0.008); }); },
+      /* a long row of white LEDs with a red end cap, set in a black recess (the fabricated black trays) */
+      ledbar: s => { const xc = s * (W / 2 - 0.2), y = -0.14; g.add(rbox(0.34, 0.075, 0.03, 0.016, dark, xc, y, z - 0.002));
+        g.add(rbox(0.28, 0.034, 0.02, 0.012, cr, xc - s * 0.03, y, z + 0.016)); g.add(rbox(0.062, 0.04, 0.022, 0.012, cb, xc + s * 0.123, y, z + 0.017)); g.add(rbox(0.024, 0.026, 0.022, 0.008, ca, xc - s * 0.158, y, z + 0.017));
+        dots(xc - s * 0.03, y, z + 0.028, 12, 1, 0.022, 0.011); },
+      /* one rectangular lamp: red stop above, a row of white LEDs below, amber at the outer end */
+      combo: s => { const xc = s * (W / 2 - 0.12), y = -0.14; g.add(rbox(0.23, 0.12, 0.034, 0.014, dark, xc, y, z - 0.002));
+        g.add(rbox(0.2, 0.05, 0.022, 0.01, cb, xc, y + 0.026, z + 0.016)); g.add(rbox(0.2, 0.038, 0.022, 0.01, cr, xc, y - 0.032, z + 0.016)); g.add(rbox(0.036, 0.09, 0.024, 0.01, ca, xc + s * 0.088, y - 0.002, z + 0.017));
+        dots(xc, y + 0.026, z + 0.028, 8, 2, 0.022, 0.008); dots(xc, y - 0.032, z + 0.028, 8, 1, 0.022, 0.008); },
       strip: s => { const x0 = 0.24, x1 = W / 2 - 0.035, len = x1 - x0, xc = s * (x0 + x1) / 2, y = -0.12; g.add(rbox(len, 0.06, 0.035, 0.014, dark, xc, y, z - 0.003));
         g.add(rbox(len - 0.012, 0.026, 0.02, 0.01, cb, xc, y, z + 0.018)); g.add(rbox(0.13, 0.026, 0.022, 0.01, ca, s * (x1 - 0.071), y, z + 0.019)); g.add(rbox(0.09, 0.026, 0.022, 0.01, cr, s * (x0 + 0.051), y, z + 0.019));
         dots(xc, y, z + 0.03, Math.floor(len / 0.022), 1, 0.022, 0.009); },
@@ -2129,6 +2269,7 @@ function buildTray() {
         dots(xc - s * 0.04, y, z + 0.03, 12, 1, 0.022, 0.009); g.add(rbox(0.04, 0.014, 0.012, 0.005, cr, xc - s * 0.17, y - 0.026, z + 0.021)); }
     };
     [-1, 1].forEach(styles[st]); g.add(D.mesh(dots2)); }
+  g.add(lampG);
   const plate = (y, z) => {
     g.add(rbox(0.38, 0.14, 0.015, 0.006, std('#f1efe6', 0.6, 0), 0, y, z));
     g.add(rbox(0.38, 0.03, 0.017, 0.006, std('#2a4d8c', 0.6, 0), 0, y + 0.055, z));
@@ -2139,8 +2280,14 @@ function buildTray() {
     g.add(cyl(0.03, 0.55, dk, 0, -0.1, L / 2 + 0.415, 'y', 10));
     const wg = spareMount(g, 0, -0.1, L / 2 + 0.445);
     plate(-0.3, wg.position.z + spW() / 2 + 0.016);
-  } else {
+  } else if (T.rearStyle === 'flat') {
     plate(-0.16, L / 2 + 0.012);
+  } else plate(RB.yMid, RB.zf + 0.022);
+  if (T.spare === 'deck') {
+    /* two spares standing on the deck behind the canopy, facing the back, each in a cradle */
+    const R = spR(), Wd = spW(), zEdge = G.none ? -L / 2 + 0.25 : G.outer.z1 * MM, zc = Math.min(zB - Wd / 2 - 0.03, Math.max(zEdge + Wd / 2 + 0.05, -L / 2 + Wd / 2 + 0.3)), dk = std('#1f2226', 0.6, 0.2);
+    [-1, 1].forEach(sd => { const wg = wheelGroup(R, Wd, std); wg.rotation.y = -Math.PI / 2; wg.position.set(sd * (R + 0.02), R + 0.012, zc); g.add(wg);
+      g.add(rbox(0.22, 0.05, Wd + 0.04, 0.014, dk, sd * (R + 0.02), 0.025, zc)); g.add(rbox(0.05, R * 0.9, 0.04, 0.012, dk, sd * (R + 0.02), R * 0.5, zc - Wd / 2 - 0.03)); });
   }
   if (T.spare === 'under') {
     /* hung flat under the chassis behind the rear axle, lug nuts facing the ground */
@@ -4221,6 +4368,11 @@ const STEPS = ['Tray', 'Canopy', 'Fit-out', 'Wiring', 'Load'];
 let cat = 'all', codeMsg = '', codeCls = '', resetArmed = false, seeded = false;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const getP = path => path.split('.').reduce((o, k) => o[k], state);
+/* a slider whose shown value is given (for options that default to something else when unset) */
+function rngv(path, label, min, max, step, val) {
+  return field(label, '<div class="rng"><input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '" data-rng="' + path + '" aria-label="' + label + '">' +
+    '<div class="num"><input type="number" inputmode="numeric" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '" data-num="' + path + '" aria-label="' + label + ' in millimetres"><span>mm</span></div></div>');
+}
 function setP(path, val) {
   const ks = path.split('.'), last = ks.pop();
   ks.reduce((o, k) => o[k], state)[last] = val;
@@ -4314,6 +4466,8 @@ const ICON_LIGHT = {
   slim: svgS('0 0 40 40', '<rect x="5" y="9" width="30" height="5" rx="2"/><rect x="5" y="17.5" width="30" height="5" rx="2"/><rect x="5" y="26" width="30" height="5" rx="2"/>'),
   pod: svgS('0 0 40 40', '<rect x="2" y="11" width="36" height="18" rx="3" opacity=".5"/><rect x="5" y="14" width="9" height="12" rx="1.5"/><rect x="15.5" y="14" width="9" height="12" rx="1.5"/><rect x="26" y="14" width="9" height="12" rx="1.5"/>'),
   strip: svgS('0 0 40 40', '<rect x="2" y="16" width="36" height="7" rx="3.5"/><path d="M9 16v7M30 16v7" opacity=".6"/>'),
+  ledbar: svgS('0 0 40 40', '<rect x="2" y="13" width="36" height="14" rx="3" opacity=".5"/><rect x="5" y="17" width="23" height="6" rx="2"/><rect x="30" y="16" width="5" height="8" rx="2"/>'),
+  combo: svgS('0 0 40 40', '<rect x="5" y="9" width="30" height="22" rx="3" opacity=".5"/><rect x="8" y="12" width="22" height="8" rx="2"/><rect x="8" y="22" width="22" height="6" rx="2"/><rect x="31" y="12" width="2.5" height="16" rx="1"/>'),
   bar: svgS('0 0 40 40', '<rect x="4" y="14" width="32" height="12" rx="3" opacity=".5"/><rect x="7" y="17.5" width="20" height="5" rx="2"/><rect x="29" y="17.5" width="5" height="5" rx="2"/>')
 };
 /* a row of picture cards. opts: [value, name, sub, icon, disabledReason] */
@@ -4354,11 +4508,13 @@ function panelTray() {
       '<div class="sec"><h3>Tail lamps</h3><p class="note">Factory lamps on the rear pillars, as fitted to this ute.</p>' + field('Lens colour', seg('tray.lights', OPT.lights.map(k => [k, LIGHTS[k].name]))) + '</div>' +
       '<div class="sec"><h3>Spare wheel</h3>' + field('Where', picker('tray.spare', ['none', 'carrier', 'under'].map(k => [k, SPARE[k].name, ({ none: 'No spare carried', carrier: 'Swing-away carrier on the tow bar', under: 'Hung under the chassis' })[k], '']))) + '</div>' + nextRow(null, 1);
   }
-  const hasHead = T.head !== 'none';
-  const hp = headProfile(T);
-  const headShapes = picker('tray.headShape', [['angled', 'Angled', 'Leans in to match the cab', ICON_HEAD.angled], ['square', 'Square', 'The old style, straight up', ICON_HEAD.square], ['custom', 'Custom', 'Your own dimensions', ICON_HEAD.custom]]);
+  const hasHead = T.head !== 'none', full = T.head === 'full', hp = headProfile(T), sided = hasSides(T), BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop;
+  const headShapes = picker('tray.headShape', [['match', 'Match canopy', hasC ? 'Follows the canopy profile exactly' : 'Follows the canopy once one is fitted', ICON_HEAD.angled], ['angled', 'Angled', 'Leans in to match the cab', ICON_HEAD.angled], ['square', 'Square', 'The old style, straight up', ICON_HEAD.square], ['custom', 'Custom', 'Your own dimensions', ICON_HEAD.custom]]);
   const lights = picker('tray.lightStyle', OPT.lightStyle.map(k => [k, LIGHT_STYLES[k].name, LIGHT_STYLES[k].sub, ICON_LIGHT[k]]));
+  const presetCards = '<div class="chips">' + Object.keys(TRAY_PRESETS).map(k => '<button type="button" class="chip" data-act="trayPreset" data-k="' + k + '"><b>' + esc(TRAY_PRESETS[k].name) + '</b><span>' + esc(TRAY_PRESETS[k].sub) + '</span></button>').join('') + '</div>';
+  const opts = (path, map) => seg(path, Object.keys(map).map(k => [k, map[k]]));
   return h +
+    '<div class="sec"><h3>Start from a look</h3><p class="note">One tap sets the whole tray, then change anything you like below.</p>' + presetCards + '</div>' +
     '<div class="sec"><h3>Size</h3><p class="note">Any tray fits any cab. These set the size only.</p><div class="chips">' + presets + '</div>' +
     rng('tray.len', 'Length', 1400, 3000, 1) + rng('tray.wid', 'Width', 1500, 2100, 1) + '<p class="note" id="trayNote">' + trayNote() + '</p></div>' +
     '<div class="sec"><h3>Build</h3>' +
@@ -4366,22 +4522,28 @@ function panelTray() {
     field('Deck', seg('tray.finish', [['smooth', 'Smooth'], ['checker', 'Checkerplate']])) +
     field('Colour', swatchTray('tray.colour')) +
     (T.design === 'flat' ? field('Drop sides behind canopy', seg('tray.sides', [['none', 'None'], ['drop', 'Drop sides']])) : '') +
-    '</div>' +
-    '<div class="sec"><h3>Under the tray</h3>' +
-    field('Toolboxes', seg('tray.boxes', [['none', 'None'], ['left', 'Left'], ['right', 'Right'], ['both', 'Both']])) +
-    (T.boxes !== 'none' ? field('Box style', picker('tray.boxStyle', Object.keys(BOX_STYLES).map(k => [k, BOX_STYLES[k].name, BOX_STYLES[k].sub, '']))) : '') +
-    field('Mud guards', picker('tray.guards', Object.keys(GUARDS).map(k => [k, GUARDS[k].name, GUARDS[k].sub, '']))) + '</div>' +
-    '<div class="sec"><h3>Spare wheels</h3>' +
-    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', carrier: 'Swing-away carrier behind the tray', under: 'Hung under the tray' })[k], '']))) +
-    (spareNote ? '<p class="note">' + spareNote + '</p>' : '') +
-    (!FEATURES.vehicles && T.spare !== 'none' ? field('Tyre', picker('tray.tyre', Object.keys(TYRES).map(k => [k, TYRES[k].name, TYRES[k].sub, '']))) + field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) + '<p class="note">' + tyreSpec(T).label + ' tyre, ' + tyreSpec(T).R * 2 + ' mm tall.</p>' : '') + '</div>' +
+    rng('tray.skirt', 'Deck edge depth', 75, 220, 5) + '<p class="note">How deep the turned-down edge under the deck is. Deeper edges give the fabricated look and more room for toolboxes.</p></div>' +
     '<div class="sec"><h3>Headboard</h3>' +
     field('Size', seg('tray.head', [['none', 'None'], ['half', 'Half'], ['full', 'Full rack']])) +
     (hasHead ? field('Shape', headShapes) +
       (T.headShape === 'custom' ? '<p class="note">Measured up the board from the deck: first to the bend, then on to the top. The top steps in by the third figure on each side.</p>' +
         rng('tray.hbBend', 'Bottom to the bend', 100, 800, 1) + rng('tray.hbTop', 'Bend to the top', 0, 1000, 1) + rng('tray.hbIn', 'Top steps in each side', 0, 400, 1) +
-        '<p class="note">Headboard is ' + hp.h + ' mm tall in all.</p>' : '<p class="note">' + (T.headShape === 'square' ? 'Straight up, like older utes.' : 'Bend at ' + hp.bend + ' mm, top ' + hp.inset + ' mm in each side.') + ' Pick Custom to change it.</p>') : '') + '</div>' +
-    '<div class="sec"><h3>Tail lights</h3>' + field('Style', lights) + field('Colour', seg('tray.lights', OPT.lights.map(k => [k, LIGHTS[k].name]))) + '</div>' +
+        '<p class="note">Headboard is ' + hp.h + ' mm tall in all.</p>' : '<p class="note">' + (T.headShape === 'square' ? 'Straight up, like older utes.' : T.headShape === 'match' && hasC ? 'Following the canopy: straight to ' + hp.bend + ' mm, then angled in ' + (hp.inset - hp.bi) + ' mm to match its sides' + (hp.bi ? ', and ' + hp.bi + ' mm narrower each side to sit under it' : '') + '.' : 'Bend at ' + hp.bend + ' mm, top ' + hp.inset + ' mm in each side.') + '</p>') +
+      (full ? field('Style', opts('tray.hbStyle', HB_STYLES)) : '') + field('Colour', opts('tray.hbColour', HB_COLOURS)) : '') + '</div>' +
+    (sided ? '<div class="sec"><h3>Sides</h3>' + (T.design !== 'rail' ? field('Surface', opts('tray.sideStyle', SIDE_STYLES)) + field('Latches', opts('tray.latch', LATCHES)) + tog('tray.stays', 'Vertical stay straps on the sides') + tog('tray.rail', 'Tube rail under each side') : '') +
+      rngv('tray.sideH', 'Side height', 120, 600, 5, sideHeight(T)) + '</div>' : '') +
+    '<div class="sec"><h3>Rear</h3>' + field('Rear', opts('tray.rearStyle', REAR_STYLES)) +
+    (T.rearStyle !== 'flat' ? rng('tray.rearH', 'Rear box depth', 100, 320, 5) + '<p class="note">The lamps and the number plate sit in the rear box. It carries two round locks and recessed lamp pockets.</p>' : '') +
+    field('Tail lights', lights) + field('Lens colour', seg('tray.lights', OPT.lights.map(k => [k, LIGHTS[k].name]))) + '</div>' +
+    '<div class="sec"><h3>Under the tray</h3>' +
+    field('Toolboxes', seg('tray.boxes', [['none', 'None'], ['left', 'Left'], ['right', 'Right'], ['both', 'Both']])) +
+    (T.boxes !== 'none' ? field('Box style', picker('tray.boxStyle', Object.keys(BOX_STYLES).map(k => [k, BOX_STYLES[k].name, BOX_STYLES[k].sub, '']))) + rngv('tray.boxH', 'Box height', 150, 450, 5, T.boxH > 0 ? T.boxH : BS.h) + field('Lock', opts('tray.boxLock', BOX_LOCKS)) : '') +
+    field('Wheel guards', picker('tray.guards', Object.keys(GUARDS).map(k => [k, GUARDS[k].name, GUARDS[k].sub, '']))) +
+    (!FEATURES.vehicles && (T.boxes !== 'none' || T.guards !== 'none') ? '<p class="note">Boxes and guards are cut round the wheel arch. Set where your rear wheel sits and how big the arch is.</p>' + rng('tray.archAt', 'Wheel centre from the front', 200, Math.max(300, T.len - 200), 5) + rng('tray.archR', 'Arch radius', 330, 560, 5) : '') + '</div>' +
+    '<div class="sec"><h3>Spare wheels</h3>' +
+    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', deck: 'Two standing on the deck', carrier: 'Swing-away carrier behind the tray', under: 'Hung under the tray' })[k], '']))) +
+    (spareNote ? '<p class="note">' + spareNote + '</p>' : '') +
+    (!FEATURES.vehicles && T.spare !== 'none' ? field('Tyre', picker('tray.tyre', Object.keys(TYRES).map(k => [k, TYRES[k].name, TYRES[k].sub, '']))) + field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) + '<p class="note">' + tyreSpec(T).label + ' tyre, ' + tyreSpec(T).R * 2 + ' mm tall.</p>' : '') + '</div>' +
     nextRow(null, 1);
 }
 /* colour choice stored as a hex: preset swatches plus a custom picker */
@@ -5271,10 +5433,20 @@ function applyChange(path, val) {
   uiLive();
 }
 /* Picking a tray fits it at the stock size for this cab, and brings the camera round to the back so the new tray is in view. */
+/* apply a whole-tray look in one go */
+function applyTrayPreset(k) {
+  const pr = TRAY_PRESETS[k], T = state.tray;
+  if (!pr) return;
+  bp.needFit = true;
+  Object.keys(pr.set).forEach(f => { T[f] = pr.set[f]; });
+  clampState(); queueRebuild(['v', 't', 'c']); scheduleSave(); renderPanel(); uiLive();
+  if (renderer) camPreset('home');
+}
 function chooseTray(k) {
   const T = state.tray, was = T.design;
   if ((k === 'none' || k === 'tub') && state.canopy.shape !== 'none') return;
   applyChange('tray.design', k);
+  if (TRAYS[k] && TRAYS[k].side) applyChange('tray.sideH', TRAYS[k].side);
   if (k === 'tub') applyChange('tray.head', 'none');
   else if (was === 'tub') applyChange('tray.head', 'full');
   if (was === 'none' && k !== 'none') { const st = stockTray(T.veh, T.cab); if (st && k !== 'tub') { applyChange('tray.len', st.len); applyChange('tray.wid', st.wid); } if (renderer) camPreset('home'); }
@@ -5454,6 +5626,7 @@ document.addEventListener('click', e => {
       } else setMsg('That code could not be read.', 'bad');
       break;
     }
+    case 'trayPreset': applyTrayPreset(ds.k); break;
     case 'photo': setPhoto(ds.off ? false : !state.photo); break;
     case 'savephoto': savePhoto(); break;
     case 'sharephoto': sharePhoto(); break;

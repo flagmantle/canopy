@@ -65,7 +65,7 @@ TEST = r"""
     run('floor ' + [fm, t, fin].join('/'), () => { buildCanopy(); panelCanopy(); partsList(); weights(); layout(); });
   }
   C.floor = false; C.floorMat = 'ply'; clampState();
-  run('defaults', () => { const d = defaultState(); if (d.tray.head !== 'full' || d.tray.headShape !== 'angled') throw new Error('default headboard is not tall angled'); });
+  run('defaults', () => { const d = defaultState(); if (d.tray.head !== 'full' || d.tray.headShape !== 'match') throw new Error('default headboard is not the tall canopy-matching one'); });
   run('legacy light', () => { const o = JSON.parse(atob(exportCode())); o.tray.lightStyle = 'vbar'; if (!importCode(btoa(JSON.stringify(o))) || state.tray.lightStyle !== 'bar') throw new Error('light migration: ' + state.tray.lightStyle); });
   T.veh = 'hilux'; clampState();
   // factory tubs on every ute, both levels of detail (an earlier import replaced the state objects, so read them again)
@@ -85,11 +85,34 @@ TEST = r"""
   run('legacy code', () => { const o = { v: 1, paint: 'silver', tray: { veh: 'hilux', cab: 'dual', spare: 'none', len: 1826, wid: 1850, mat: 'steel', finish: 'checker', colour: 'black', head: 'full', sides: 'none', boxes: 'none', lights: 'red' }, canopy: { len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'checker', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: false }, payload: 1000, items: [], wires: [] };
     const ok = importCode(btoa(JSON.stringify(o))); if (!ok) throw new Error('import failed'); if (state.tray.design !== 'flat' || state.tray.headShape !== 'square' || state.canopy.shape !== 'square') throw new Error('legacy migration wrong: ' + state.tray.design + state.tray.headShape + state.canopy.shape); });
   run('roundtrip', () => { const c = exportCode(); importCode(c); if (exportCode() !== c) throw new Error('roundtrip differs'); });
+  // custom tray options: presets, headboard styles that follow the canopy, sides, arch-following boxes, guards, rear boxes, lights
+  FEATURES.vehicles = false;
+  { const A = state.tray, B = state.canopy;
+    for (const k of Object.keys(TRAY_PRESETS)) for (const cs of ['none', 'aframe', 'square', 'custom']) {
+      Object.assign(A, TRAY_PRESETS[k].set); B.shape = cs; clampState();
+      run('preset ' + k + '/' + cs, () => { buildTray(); buildCanopy(); buildStands(); panelTray(); panelCanopy(); partsList(); weights(); loadCheck(); layout(); applyTrayPreset(k); });
+    }
+    for (const hs of ['match', 'angled', 'square', 'custom']) for (const st of Object.keys(HB_STYLES)) for (const cs of ['none', 'aframe', 'custom']) for (const hd of ['half', 'full']) {
+      Object.assign(A, TRAY_PRESETS.factory.set); A.headShape = hs; A.hbStyle = st; A.head = hd; A.hbColour = ['match', 'black', 'white', 'alu'][(n++) % 4]; B.shape = cs; clampState();
+      run('head ' + [hs, st, cs, hd].join('/'), () => { buildTray(); const hp = headProfile(A); if (hs === 'match' && cs !== 'none' && hp && hp.inset < hp.bi) throw new Error('match profile wrong'); panelTray(); });
+    }
+    for (const bs of Object.keys(BOX_STYLES)) for (const gd of Object.keys(GUARDS)) for (const rs of Object.keys(REAR_STYLES)) for (const sp of Object.keys(SPARE)) {
+      Object.assign(A, TRAY_PRESETS.blackdeck.set); A.boxStyle = bs; A.guards = gd; A.rearStyle = rs; A.spare = sp; A.boxes = ['both', 'left', 'right'][(n++) % 3]; A.boxH = (n % 2) ? 0 : 420; A.archAt = [250, 700, 1500][n % 3]; A.archR = [330, 480, 560][n % 3]; B.shape = ['none', 'aframe'][n % 2]; clampState();
+      run('under ' + [bs, gd, rs, sp].join('/'), () => { buildTray(); panelTray(); partsList(); weights(); });
+    }
+    for (const ss of Object.keys(SIDE_STYLES)) for (const lt of Object.keys(LATCHES)) for (const ds of ['factory', 'dropside', 'rail', 'flat']) for (const ls of Object.keys(LIGHT_STYLES)) {
+      Object.assign(A, TRAY_PRESETS.pressed.set); A.design = ds; A.sideStyle = ss; A.latch = lt; A.lightStyle = ls; A.stays = (n++) % 2 === 0; A.rail = (n % 3) === 0; A.sideH = [0, 150, 600][n % 3]; A.rearStyle = Object.keys(REAR_STYLES)[n % 3]; B.shape = 'none'; clampState();
+      run('sides ' + [ss, lt, ds, ls].join('/'), () => { buildTray(); panelTray(); partsList(); });
+    }
+    run('headProfile match widths', () => { Object.assign(A, TRAY_PRESETS.factory.set); A.headShape = 'match'; A.wid = 1900; B.shape = 'aframe'; B.wid = 1700; clampState(); const hp = headProfile(A); if (hp.bi !== 100) throw new Error('canopy narrower than tray should inset the headboard by 100, got ' + hp.bi); });
+    run('share code round trip', () => { Object.assign(A, TRAY_PRESETS.pressed.set); clampState(); const c = exportCode(); importCode(c); if (exportCode() !== c) throw new Error('round trip differs'); if (state.tray.hbStyle !== 'hex' || !state.tray.stays) throw new Error('new options lost'); });
+  }
+  FEATURES.vehicles = true;
   // vehicles switched off: the tray stands on trestles and the tools work on the canopy set-up alone
   FEATURES.vehicles = false;
   { const S2 = state.tray, K2 = state.canopy;
-    S2.design = 'tub'; S2.lift = 80; S2.bodyLift = 25; S2.guards = 'flares'; S2.veh = 'colorado'; clampState();
-    if (S2.design !== 'factory' || S2.lift || S2.bodyLift || S2.guards !== 'none' || S2.veh !== VEH_DEFAULT) errs.push('vehicles-off rules not enforced');
+    S2.design = 'tub'; S2.lift = 80; S2.bodyLift = 25; S2.veh = 'colorado'; clampState();
+    if (S2.design !== 'factory' || S2.lift || S2.bodyLift || S2.veh !== VEH_DEFAULT) errs.push('vehicles-off rules not enforced');
     for (const d of ['factory', 'dropside', 'rail', 'flat']) for (const cs of ['none', 'aframe', 'square', 'custom']) for (const sp of ['none', 'door', 'door2', 'carrier', 'under']) {
       S2.design = d; K2.shape = cs; S2.spare = sp; S2.boxes = 'both'; clampState();
       run('off ' + [d, cs, sp].join('/'), () => { buildStands(); buildTray(); buildCanopy(); panelTray(); panelCanopy(); panelLoad(); panelFit(); updateHud(); loadCheck(); partsList(); layout(); });
