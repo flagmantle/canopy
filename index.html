@@ -266,7 +266,7 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
     <div class="ov ov-tl" id="tbar">
       <button class="tbtog" data-act="tbtog" id="tbTog" aria-expanded="false" aria-controls="tbar" aria-label="View options">View ▾</button>
       <div class="grp" role="group" aria-label="View">
-        <button data-act="view" data-v="solid">Solid</button><button class="xb" data-act="view" data-v="xray">X-ray</button><button data-act="bp" id="bpBtn">Blueprint</button><button data-act="car" id="carBtn" aria-pressed="false">Hide ute</button>
+        <button data-act="view" data-v="solid">Solid</button><button class="xb" data-act="view" data-v="xray">X-ray</button><button data-act="bp" id="bpBtn">Blueprint</button><button data-act="car" id="carBtn" aria-pressed="false">Stand canopy alone</button>
       </div>
       <div class="grp no-bp" role="group" aria-label="Doors">
         <button data-act="doors" id="doorsBtn">Open doors</button>
@@ -1225,10 +1225,10 @@ function partsList() {
   const nm = d => (BRANDS[d.brand].name ? BRANDS[d.brand].name + ' ' : '') + d.name;
   const mat = m => m === 'alu' ? 'aluminium' : 'steel', fin = f => f === 'checker' ? 'checker plate' : 'smooth';
   { const ts = tyreSpec(T), vr = [[V.name + ' ' + CABS[T.cab].name.toLowerCase(), 'wheelbase ' + V.wb + ' mm, payload ' + state.payload + ' kg', 1, '']];
-    vr.push([TYRES[T.tyre].name + ' ' + ts.label, TYRES[T.tyre].sub, 4 + (T.spare === 'none' ? 0 : T.spare === 'door2' ? 2 : 1), '']);
+    vr.push([TYRES[T.tyre].name + ' ' + ts.label, TYRES[T.tyre].sub, (FEATURES.vehicles ? 4 : 0) + (T.spare === 'none' ? 0 : T.spare === 'door2' ? 2 : 1), '']);
     if (T.lift) vr.push(['Suspension lift kit, ' + T.lift + ' mm', 'springs, shocks and bump stops', 1, '']);
     if (T.bodyLift) vr.push(['Body lift, ' + (T.bodyLift === 25 ? '1 inch (25 mm)' : '2 inch (50 mm)'), 'cab mounts blocks', 1, '']);
-    S.push({ h: 'Vehicle', rows: vr }); }
+    if (FEATURES.vehicles) S.push({ h: 'Vehicle', rows: vr }); else if (T.spare !== 'none') S.push({ h: 'Spare wheels', rows: vr.slice(1) }); }
   const hasT = T.design !== 'none', hasC = C.shape !== 'none';
   if (hasT) {
     const tr = [[TRAYS[T.design].name + ' tray, ' + mat(T.mat) + ' ' + fin(T.finish) + ', ' + COLOURS[T.colour].name.toLowerCase(), T.len + ' × ' + T.wid + ' mm', 1, w.tray]];
@@ -4244,6 +4244,7 @@ const swatchTray = path => swatches(path, OPT.colour, k => colHex(k, path.indexO
 /* ---------- Panels ---------- */
 /* any tray goes on any cab: say so when it is not the stock size for this cab, and how far it hangs out the back */
 function trayNote() {
+  if (!FEATURES.vehicles) return 'Any size from 1400 to 3000 mm long and 1500 to 2100 mm wide.';
   const T = state.tray, st = stockTray(T.veh, T.cab), ro = rearOverhang();
   return (st && T.len !== st.len ? 'Stock ' + CABS[T.cab].name.toLowerCase() + ' tray is ' + st.len + ' mm; yours is ' + Math.abs(T.len - st.len) + ' mm ' + (T.len > st.len ? 'longer' : 'shorter') + '. ' : '') +
     'Hangs ' + ro.mm + ' mm past the rear axle' + (ro.mm > ro.max ? ', <b style="color:var(--warn)">over the usual ' + ro.max + ' mm limit</b> (60% of wheelbase)' : ' (limit about ' + ro.max + ' mm)') + '.';
@@ -5162,7 +5163,7 @@ function updateHud() {
   const L = loadCheck(), pay = state.payload, C = state.canopy;
   const pct = L.add / pay * 100, cls = pct > 100 || L.issues.some(i => i[0] === 'bad') ? 'bad' : pct > 90 ? 'warn' : '';
   hudEl.innerHTML = '<div class="l1"><span>Load</span><span>' + L.add + ' / ' + pay + ' kg</span></div><div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, pct) + '%"></i></div>' +
-    '<div class="l2">' + (C.shape === 'none' ? (state.tray.design === 'none' ? 'Bare chassis' : TRAYS[state.tray.design].name + ' tray, no canopy') : (C.shape === 'square' ? 'Square canopy ' : 'A-frame canopy ') + C.len + ' × ' + C.wid + ' × ' + C.hgt + ' mm') + '</div>';
+    '<div class="l2">' + (C.shape === 'none' ? (state.tray.design === 'none' ? 'No tray yet' : TRAYS[state.tray.design].name + ' tray, no canopy') : (C.shape === 'square' ? 'Square canopy ' : 'A-frame canopy ') + C.len + ' × ' + C.wid + ' × ' + C.hgt + ' mm') + '</div>';
   /* header figures, like a fleet dashboard's stat strip */
   const st = document.getElementById('stats');
   if (st) {
@@ -5328,7 +5329,7 @@ function dupSel() {
   /* the copy keeps the original's orientation when it still finds a clear spot that way */
   if (n && n !== it && !isUpright(it)) { n.rot = it.rot; n.rx = it.rx; n.rz = it.rz; clampToArea(n); afterItemEdit(); }
 }
-function carBtnSync() { const b = $('#carBtn'); if (b) { b.disabled = state.canopy.shape === 'none'; b.title = b.disabled ? 'Fit a canopy first: it needs to stand on its own' : ''; b.textContent = state.carOff ? 'Show ute' : 'Hide ute'; b.setAttribute('aria-pressed', state.carOff ? 'true' : 'false'); b.classList.toggle('on', state.carOff); } }
+function carBtnSync() { const b = $('#carBtn'); if (b) { b.disabled = state.canopy.shape === 'none'; b.title = b.disabled ? 'Fit a canopy first: it needs to stand on its own' : ''; b.textContent = FEATURES.vehicles ? (state.carOff ? 'Show ute' : 'Hide ute') : (state.carOff ? 'Back on the tray' : 'Stand canopy alone'); b.setAttribute('aria-pressed', state.carOff ? 'true' : 'false'); b.classList.toggle('on', state.carOff); } }
 function goStep(i) {
   const was = state.step;
   state.step = i;
