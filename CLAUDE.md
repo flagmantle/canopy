@@ -116,3 +116,8 @@ It cannot check how anything *looks*. To render for real offline, `npm pack thre
 - **Spares:** tray panel only offers `none | under`. Other positions are Fit-out items (`spareroof`, `spareflat`, `sparedeck`, `sparerear` with `mount: 'rear'`).
 - **Jack-off:** `jackHole` choice; two receiver holes per corner 200 mm apart, legs stand 260 mm out.
 - **Spec/cost/power/guide** (PC Building Simulator ideas): `PRICES`, `priceOf`, `buildCost`, `powerBudget`, `buildGuide`, `specCard()`, `costSection/powerSection/guideSection`.
+
+## Workshop overhaul and photo-mode setting
+
+- `buildShed()` is a full rebuild: epoxy floor with fleck/bump textures, saw-cut joints, yellow bay and hazard lines, oil and tyre marks; blockwork + Colorbond walls with gable ends; pitched roof on I-beam portal frames, purlins, foil-lined sheeting, skylights, high-bay and batten lights; roller doors with a yard view; pallet racking, hoist, benches, shadow board, roll cabinets, compressor, welder cart, drums, tyres, signs. Textures are canvas-generated via `PM(colour, bump, rx, ry, params)`. Avoid bump maps on high-frequency ribs (they moire at distance).
+- `photoEnv` (`'outdoor' | 'workshop'`, saved in localStorage `canopy-photo-env`) is switched by `setPhotoEnv()` / `applyPhotoEnv()`: Outdoors/Workshop buttons in the photo bar and in the Share render dialog. Workshop photo keeps the shed and its lights and uses filmic tone mapping; `renderGrid` jitters the key light and adds a warm overhead sky light for soft shadows. `sunLight` is null until outdoors has been built; guard it.
