@@ -301,6 +301,8 @@ textarea#code{width:100%;min-height:84px;resize:vertical;padding:9px;border:1px 
 /*LOGIC-START*/
 /* ---------- Catalogue: swap brand names here when sponsors sign on ---------- */
 const MM = 0.001, HB_T = 40, WALL_T = 30, ROOF_T = 40;
+/* Vehicles are switched off for now: the tray and canopy stand on trestles and the tools work on the canopy set-up alone. All the ute code and data stay in the file, so flipping this back on restores them. */
+const FEATURES = { vehicles: false };
 
 const BRANDS = {
   bra:    { name: 'BRA',     real: 'ARB' },
@@ -669,7 +671,7 @@ const OPT = {
 function defaultState() {
   return {
     step: 0, paint: 'silver',
-    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: 'none', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'none', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
+    tray: { veh: VEH_DEFAULT, cab: 'dual', spare: 'none', len: 1826, wid: 1850, design: FEATURES.vehicles ? 'none' : 'factory', mat: 'alu', finish: 'smooth', colour: 'raw', head: 'full', headShape: 'angled', hbBend: 210, hbTop: 170, hbIn: 115, sides: 'none', boxes: 'none', boxStyle: 'drop', guards: 'none', lights: 'red', lightStyle: 'factory', tyre: 'at', tyreSize: 'std', lift: 0, bodyLift: 0 },
     canopy: { shape: 'none', bend: 600, rise: 550, inset: 250, len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'smooth', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: 'none', jack: false, floor: false, beam: 40, floorMat: 'ply', plyT: 12, aluT: 3, floorFin: 'checker', ply: '#cfa972', carpet: 'none', carpetCol: '#34373b' },
     photo: false, items: [], nextId: 1, payload: vehPayload(VEH_DEFAULT, 'dual'), payloadCustom: false, people: 2, carOff: false, wires: [], nextWire: 1, view: 'solid', open: false, sel: null
   };
@@ -684,6 +686,7 @@ function clampState() {
   if (V.cabs.indexOf(T.cab) < 0) T.cab = V.cabs.indexOf('dual') >= 0 ? 'dual' : V.cabs[0];
   if (!SPARE[T.spare]) T.spare = 'none';
   if (OPT.design.indexOf(T.design) < 0) T.design = 'none';
+  if (!FEATURES.vehicles) { T.veh = VEH_DEFAULT; T.lift = 0; T.bodyLift = 0; T.guards = 'none'; state.people = 0; if (T.design === 'tub') T.design = 'factory'; }
   if (OPT.headShape.indexOf(T.headShape) < 0) T.headShape = 'angled';
   if (OPT.lightStyle.indexOf(T.lightStyle) < 0) T.lightStyle = LIGHT_LEGACY[T.lightStyle] || 'factory';
   if (!TYRES[T.tyre]) T.tyre = 'at';
@@ -1197,16 +1200,16 @@ function loadCheck() {
   const pay = state.payload, gvm = kerb + pay, out = [];
   if (add > pay) out.push(['bad', 'Over payload by ' + Math.round(add - pay) + ' kg.']);
   else if (add > pay * 0.9) out.push(['warn', 'Within ' + Math.round(pay - add) + ' kg of payload. Water, fuel and food add up fast.']);
-  { const o = rearOverhang(); if (T.design !== 'none' && o.mm > o.max) out.push(['warn', 'The tray hangs ' + o.mm + ' mm past the rear axle, over the usual limit of ' + o.max + ' mm (60% of the ' + o.wb + ' mm wheelbase). Check with your state before you build it.']); }
-  if (R > V.ral) out.push(['bad', 'Rear axle over its limit by about ' + Math.round(R - V.ral) + ' kg. Move weight forward or shed some.']);
-  else if (R > V.ral * 0.92) out.push(['warn', 'Rear axle near its limit (' + Math.round(R / V.ral * 100) + '%).']);
-  if (F > V.fal) out.push(['bad', 'Front axle over its limit by about ' + Math.round(F - V.fal) + ' kg.']);
-  if (F < kerb * V.kf * 0.92) out.push(['warn', 'Weight behind the rear axle is lifting the front by about ' + Math.round(kerb * V.kf - F) + ' kg. Steering and braking get lighter.']);
+  if (FEATURES.vehicles) { const o = rearOverhang(); if (T.design !== 'none' && o.mm > o.max) out.push(['warn', 'The tray hangs ' + o.mm + ' mm past the rear axle, over the usual limit of ' + o.max + ' mm (60% of the ' + o.wb + ' mm wheelbase). Check with your state before you build it.']); }
+  if (FEATURES.vehicles && R > V.ral) out.push(['bad', 'Rear axle over its limit by about ' + Math.round(R - V.ral) + ' kg. Move weight forward or shed some.']);
+  else if (FEATURES.vehicles && R > V.ral * 0.92) out.push(['warn', 'Rear axle near its limit (' + Math.round(R / V.ral * 100) + '%).']);
+  if (FEATURES.vehicles && F > V.fal) out.push(['bad', 'Front axle over its limit by about ' + Math.round(F - V.fal) + ' kg.']);
+  if (FEATURES.vehicles && F < kerb * V.kf * 0.92) out.push(['warn', 'Weight behind the rear axle is lifting the front by about ' + Math.round(kerb * V.kf - F) + ' kg. Steering and braking get lighter.']);
   const rk = RACKS[state.canopy.rack], tl = topLoad();
   if (tl) { if (tl.kg > tl.max) out.push(['bad', tl.kg + ' kg on the ' + ITEMS[tl.host.key].name + ' lid (rack and gear). It is good for ' + tl.max + ' kg.']); }
   else if (rk && roof > rk.load) out.push(['bad', roof + ' kg on the roof. ' + rackName(state.canopy.rack) + ' is rated ' + rk.load + ' kg on the move.']);
   if (roof > 100 && !(rk && !tl && roof > rk.load)) out.push(['warn', roof + ' kg on the roof. Check your canopy\'s roof rating; many are around 100 kg on the move.']);
-  { const ac = archClear(T), ts = tyreSpec(T);
+  if (FEATURES.vehicles) { const ac = archClear(T), ts = tyreSpec(T);
     if (ac < 0) out.push(['bad', 'The ' + ts.label + ' tyres are about ' + (-ac) + ' mm into the front arches. Add suspension or body lift, or go smaller.']);
     else if (ac < 25) out.push(['warn', 'Only ' + ac + ' mm between the front tyres and the arches. They will rub on full lock and full flex.']);
     if (T.lift > 50 || T.bodyLift > 25) out.push(['warn', 'Over 50 mm of suspension lift or 25 mm of body lift usually needs engineering sign-off in most states. Check the rules where you live.']);
@@ -1991,7 +1994,7 @@ function buildTray() {
   if (T.boxes !== 'none') {
     /* start the boxes just behind the rear wheels; the rear axle sits further back along the tray on shorter cabs */
     const rearAxle = vehGeo().rearAxle * MM, TSb = tyreSpec(T), BS = BOX_STYLES[T.boxStyle] || BOX_STYLES.drop;
-    const z0 = rearAxle + TSb.R * MM + 0.04, z1 = L / 2 - 0.15, len = z1 - z0;
+    const z0 = FEATURES.vehicles ? rearAxle + TSb.R * MM + 0.04 : -L / 2 + 0.3, z1 = L / 2 - 0.15, len = z1 - z0;
     if (len > 0.3) {
       const sides = T.boxes === 'both' ? [-1, 1] : [T.boxes === 'left' ? -1 : 1];
       const bw = BS.w * MM, bh = BS.h * MM, yc = -0.06 - bh / 2, zc = (z0 + z1) / 2, lock = std('#c9ced3', 0.3, 0.8), seal = std('#101113', 0.85, 0.05);
@@ -2301,7 +2304,12 @@ function updateContact() {
   if (!contactG) { contactG = new THREE.Group(); envG.add(contactG); }
   clearGroup(contactG);
   const T = state.tray, G = geo();
-  if (!state.carOff || G.none) {
+  if ((!state.carOff || G.none) && !FEATURES.vehicles) {
+    const z0 = (-T.len / 2 - 200) * MM, z1 = (T.len / 2 + 200) * MM;
+    aimLights((z0 + z1) / 2);
+    contactG.add(contactBlob(T.wid * MM * 1.3, (z1 - z0) * 1.1, 0, (z0 + z1) / 2, 0.5));
+    [-1, 1].forEach(sx => [-1, 1].forEach(sz => contactG.add(contactBlob(0.5, 0.5, sx * 0.42, sz * (T.len / 2 - 0.32) * MM * 1000 / 1000, 0.7))));
+  } else if (!state.carOff || G.none) {
     const VG = vehGeo(), V = VG.V, z0 = VG.zBumper * MM, z1 = (T.design === 'none' ? VG.rearAxle + 700 : T.len / 2 + 150) * MM, w = V.bodyW * MM;
     aimLights((z0 + z1) / 2);
     contactG.add(contactBlob(w * 1.3, (z1 - z0) * 1.15, 0, (z0 + z1) / 2, 0.5));
@@ -2620,6 +2628,23 @@ VSPEC.colorado = Object.assign({}, VSPEC.hilux, {
 /* a thin trim piece: flat shaded and casts no shadow, so it never speckles the panel under it */
 function flat(rings, mat) { const m = loft(rings, mat, false); m.castShadow = false; return m; }
 
+/* with no ute, the tray rides on a pair of rails resting on four adjustable trestles, set to the usual deck height */
+function buildStands() {
+  const g = new THREE.Group(), T = state.tray;
+  if (T.design === 'none') return g;
+  const L = T.len * MM, floor = -rideH(T) * MM, yRail = -0.19, steel = std('#2f3338', 0.55, 0.5), cap = std('#d6a21f', 0.5, 0.2), zinc = std('#9aa0a6', 0.4, 0.6), foot = std('#1d1f22', 0.7, 0.3);
+  [-1, 1].forEach(sd => g.add(rbox(0.08, 0.1, L - 0.08, 0.02, steel, sd * 0.42, yRail, 0)));
+  [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
+    const x = sx * 0.42, z = sz * (L / 2 - 0.32), top = yRail - 0.05, h = top - floor;
+    g.add(rbox(0.3, 0.016, 0.3, 0.006, foot, x, floor + 0.008, z));
+    g.add(rbox(0.07, h, 0.07, 0.012, steel, x, floor + h / 2, z));
+    g.add(rbox(0.1, 0.035, 0.1, 0.01, cap, x, top - 0.01, z));
+    g.add(rbox(0.1, 0.14, 0.1, 0.014, steel, x, top - 0.12, z));
+    for (let k = 0; k < 5; k++) g.add(cyl(0.007, 0.11, zinc, x, floor + 0.2 + k * 0.1, z, 'z', 8));
+  }));
+  [-1, 1].forEach(sz => g.add(rbox(0.84, 0.04, 0.04, 0.01, steel, 0, floor + (yRail - floor) * 0.4, sz * (L / 2 - 0.32))));
+  return g;
+}
 function buildVehicle() {
   const T = state.tray, g = new THREE.Group(), gc = new THREE.Group(), VG = vehGeo(), V = VG.V, S = VSPEC[V.look] || VSPEC.hilux, F = S.face, G = S.gh, TS = tyreSpec(T), lift = T.lift * MM;
   const Y = h => (h - V.deckH) * MM;
@@ -3716,7 +3741,7 @@ let envBuilt = false;
 function doRebuild() {
   clampState();
   LOD.hq = true;
-  if (dirty.has('v')) { clearGroup(vehicleG); if (!state.carOff) vehicleG.add(buildVehicle()); }
+  if (dirty.has('v')) { clearGroup(vehicleG); if (!state.carOff) vehicleG.add(FEATURES.vehicles ? buildVehicle() : buildStands()); }
   if (envG) envG.position.y = 1 - standDrop() * MM;
   if (outG && envG) outG.position.y = envG.position.y;
   if (typeof updateContact === 'function') updateContact();
@@ -4270,9 +4295,10 @@ function panelTray() {
   const doorNote = { solid: 'Bolted to the solid rear panel.', hatch: 'Mounted on the hatch, so they lift with it.', barn: 'Mounted on the barn doors, one on each.', drop: 'Mounted on the drop-down door, so they hang out with it.' }[state.canopy.rear];
   const spareNote = (T.spare === 'door' || two) ? (two ? 'Two spares side by side. ' : '') + (two && state.canopy.rear === 'barn' ? doorNote : doorNote.replace('on the barn doors, one on each', 'on the left barn door')) + (two && state.canopy.shape !== 'none' && cwNow < needW ? ' <b style="color:var(--warn)">They need about ' + needW + ' mm of canopy width to sit clear of each other.</b>' : '') + (state.canopy.shape === 'none' ? ' Needs a canopy to mount on.' : '') : T.spare === 'carrier' ? 'Swing-away carrier on the tow bar. The number plate moves onto the wheel.' : T.spare === 'under' ? 'Hung under the chassis behind the rear axle.' : '';
   const hasC = state.canopy.shape !== 'none';
-  const designs = picker('tray.design', OPT.design.map(k => [k, TRAYS[k].name, TRAYS[k].sub, ICON_TRAY[k], (k === 'none' || k === 'tub') && hasC ? 'Take the canopy off first' : '']));
-  let h = '<h2 class="ttl">Your tray</h2><p class="lead">Start with your ute: pick the vehicle and cab. It starts as a bare cab-chassis, just as it leaves the factory. Then choose the tray that goes on the back.</p>' +
-    '<div class="sec"><h3>Ute</h3><div class="chips">' + vehs + '</div><p class="note">' + specs + '. Modelled on the shape and size of the real thing, with no badges. Close, not exact, so check it against yours.</p>' +
+  const designs = picker('tray.design', OPT.design.filter(k => FEATURES.vehicles || (k !== 'tub' && k !== 'none')).map(k => [k, TRAYS[k].name, TRAYS[k].sub, ICON_TRAY[k], (k === 'none' || k === 'tub') && hasC ? 'Take the canopy off first' : '']));
+  const VON = FEATURES.vehicles;
+  let h = '<h2 class="ttl">Your tray</h2><p class="lead">' + (!VON ? 'Choose the tray your canopy will sit on, then set its size, build and headboard. It stands on trestles here, so the whole focus is the canopy set-up.' : 'Start with your ute: pick the vehicle and cab. It starts as a bare cab-chassis, just as it leaves the factory. Then choose the tray that goes on the back.') + '</p>' +
+    (VON ?     '<div class="sec"><h3>Ute</h3><div class="chips">' + vehs + '</div><p class="note">' + specs + '. Modelled on the shape and size of the real thing, with no badges. Close, not exact, so check it against yours.</p>' +
     field('Cab', seg('tray.cab', V.cabs.map(k => [k, CABS[k].name])) + (V.cabNote && V.cabNote[T.cab] ? '<p class="note">' + esc(V.cabNote[T.cab]) + '</p>' : '')) +
     '<div class="ctl"><div class="lab">Ute paint</div>' + swatches('paint', OPT.paint, k => PAINTS[k][1], k => PAINTS[k][0]) + '</div></div>' +
     '<div class="sec"><h3>Tyres and lift</h3>' +
@@ -4280,7 +4306,7 @@ function panelTray() {
     field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) +
     rng('tray.lift', 'Suspension lift', 0, 150, 5) +
     field('Body lift', seg('tray.bodyLift', [[0, 'None'], [25, '1 inch'], [50, '2 inch']])) +
-    '<p class="note">' + tyreSpec(T).label + ' tyres stand ' + tyreSpec(T).R * 2 + ' mm tall. Deck is ' + rideH(T) + ' mm off the ground. ' + (archClear(T) < 0 ? '<b style="color:var(--bad)">The tyres are in the front arches.</b> Lift it or fit smaller tyres.' : archClear(T) < 25 ? '<b style="color:var(--warn)">Only ' + archClear(T) + ' mm of arch clearance, so they will rub.</b>' : archClear(T) + ' mm of arch clearance.') + ' Suspension lift raises the whole ute off the axles. A body lift raises only the cab off the chassis.</p></div>' +
+    '<p class="note">' + tyreSpec(T).label + ' tyres stand ' + tyreSpec(T).R * 2 + ' mm tall. Deck is ' + rideH(T) + ' mm off the ground. ' + (archClear(T) < 0 ? '<b style="color:var(--bad)">The tyres are in the front arches.</b> Lift it or fit smaller tyres.' : archClear(T) < 25 ? '<b style="color:var(--warn)">Only ' + archClear(T) + ' mm of arch clearance, so they will rub.</b>' : archClear(T) + ' mm of arch clearance.') + ' Suspension lift raises the whole ute off the axles. A body lift raises only the cab off the chassis.</p></div>' : '') +
     '<div class="sec"><h3>Tray</h3>' + designs +
     (bare ? '<p class="note">Pick a tray to carry on. Sizes, material, headboard and lights show up once you do.</p>' : '<p class="note">' + (T.design === 'flat' ? 'A plain deck you can add drop sides to.' : 'Sides run behind the canopy and wherever the tray is bare. Under a canopy the canopy sits on the deck.') + '</p>') + '</div>';
   if (bare) return h + nextRow(null, 1);
@@ -4308,8 +4334,9 @@ function panelTray() {
     (T.boxes !== 'none' ? field('Box style', picker('tray.boxStyle', Object.keys(BOX_STYLES).map(k => [k, BOX_STYLES[k].name, BOX_STYLES[k].sub, '']))) : '') +
     field('Mud guards', picker('tray.guards', Object.keys(GUARDS).map(k => [k, GUARDS[k].name, GUARDS[k].sub, '']))) + '</div>' +
     '<div class="sec"><h3>Spare wheels</h3>' +
-    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', carrier: 'Swing-away carrier on the tow bar', under: 'Hung under the chassis' })[k], '']))) +
-    (spareNote ? '<p class="note">' + spareNote + '</p>' : '') + '</div>' +
+    field('Where', picker('tray.spare', Object.keys(SPARE).map(k => [k, SPARE[k].name, ({ none: 'No spare carried', door: 'On the canopy rear door', door2: 'Two on the canopy rear', carrier: 'Swing-away carrier behind the tray', under: 'Hung under the tray' })[k], '']))) +
+    (spareNote ? '<p class="note">' + spareNote + '</p>' : '') +
+    (!FEATURES.vehicles && T.spare !== 'none' ? field('Tyre', picker('tray.tyre', Object.keys(TYRES).map(k => [k, TYRES[k].name, TYRES[k].sub, '']))) + field('Size', picker('tray.tyreSize', Object.keys(TYRE_SIZES).map(k => [k, k === 'std' ? 'Standard ' + (V.tyreLabel || '265/65R17') : TYRE_SIZES[k].name, TYRE_SIZES[k].sub, '']))) + '<p class="note">' + tyreSpec(T).label + ' tyre, ' + tyreSpec(T).R * 2 + ' mm tall.</p>' : '') + '</div>' +
     '<div class="sec"><h3>Headboard</h3>' +
     field('Size', seg('tray.head', [['none', 'None'], ['half', 'Half'], ['full', 'Full rack']])) +
     (hasHead ? field('Shape', headShapes) +
@@ -4446,18 +4473,19 @@ function panelLoad() {
   const bar = (v, max, label) => '<div class="axl"><div class="axh"><span>' + label + '</span><b>' + v + ' / ' + max + ' kg</b></div><div class="bar"><i class="' + (v > max ? 'bad' : v > max * 0.92 ? 'warn' : '') + '" style="width:' + Math.min(100, v / max * 100) + '%"></i></div></div>';
   const ppl = L.list.filter(m => m.cab).reduce((a, m) => a + m.kg, 0), cabl = L.list.find(m => m.n === 'Cabling');
   const parts = partsList();
-  return '<h2 class="ttl">Load</h2><p class="lead">What the build weighs, where it sits, and what it does to each axle.</p>' +
+  const VON = FEATURES.vehicles;
+  return '<h2 class="ttl">Load</h2><p class="lead">' + (VON ? 'What the build weighs, where it sits, and what it does to each axle.' : 'What the build weighs and where it sits, checked against the payload you set.') + '</p>' +
     '<div class="sec"><h3>Weight</h3><table class="tbl">' + (w.tray ? '<tr><td>Tray</td><td>' + w.tray + ' kg</td></tr>' : '') + (w.canopy ? '<tr><td>Canopy</td><td>' + w.canopy + ' kg</td></tr>' : '') + (w.spare ? '<tr><td>Spare wheel and mount</td><td>' + w.spare + ' kg</td></tr>' : '') +
     '<tr><td>Gear (' + state.items.length + ' items)</td><td>' + w.gear + ' kg</td></tr>' + (cabl ? '<tr><td>Cabling</td><td>' + cabl.kg + ' kg</td></tr>' : '') + '<tr><td>People (' + state.people + ')</td><td>' + ppl + ' kg</td></tr>' +
     '<tr class="tot"><td>Total added</td><td>' + L.add + ' kg</td></tr></table>' +
     '<div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, pct) + '%"></i></div>' +
     '<div class="two"><div class="ctl"><div class="lab">Payload</div><div class="num"><input type="number" inputmode="numeric" min="300" max="3500" step="10" value="' + L.pay + '" data-pay="1" aria-label="Vehicle payload in kilograms"><span>kg</span></div></div>' +
     '<div class="ctl"><div class="lab">' + (left >= 0 ? 'Left over' : 'Over by') + '</div><div class="num" style="color:' + (left >= 0 ? 'var(--ok)' : 'var(--bad)') + ';font-size:18px">' + Math.abs(left) + ' kg</div></div></div>' +
-    '<div class="two"><div class="ctl"><div class="lab">People in the cab</div><div class="num"><input type="number" inputmode="numeric" min="0" max="' + seatCount(T.cab) + '" step="1" value="' + state.people + '" data-people="1" aria-label="People in the cab"><span>× 80 kg</span></div></div>' +
+    (VON ? '<div class="two"><div class="ctl"><div class="lab">People in the cab</div><div class="num"><input type="number" inputmode="numeric" min="0" max="' + seatCount(T.cab) + '" step="1" value="' + state.people + '" data-people="1" aria-label="People in the cab"><span>× 80 kg</span></div></div>' +
     (state.payloadCustom ? '<div class="ctl"><div class="lab">&nbsp;</div><button class="btn" data-act="payreset">Use ' + V.name + ' figure</button></div>' : '<div></div>') + '</div>' +
-    '<p class="note">Payload starts at the estimate for a ' + V.name + ' ' + CABS[T.cab].name.toLowerCase() + ' cab-chassis (' + V.mass[T.cab] + ' kg kerb, ' + V.gvm + ' kg GVM). Put in the figure from your compliance plate. Tray and canopy weights are estimates from size and material.</p></div>' +
-    '<div class="sec"><h3>Axles</h3>' + bar(L.F, L.fal, 'Front axle') + bar(L.R, L.ral, 'Rear axle') + bar(L.total, L.gvm, 'Gross (GVM)') +
-    '<p class="note">Centre of the added load: ' + Math.abs(L.cx) + ' mm ' + (L.cx >= 0 ? 'right' : 'left') + ' of centre, about ' + L.cy + ' mm above the deck. Roof load ' + L.roof + ' kg. Axle limits are estimates; check yours.</p></div>' +
+    '<p class="note">Payload starts at the estimate for a ' + V.name + ' ' + CABS[T.cab].name.toLowerCase() + ' cab-chassis (' + V.mass[T.cab] + ' kg kerb, ' + V.gvm + ' kg GVM). Put in the figure from your compliance plate. Tray and canopy weights are estimates from size and material.</p></div>' : '<p class="note">Put in the payload from your vehicle\'s compliance plate. Tray and canopy weights are estimates from size and material.</p></div>') +
+    (VON ? '<div class="sec"><h3>Axles</h3>' + bar(L.F, L.fal, 'Front axle') + bar(L.R, L.ral, 'Rear axle') + bar(L.total, L.gvm, 'Gross (GVM)') +
+    '<p class="note">Centre of the added load: ' + Math.abs(L.cx) + ' mm ' + (L.cx >= 0 ? 'right' : 'left') + ' of centre, about ' + L.cy + ' mm above the deck. Roof load ' + L.roof + ' kg. Axle limits are estimates; check yours.</p></div>' : '<div class="sec"><h3>Balance</h3><p class="note">Centre of the added load: ' + Math.abs(L.cx) + ' mm ' + (L.cx >= 0 ? 'right' : 'left') + ' of centre, about ' + L.cy + ' mm above the deck. Roof load ' + L.roof + ' kg.</p></div>') +
     '<div class="sec"><h3>Checks</h3>' + (issues.length ? '<div class="list">' + issues.map(([k, m]) => '<div class="row ' + k + '" style="grid-template-columns:minmax(0,1fr)"><div class="nm">' + esc(m) + '</div></div>').join('') + '</div>' : '<p class="note" style="color:var(--ok);font-weight:600">Everything fits and the axles are happy.</p>') +
     '<p class="note">Highest point: ' + roofTop() + ' mm above the tray deck.</p></div>' +
     '<div class="sec"><h3>Parts list</h3>' + parts.map(S => '<div class="plh">' + esc(S.h) + '</div><table class="tbl parts">' + S.rows.map(r => '<tr><td>' + (r[2] > 1 ? '<b>' + r[2] + ' ×</b> ' : '') + esc(r[0]) + (r[1] ? '<div class="dm">' + esc(r[1]) + '</div>' : '') + '</td><td>' + (r[3] !== '' ? r[3] + ' kg' : '') + '</td></tr>').join('') + '</table>').join('') +
@@ -4624,7 +4652,7 @@ function bpTray(c, G, T, VG) {
   c.save();
   /* boxes under the tray, hidden, so dashed */
   if (T.boxes !== 'none') {
-    const z0 = VG.rearAxle + 420, z1 = L / 2 - 150;
+    const z0 = FEATURES.vehicles ? VG.rearAxle + 420 : -L / 2 + 300, z1 = L / 2 - 150;
     if (z1 - z0 > 300) {
       c.setLineDash([6, 4]); c.strokeStyle = BP.soft; c.lineWidth = 1.2;
       (T.boxes === 'both' ? [-1, 1] : [T.boxes === 'left' ? -1 : 1]).forEach(sd => { bpRectW(c, sd * (W / 2 - 200) - 160, z0, sd * (W / 2 - 200) + 160, z1, 25); c.stroke(); });
@@ -4852,7 +4880,7 @@ function bpDraw() {
   const sel = getItem(state.sel), selHere = sel && bpLayerOf(sel) === bp.layer ? sel : null;
   const A = bpDatum(selHere);
   bpGrid(c, A);
-  if (!state.carOff) bpVehicle(c, T, VG);
+  if (!state.carOff && FEATURES.vehicles) bpVehicle(c, T, VG);
   bpTray(c, G, T, VG);
   bpCanopy(c, G, C, T, roofL);
   bpSpare(c, G, T, C);

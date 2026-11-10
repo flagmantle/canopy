@@ -18,6 +18,7 @@ STUB = """
 TEST = r"""
 () => {
   const errs = [];
+  FEATURES.vehicles = true;   /* the ute code is switched off in the app but still tested, so it can come back */
   const run = (label, fn) => { try { fn(); } catch (e) { errs.push(label + ': ' + (e && e.stack ? e.stack.split('\n').slice(0,3).join(' | ') : e)); } };
   const T = state.tray, C = state.canopy;
   let n = 0;
@@ -84,6 +85,17 @@ TEST = r"""
   run('legacy code', () => { const o = { v: 1, paint: 'silver', tray: { veh: 'hilux', cab: 'dual', spare: 'none', len: 1826, wid: 1850, mat: 'steel', finish: 'checker', colour: 'black', head: 'full', sides: 'none', boxes: 'none', lights: 'red' }, canopy: { len: 1700, wid: 1850, hgt: 1150, mat: 'alu', finish: 'checker', colour: 'raw', left: 1, right: 1, style: 'gull', windows: false, rear: 'solid', rack: false }, payload: 1000, items: [], wires: [] };
     const ok = importCode(btoa(JSON.stringify(o))); if (!ok) throw new Error('import failed'); if (state.tray.design !== 'flat' || state.tray.headShape !== 'square' || state.canopy.shape !== 'square') throw new Error('legacy migration wrong: ' + state.tray.design + state.tray.headShape + state.canopy.shape); });
   run('roundtrip', () => { const c = exportCode(); importCode(c); if (exportCode() !== c) throw new Error('roundtrip differs'); });
+  // vehicles switched off: the tray stands on trestles and the tools work on the canopy set-up alone
+  FEATURES.vehicles = false;
+  { const S2 = state.tray, K2 = state.canopy;
+    S2.design = 'tub'; S2.lift = 80; S2.bodyLift = 25; S2.guards = 'flares'; S2.veh = 'colorado'; clampState();
+    if (S2.design !== 'factory' || S2.lift || S2.bodyLift || S2.guards !== 'none' || S2.veh !== VEH_DEFAULT) errs.push('vehicles-off rules not enforced');
+    for (const d of ['factory', 'dropside', 'rail', 'flat']) for (const cs of ['none', 'aframe', 'square', 'custom']) for (const sp of ['none', 'door', 'door2', 'carrier', 'under']) {
+      S2.design = d; K2.shape = cs; S2.spare = sp; S2.boxes = 'both'; clampState();
+      run('off ' + [d, cs, sp].join('/'), () => { buildStands(); buildTray(); buildCanopy(); panelTray(); panelCanopy(); panelLoad(); panelFit(); updateHud(); loadCheck(); partsList(); layout(); });
+    }
+    run('off default', () => { if (defaultState().tray.design !== 'factory') throw new Error('default tray should be the factory tray'); });
+    FEATURES.vehicles = true; }
   return { errs, n };
 }
 """

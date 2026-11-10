@@ -63,6 +63,10 @@ UI event (data-set / data-act / rng / seg / picker)
 - Canopy 3D: `slab()` hugs the angled outer surface; `polyMesh` makes bevelled panels; `chordHinge()` swings side and barn doors about the bottom-to-top chord of an angled wall.
 - Tray sides and tailgate are only drawn where no canopy covers them (bare tray, or behind the canopy).
 
+## Vehicles are switched off
+
+`FEATURES.vehicles = false` (top of the logic region). The ute models stay in the file and in the tests, but the app works on the canopy set-up only: the tray rides on trestles (`buildStands()`), the Ute / tyres / lift sections, the tub and "no tray" options, the blueprint ute outline and the axle checks are hidden, and `clampState()` forces lift, body lift, mud guards and tubs off (a saved tub becomes a factory tray). The default tray is the factory alloy tray. Spare-wheel tyre and size still work, next to the spare. Flip the flag to bring the utes back; the smoke test sets it true for the ute sections and false for the vehicles-off section.
+
 ## Level of detail and photo mode
 
 - `LOD.hq` (global) picks the detail level. It is now always true: the editor and photo mode both build the high-detail models (fine body sections, tyres with the tread carved into one moulded surface, open alloy rims with 3D spokes, brake discs, layered lamps, full undercarriage). Wheels are cached per size and style (`_wheelCache`) and cloned; their geometry is flagged `keep` so `disposeObj` leaves it alone.
