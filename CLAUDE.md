@@ -65,7 +65,7 @@ UI event (data-set / data-act / rng / seg / picker)
 
 ## Level of detail and photo mode
 
-- `LOD.hq` (global) picks the detail level for every vehicle, wheel and face: false = light low-poly models for the editor, true = the high-poly versions (finer body sections, tread blocks, brake discs, layered lamps, full undercarriage). `doRebuild()` sets it from `state.photo`.
+- `LOD.hq` (global) picks the detail level. It is now always true: the editor and photo mode both build the high-detail models (fine body sections, tyres with the tread carved into one moulded surface, open alloy rims with 3D spokes, brake discs, layered lamps, full undercarriage). Wheels are cached per size and style (`_wheelCache`) and cloned; their geometry is flagged `keep` so `disposeObj` leaves it alone.
 - **Photo mode** (`setPhoto(on)`, button in the view bar, Esc exits): hides the shed, builds an outdoor scene once (`buildOutdoors()`: sky dome, sun with shadows, outback track, trees, hills, tufts, fence), switches tone mapping and reflections (`buildEnvMapOut()`), folds the panel away and rebuilds all parts at high poly. `savePhoto()` / `sharePhoto()` render a 2x PNG (Web Share where available). `state.photo` is never saved or put in share codes.
 - Smoke tests build every model at both levels (`LOD.hq = true/false`); photo mode itself needs real WebGL, so check it with the offline render recipe under Testing.
 
